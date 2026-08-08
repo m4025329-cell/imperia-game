@@ -41,18 +41,26 @@
     --gold-light: #fbe58a;
     --gold-dim: #9c7a1e;
     --text: #eef1f8;
-    --text-dim: #8b93a7;
+    --text-dim: #7c8499;
     --green: #4a9d6f;
   }
 
   *{ box-sizing: border-box; margin:0; padding:0; }
 
   body{
-    background: radial-gradient(circle at 50% 0%, #101a30 0%, var(--bg) 60%);
+    background:
+      radial-gradient(circle at 50% 0%, #101a30 0%, var(--bg) 60%),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-blend-mode: normal, overlay;
+    background-repeat: no-repeat, repeat;
     color: var(--text);
     font-family: 'Inter', sans-serif;
     min-height: 100vh;
     padding-bottom: 90px;
+  }
+
+  .brand, .overlay-title, .biz-modal-name, .profile-name{
+    text-shadow: 0 0 16px rgba(212,175,55,0.25);
   }
 
   header{
@@ -99,11 +107,13 @@
     font-size: 38px;
     color: var(--gold-light);
     letter-spacing: 0.5px;
-    transition: transform 0.15s ease;
+    text-shadow: 0 0 14px rgba(212,175,55,0.4), 0 0 32px rgba(212,175,55,0.15);
+    transition: transform 0.2s ease, text-shadow 0.2s ease;
   }
 
   .capital-value.pulse{
-    transform: scale(1.04);
+    transform: scale(1.07);
+    text-shadow: 0 0 22px rgba(251,229,138,0.8), 0 0 48px rgba(212,175,55,0.45);
   }
 
   .income-rate{
@@ -133,17 +143,45 @@
     border: 1px solid var(--border);
     border-radius: 14px;
     padding: 14px;
+    padding-bottom: 16px;
     display:flex;
     align-items:center;
     gap: 12px;
     cursor: pointer;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .biz-progress{
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: 3px;
+    background: rgba(255,255,255,0.04);
+  }
+
+  .biz-progress-fill{
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--gold-dim), var(--gold-light));
+    box-shadow: 0 0 6px rgba(212,175,55,0.5);
+    transition: width 0.4s ease;
+  }
+
+  @keyframes cardBoughtFlash{
+    0%{ box-shadow: 0 0 0 0 rgba(212,175,55,0.55); transform: scale(1); }
+    35%{ box-shadow: 0 0 26px 6px rgba(212,175,55,0.5); transform: scale(1.025); }
+    100%{ box-shadow: 0 0 0 0 rgba(212,175,55,0); transform: scale(1); }
+  }
+
+  .biz-card.bought-flash{
+    animation: cardBoughtFlash 0.55s ease;
   }
 
   .biz-icon{
     width: 44px;
     height: 44px;
     border-radius: 10px;
-    background: var(--surface-2);
+    background: linear-gradient(145deg, var(--surface-2), #1c2542);
     display:flex;
     align-items:center;
     justify-content:center;
@@ -178,7 +216,7 @@
   }
 
   .buy-btn{
-    background: var(--gold);
+    background: linear-gradient(145deg, var(--gold-light), var(--gold));
     color: #1a1300;
     border: none;
     border-radius: 8px;
@@ -187,15 +225,23 @@
     font-weight: 600;
     font-family: 'JetBrains Mono', monospace;
     cursor: pointer;
+    box-shadow: 0 3px 10px rgba(212,175,55,0.3), inset 0 1px 0 rgba(255,255,255,0.35);
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+  }
+
+  .buy-btn:active{
+    transform: scale(0.96);
+    box-shadow: 0 1px 4px rgba(212,175,55,0.3);
   }
 
   .buy-btn:disabled{
     background: var(--surface-2);
     color: var(--text-dim);
+    box-shadow: none;
   }
 
   .buy-btn.affordable{
-    box-shadow: 0 0 0 1px var(--gold-light) inset;
+    box-shadow: 0 3px 12px rgba(212,175,55,0.45), 0 0 0 1px var(--gold-light) inset;
   }
 
   .biz-level{
@@ -211,6 +257,23 @@
     display:flex;
     padding: 10px 8px calc(10px + env(safe-area-inset-bottom));
   }
+
+  .nav-indicator{
+    position: absolute;
+    top: 4px;
+    left: 0;
+    height: 3px;
+    width: 33.333%;
+    border-radius: 2px;
+    background: linear-gradient(90deg, var(--gold-dim), var(--gold-light));
+    box-shadow: 0 0 10px rgba(212,175,55,0.7);
+    transition: transform 0.35s cubic-bezier(.34,1.4,.64,1);
+    transform: translateX(0%);
+    pointer-events: none;
+  }
+
+  .nav-indicator[data-index="1"]{ transform: translateX(100%); }
+  .nav-indicator[data-index="2"]{ transform: translateX(200%); }
 
   .nav-item{
     flex:1;
@@ -237,6 +300,16 @@
   .view{ display:none; }
   .view.active{ display:block; }
 
+  @keyframes overlayBackdropIn{
+    from{ opacity: 0; }
+    to{ opacity: 1; }
+  }
+
+  @keyframes overlayCardIn{
+    from{ opacity: 0; transform: scale(0.9) translateY(10px); }
+    to{ opacity: 1; transform: scale(1) translateY(0); }
+  }
+
   .overlay{
     position: fixed;
     inset: 0;
@@ -246,6 +319,7 @@
     justify-content:center;
     z-index: 100;
     padding: 20px;
+    animation: overlayBackdropIn 0.25s ease;
   }
 
   .overlay-card{
@@ -256,6 +330,7 @@
     text-align:center;
     max-width: 320px;
     width: 100%;
+    animation: overlayCardIn 0.3s cubic-bezier(.16,1,.3,1);
   }
 
   .overlay-icon{ font-size: 32px; margin-bottom: 10px; }
@@ -282,7 +357,7 @@
   }
 
   .overlay-btn{
-    background: var(--gold);
+    background: linear-gradient(145deg, var(--gold-light), var(--gold));
     color: #1a1300;
     border: none;
     border-radius: 10px;
@@ -291,6 +366,12 @@
     font-weight: 600;
     width: 100%;
     cursor: pointer;
+    box-shadow: 0 4px 14px rgba(212,175,55,0.35), inset 0 1px 0 rgba(255,255,255,0.35);
+    transition: transform 0.12s ease;
+  }
+
+  .overlay-btn:active{
+    transform: scale(0.97);
   }
 
   /* Rating view */
@@ -614,7 +695,7 @@
   .inheritance-continue{
     margin: 24px 18px 0;
     width: calc(100% - 36px);
-    background: var(--gold);
+    background: linear-gradient(145deg, var(--gold-light), var(--gold));
     color: #1a1300;
     border: none;
     border-radius: 12px;
@@ -623,6 +704,12 @@
     font-weight: 700;
     font-family: inherit;
     cursor: pointer;
+    box-shadow: 0 4px 14px rgba(212,175,55,0.35), inset 0 1px 0 rgba(255,255,255,0.35);
+    transition: transform 0.12s ease;
+  }
+
+  .inheritance-continue:active{
+    transform: scale(0.98);
   }
 
   .inheritance-continue:disabled{
@@ -698,7 +785,7 @@
 
   .mechanic-btn{
     width: 100%;
-    background: var(--gold);
+    background: linear-gradient(145deg, var(--gold-light), var(--gold));
     color: #1a1300;
     border: none;
     border-radius: 8px;
@@ -707,12 +794,20 @@
     font-weight: 600;
     font-family: inherit;
     cursor: pointer;
+    box-shadow: 0 3px 10px rgba(212,175,55,0.3), inset 0 1px 0 rgba(255,255,255,0.35);
+    transition: transform 0.12s ease;
+  }
+
+  .mechanic-btn:active{
+    transform: scale(0.97);
   }
 
   .mechanic-btn:disabled{
     background: var(--border);
     color: var(--text-dim);
     cursor: not-allowed;
+    box-shadow: none;
+    transform: none;
   }
 
   .mechanic-btn.affordable{
@@ -949,6 +1044,7 @@
     </div>
 
     <nav>
+      <div class="nav-indicator" id="navIndicator" data-index="0"></div>
       <button class="nav-item active" data-view="business">
         <div class="nav-icon">◆</div>
         <div>Бизнесы</div>
@@ -1022,7 +1118,7 @@
 
   // A "game day" is a compact 60-second cycle used only for the "/день"
   // income display — real-time capital accrual (every 1s) is unaffected.
-  const GAME_DAY_SECONDS = 60;
+  const GAME_DAY_SECONDS = 1800;
 
   let capital = 15000;
   let totalEarned = 0;
@@ -1173,13 +1269,19 @@
     document.getElementById('rankLabel').textContent = rankFor(totalIncome());
   }
 
+  // Set right before a renderAll() triggered by a purchase/upgrade so the
+  // freshly-rebuilt card for that business gets a one-shot "bought" flash.
+  let flashBizId = null;
+
   function renderList(){
     const list = document.getElementById('bizList');
     list.innerHTML = '';
     businesses.forEach(biz=>{
       const cost = costFor(biz);
       const affordable = capital >= cost;
+      const progressPct = Math.max(0, Math.min(100, (capital / cost) * 100));
       const card = document.createElement('div');
+      const progressBar = `<div class="biz-progress"><div class="biz-progress-fill" style="width:${progressPct}%"></div></div>`;
 
       if (!biz.purchased){
         card.className = 'biz-card biz-card-locked';
@@ -1194,6 +1296,7 @@
               Купить бизнес · ${fmt(cost)}
             </button>
           </div>
+          ${progressBar}
         `;
       } else {
         card.className = 'biz-card' + (biz.paused ? ' biz-card-paused' : '');
@@ -1211,8 +1314,11 @@
               ${fmt(cost)}
             </button>
           </div>
+          ${progressBar}
         `;
       }
+
+      if (biz.id === flashBizId) card.classList.add('bought-flash');
 
       card.addEventListener('click', (e)=>{
         if (e.target.closest('.buy-btn')) return;
@@ -1237,6 +1343,8 @@
             biz.level += 1;
           }
           if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+          flashBizId = biz.id;
+          setTimeout(()=>{ if (flashBizId === biz.id) flashBizId = null; }, 550);
           renderAll();
           saveProgress();
         }
@@ -1617,7 +1725,7 @@
     document.getElementById('incomeRate').textContent = `+${fmt(totalIncome() * GAME_DAY_SECONDS)} / день`;
     if (pulse){
       el.classList.add('pulse');
-      setTimeout(()=> el.classList.remove('pulse'), 150);
+      setTimeout(()=> el.classList.remove('pulse'), 380);
     }
   }
 
@@ -1752,6 +1860,8 @@
 
   // ---------- Views ----------
 
+  const NAV_ORDER = ['business', 'rating', 'profile'];
+
   function switchView(name){
     document.querySelectorAll('#app .view').forEach(v=>{
       v.classList.toggle('active', v.id === 'view-' + name);
@@ -1759,6 +1869,8 @@
     document.querySelectorAll('.nav-item').forEach(n=>{
       n.classList.toggle('active', n.dataset.view === name);
     });
+    const indicator = document.getElementById('navIndicator');
+    if (indicator) indicator.dataset.index = NAV_ORDER.indexOf(name);
     if (name === 'rating') renderRating();
     if (name === 'profile') renderProfile();
   }
