@@ -732,6 +732,18 @@
     flex-direction:column;
     gap: 8px;
   }
+
+  /* Locked (not yet purchased) business card */
+  .biz-card-locked{
+    opacity: 0.6;
+  }
+
+  .asset-sell-btn:disabled{
+    opacity: 0.5;
+    cursor: not-allowed;
+    border-color: var(--border);
+    color: var(--text-dim);
+  }
 </style>
 </head>
 <body>
@@ -770,6 +782,18 @@
         </div>
       </div>
 
+      <div class="section-title">Работа</div>
+      <div class="biz-list">
+        <div class="asset-card">
+          <div class="asset-icon">💼</div>
+          <div class="asset-info">
+            <div class="asset-name" id="jobName">Подработка</div>
+            <div class="asset-meta" id="jobMeta">$10–30 за смену</div>
+          </div>
+          <button class="asset-sell-btn" id="jobBtn" style="min-width:130px">Пойти на работу</button>
+        </div>
+      </div>
+
       <div class="section-title">Активы</div>
       <div class="biz-list" id="assetList"></div>
 
@@ -795,6 +819,30 @@
           <div class="eco-actions">
             <button class="mechanic-btn" id="ecoPayFine">Заплатить штраф $300</button>
             <button class="mechanic-btn" id="ecoBribe">Дать взятку $150</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="overlay" id="kioskBreakOverlay" style="display:none">
+        <div class="overlay-card">
+          <div class="overlay-icon">☕💥</div>
+          <div class="overlay-title">Кофемашина сломалась</div>
+          <div class="overlay-desc">Ларёк временно не работает. Почините сейчас или подождите.</div>
+          <div class="eco-actions">
+            <button class="mechanic-btn" id="kioskFixBtn">Починить за $80</button>
+            <button class="mechanic-btn" id="kioskWaitBtn">Подождать (простой 2 мин)</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="overlay" id="cafeReviewOverlay" style="display:none">
+        <div class="overlay-card">
+          <div class="overlay-icon">📉</div>
+          <div class="overlay-title">Плохой отзыв в интернете</div>
+          <div class="overlay-desc">Доход кафе упал на 50% на 3 минуты.</div>
+          <div class="eco-actions">
+            <button class="mechanic-btn" id="cafeFixBtn">Отработать за $200</button>
+            <button class="mechanic-btn" id="cafeWaitBtn">Подождать</button>
           </div>
         </div>
       </div>
@@ -857,17 +905,26 @@
   const userId = tg?.initDataUnsafe?.user?.id || 'guest_' + (localStorage.getItem('guestId') || (()=>{ const id='guest_'+Math.random().toString(36).slice(2); localStorage.setItem('guestId', id); return id; })());
 
   const businesses = [
-    { id:'kiosk', name:'Ларёк с кофе', icon:'☕', baseCost:100, baseIncome:1, level:0 },
-    { id:'wash', name:'Автомойка', icon:'🚗', baseCost:600, baseIncome:5, level:0 },
-    { id:'cafe', name:'Кафе', icon:'🍽', baseCost:3500, baseIncome:22, level:0 },
-    { id:'gym', name:'Фитнес-клуб', icon:'🏋', baseCost:9000, baseIncome:48, level:0 },
-    { id:'office', name:'Бизнес-центр', icon:'🏢', baseCost:20000, baseIncome:110, level:0 },
-    { id:'hotel', name:'Отель', icon:'🏨', baseCost:55000, baseIncome:290, level:0 },
-    { id:'factory', name:'Завод', icon:'⚙', baseCost:120000, baseIncome:650, level:0 },
-    { id:'bank', name:'Банк', icon:'🏦', baseCost:400000, baseIncome:2100, level:0 },
-    { id:'tech', name:'IT-корпорация', icon:'💻', baseCost:1500000, baseIncome:7800, level:0 },
-    { id:'airline', name:'Авиакомпания', icon:'✈', baseCost:6000000, baseIncome:29000, level:0 },
+    { id:'kiosk', name:'Ларёк с кофе', icon:'☕', baseCost:100, baseIncome:1, level:0, purchased:false },
+    { id:'wash', name:'Автомойка', icon:'🚗', baseCost:600, baseIncome:5, level:0, purchased:false },
+    { id:'cafe', name:'Кафе', icon:'🍽', baseCost:3500, baseIncome:22, level:0, purchased:false },
+    { id:'gym', name:'Фитнес-клуб', icon:'🏋', baseCost:9000, baseIncome:48, level:0, purchased:false },
+    { id:'office', name:'Бизнес-центр', icon:'🏢', baseCost:20000, baseIncome:110, level:0, purchased:false },
+    { id:'hotel', name:'Отель', icon:'🏨', baseCost:55000, baseIncome:290, level:0, purchased:false },
+    { id:'factory', name:'Завод', icon:'⚙', baseCost:120000, baseIncome:650, level:0, purchased:false },
+    { id:'bank', name:'Банк', icon:'🏦', baseCost:400000, baseIncome:2100, level:0, purchased:false },
+    { id:'tech', name:'IT-корпорация', icon:'💻', baseCost:1500000, baseIncome:7800, level:0, purchased:false },
+    { id:'airline', name:'Авиакомпания', icon:'✈', baseCost:6000000, baseIncome:29000, level:0, purchased:false },
   ];
+
+  // Simple job system: available from the very start, before any business is
+  // purchased. `jobs` is a list so more (better-paid) professions can be added
+  // later and unlocked by capital/rank; `currentJobId` picks the active one.
+  const jobs = [
+    { id:'gig', name:'Подработка', minPay:10, maxPay:30, cooldownMs:30000 },
+  ];
+  let currentJobId = 'gig';
+  let jobReadyAt = 0;
 
   // Inheritance assets: sell for one-time cash, or keep for ongoing benefit.
   // status: null (undecided) | 'sold' | 'kept'
@@ -893,10 +950,15 @@
   let capital = 500;
   let totalEarned = 0;
 
-  // Extra per-business state used by business-specific mechanics (e.g. wash's
-  // hasDryClean/boostUntil/boostReadyAt/ecoCheckAt). Listed explicitly so the
-  // save/load code stays generic as more mechanics are added per business.
-  const EXTRA_BIZ_KEYS = ['hasDryClean', 'boostUntil', 'boostReadyAt', 'ecoCheckAt'];
+  // Extra per-business state used by business-specific mechanics. Listed
+  // explicitly so the save/load code stays generic as more mechanics are
+  // added per business — just add the field name here.
+  const EXTRA_BIZ_KEYS = [
+    'purchased',
+    'hasDryClean', 'boostUntil', 'boostReadyAt', 'ecoCheckAt',
+    'hasBarista', 'brokenUntil', 'breakCheckAt',
+    'hasNewMenu', 'hasChef', 'reviewPenaltyUntil', 'reviewCheckAt',
+  ];
 
   // ---------- Save / Load (Firebase Firestore) ----------
 
@@ -908,6 +970,8 @@
         const data = snap.data();
         capital = data.capital ?? capital;
         totalEarned = data.totalEarned ?? totalEarned;
+        jobReadyAt = data.jobReadyAt ?? jobReadyAt;
+        currentJobId = data.currentJobId ?? currentJobId;
         (data.businesses || []).forEach(saved=>{
           const b = businesses.find(x=>x.id === saved.id);
           if (b){
@@ -915,6 +979,10 @@
             EXTRA_BIZ_KEYS.forEach(k=>{ if (saved[k] !== undefined) b[k] = saved[k]; });
           }
         });
+        // Back-compat: saves made before the purchased-lock feature existed
+        // only have `level`. Any business with a level already earned income,
+        // so treat it as purchased instead of relocking it.
+        businesses.forEach(b=>{ if (b.level > 0) b.purchased = true; });
         (data.assets || []).forEach(saved=>{
           const a = assets.find(x=>x.id === saved.id);
           if (a && (saved.status === 'sold' || saved.status === 'kept')) a.status = saved.status;
@@ -931,6 +999,8 @@
       await window.__setDoc(ref, {
         capital,
         totalEarned,
+        jobReadyAt,
+        currentJobId,
         businesses: businesses.map(b=>{
           const obj = { id:b.id, level:b.level };
           EXTRA_BIZ_KEYS.forEach(k=>{ if (b[k] !== undefined) obj[k] = b[k]; });
@@ -950,9 +1020,17 @@
 
   function incomePerSec(biz){
     let income = biz.baseIncome * biz.level;
+    const now = Date.now();
     if (biz.id === 'wash'){
       if (biz.hasDryClean) income += 3 * biz.level;
-      if (biz.boostUntil && Date.now() < biz.boostUntil) income *= 2;
+      if (biz.boostUntil && now < biz.boostUntil) income *= 2;
+    } else if (biz.id === 'kiosk'){
+      if (biz.brokenUntil && now < biz.brokenUntil) return 0;
+      if (biz.hasBarista) income += 2 * biz.level;
+      if (biz.boostUntil && now < biz.boostUntil) income *= 2;
+    } else if (biz.id === 'cafe'){
+      if (biz.hasNewMenu) income += 8 * biz.level;
+      if (biz.reviewPenaltyUntil && now < biz.reviewPenaltyUntil) income *= 0.5;
     }
     return income;
   }
@@ -988,21 +1066,40 @@
       const cost = costFor(biz);
       const affordable = capital >= cost;
       const card = document.createElement('div');
-      card.className = 'biz-card';
-      card.innerHTML = `
-        <div class="biz-icon">${biz.icon}</div>
-        <div class="biz-info">
-          <div class="biz-name">${biz.name}</div>
-          <div class="biz-meta">+${fmt(incomePerSec(biz))}/сек · <span class="biz-level">ур. ${biz.level}</span></div>
-        </div>
-        <div class="biz-action">
-          <button class="buy-btn ${affordable ? 'affordable':''}" ${affordable ? '' : 'disabled'} data-id="${biz.id}">
-            ${fmt(cost)}
-          </button>
-        </div>
-      `;
+
+      if (!biz.purchased){
+        card.className = 'biz-card biz-card-locked';
+        card.innerHTML = `
+          <div class="biz-icon">🔒</div>
+          <div class="biz-info">
+            <div class="biz-name">${biz.name}</div>
+            <div class="biz-meta">Бизнес закрыт</div>
+          </div>
+          <div class="biz-action">
+            <button class="buy-btn ${affordable ? 'affordable':''}" ${affordable ? '' : 'disabled'} data-id="${biz.id}">
+              Купить бизнес · ${fmt(cost)}
+            </button>
+          </div>
+        `;
+      } else {
+        card.className = 'biz-card';
+        card.innerHTML = `
+          <div class="biz-icon">${biz.icon}</div>
+          <div class="biz-info">
+            <div class="biz-name">${biz.name}</div>
+            <div class="biz-meta">+${fmt(incomePerSec(biz))}/сек · <span class="biz-level">ур. ${biz.level}</span></div>
+          </div>
+          <div class="biz-action">
+            <button class="buy-btn ${affordable ? 'affordable':''}" ${affordable ? '' : 'disabled'} data-id="${biz.id}">
+              ${fmt(cost)}
+            </button>
+          </div>
+        `;
+      }
+
       card.addEventListener('click', (e)=>{
         if (e.target.closest('.buy-btn')) return;
+        if (!biz.purchased) return;
         openBizModal(biz);
       });
 
@@ -1016,7 +1113,12 @@
         const cost = costFor(biz);
         if (capital >= cost){
           capital -= cost;
-          biz.level += 1;
+          if (!biz.purchased){
+            biz.purchased = true;
+            biz.level = 1;
+          } else {
+            biz.level += 1;
+          }
           if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
           renderAll();
           saveProgress();
@@ -1065,6 +1167,58 @@
     return min + Math.random() * (max - min);
   }
 
+  // Shared by any business' one-time permanent upgrade (dry-clean, barista,
+  // new menu, chef, ...): shows a buy button until purchased, then a status line.
+  function setupOneTimeUpgrade(container, selector, biz, flagKey, cost, statusText, buyLabel){
+    const area = container.querySelector(selector);
+    if (biz[flagKey]){
+      area.innerHTML = `<div class="mechanic-status">${statusText}</div>`;
+    } else {
+      const affordable = capital >= cost;
+      area.innerHTML = `<button class="mechanic-btn ${affordable ? 'affordable' : ''}" ${affordable ? '' : 'disabled'}>${buyLabel}</button>`;
+      area.querySelector('button').addEventListener('click', ()=>{
+        if (capital >= cost){
+          capital -= cost;
+          biz[flagKey] = true;
+          if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+          renderAll();
+          saveProgress();
+          refreshBizModal();
+        }
+      });
+    }
+  }
+
+  // Shared by any business' temporary x2 income boost (rainy day, morning
+  // rush, ...): all boosts reuse the biz.boostUntil/boostReadyAt fields since
+  // each business object has its own copy of those properties.
+  function setupBoostButton(btn, biz, durationMs, cooldownMs, activeLabel){
+    const now = Date.now();
+    if (biz.boostUntil && now < biz.boostUntil){
+      const secLeft = Math.ceil((biz.boostUntil - now) / 1000);
+      btn.textContent = `Активен x2: ${secLeft} сек`;
+      btn.disabled = true;
+    } else if (biz.boostReadyAt && now < biz.boostReadyAt){
+      const secLeft = Math.ceil((biz.boostReadyAt - now) / 1000);
+      const m = Math.floor(secLeft / 60), s = secLeft % 60;
+      btn.textContent = `Кулдаун: ${m}:${String(s).padStart(2, '0')}`;
+      btn.disabled = true;
+    } else {
+      btn.textContent = activeLabel;
+      btn.disabled = false;
+    }
+    btn.onclick = ()=>{
+      const t = Date.now();
+      if ((biz.boostUntil && t < biz.boostUntil) || (biz.boostReadyAt && t < biz.boostReadyAt)) return;
+      biz.boostUntil = t + durationMs;
+      biz.boostReadyAt = t + durationMs + cooldownMs;
+      if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+      renderAll();
+      saveProgress();
+      refreshBizModal();
+    };
+  }
+
   const BUSINESS_MECHANICS = {
     wash: {
       render(biz, container){
@@ -1084,50 +1238,58 @@
             <div class="mechanic-desc">Случайное событие: раз в 2-3 минуты, пока автомойка открыта (ур. > 0), может нагрянуть проверка — придётся заплатить штраф или дать взятку.</div>
           </div>
         `;
-
-        const dryCleanArea = container.querySelector('#dryCleanArea');
-        if (biz.hasDryClean){
-          dryCleanArea.innerHTML = `<div class="mechanic-status">Куплено — сейчас даёт +${fmt(3 * biz.level)}/сек</div>`;
-        } else {
-          const affordable = capital >= 2000;
-          dryCleanArea.innerHTML = `<button class="mechanic-btn ${affordable ? 'affordable' : ''}" id="buyDryClean" ${affordable ? '' : 'disabled'}>Купить за $2 000</button>`;
-          dryCleanArea.querySelector('#buyDryClean').addEventListener('click', ()=>{
-            if (capital >= 2000){
-              capital -= 2000;
-              biz.hasDryClean = true;
-              if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
-              renderAll();
-              saveProgress();
-              refreshBizModal();
-            }
-          });
-        }
-
-        const rainyBtn = container.querySelector('#rainyBtn');
-        const now = Date.now();
-        if (biz.boostUntil && now < biz.boostUntil){
-          const secLeft = Math.ceil((biz.boostUntil - now) / 1000);
-          rainyBtn.textContent = `Активен x2: ${secLeft} сек`;
-          rainyBtn.disabled = true;
-        } else if (biz.boostReadyAt && now < biz.boostReadyAt){
-          const secLeft = Math.ceil((biz.boostReadyAt - now) / 1000);
-          const m = Math.floor(secLeft / 60), s = secLeft % 60;
-          rainyBtn.textContent = `Кулдаун: ${m}:${String(s).padStart(2, '0')}`;
-          rainyBtn.disabled = true;
-        } else {
-          rainyBtn.textContent = 'Запустить дождливый день (x2 на 60 сек)';
-          rainyBtn.disabled = false;
-        }
-        rainyBtn.addEventListener('click', ()=>{
-          const t = Date.now();
-          if ((biz.boostUntil && t < biz.boostUntil) || (biz.boostReadyAt && t < biz.boostReadyAt)) return;
-          biz.boostUntil = t + 60 * 1000;
-          biz.boostReadyAt = t + 60 * 1000 + 5 * 60 * 1000;
-          if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
-          renderAll();
-          saveProgress();
-          refreshBizModal();
-        });
+        setupOneTimeUpgrade(container, '#dryCleanArea', biz, 'hasDryClean', 2000,
+          `Куплено — сейчас даёт +${fmt(3 * biz.level)}/сек`, 'Купить за $2 000');
+        setupBoostButton(container.querySelector('#rainyBtn'), biz, 60 * 1000, 5 * 60 * 1000,
+          'Запустить дождливый день (x2 на 60 сек)');
+      }
+    },
+    kiosk: {
+      render(biz, container){
+        container.innerHTML = `
+          <div class="mechanic-card">
+            <div class="mechanic-title">👩‍🍳 Обучить бариста</div>
+            <div class="mechanic-desc">Разовая покупка. Доход ларька навсегда увеличивается на +2/сек за каждый уровень.</div>
+            <div id="baristaArea"></div>
+          </div>
+          <div class="mechanic-card">
+            <div class="mechanic-title">☀ Утренний час пик</div>
+            <div class="mechanic-desc">Временный буст x2 к доходу ларька на 45 секунд. Кулдаун между использованиями — 4 минуты.</div>
+            <button class="mechanic-btn" id="rushBtn"></button>
+          </div>
+          <div class="mechanic-card">
+            <div class="mechanic-title">☕💥 Поломка кофемашины</div>
+            <div class="mechanic-desc">Случайное событие: раз в 2-3 минуты, пока ларёк открыт (ур. > 0), кофемашина может сломаться — почините сразу за $80 или подождите бесплатно (2 минуты без дохода).</div>
+          </div>
+        `;
+        setupOneTimeUpgrade(container, '#baristaArea', biz, 'hasBarista', 150,
+          `Куплено — сейчас даёт +${fmt(2 * biz.level)}/сек`, 'Купить за $150');
+        setupBoostButton(container.querySelector('#rushBtn'), biz, 45 * 1000, 4 * 60 * 1000,
+          'Запустить утренний час пик (x2 на 45 сек)');
+      }
+    },
+    cafe: {
+      render(biz, container){
+        container.innerHTML = `
+          <div class="mechanic-card">
+            <div class="mechanic-title">📋 Обновить меню</div>
+            <div class="mechanic-desc">Разовая покупка. Доход кафе навсегда увеличивается на +8/сек за каждый уровень.</div>
+            <div id="menuArea"></div>
+          </div>
+          <div class="mechanic-card">
+            <div class="mechanic-title">👨‍🍳 Нанять шеф-повара</div>
+            <div class="mechanic-desc">Разовая покупка. Доход кафе начисляется офлайн на 100%, без обычного 50%-го штрафа за оффлайн-доход.</div>
+            <div id="chefArea"></div>
+          </div>
+          <div class="mechanic-card">
+            <div class="mechanic-title">📉 Плохой отзыв в интернете</div>
+            <div class="mechanic-desc">Случайное событие: раз в 3-4 минуты, пока кафе открыто (ур. > 0), доход может упасть на 50% на 3 минуты — отработайте за $200 или подождите.</div>
+          </div>
+        `;
+        setupOneTimeUpgrade(container, '#menuArea', biz, 'hasNewMenu', 1200,
+          `Куплено — сейчас даёт +${fmt(8 * biz.level)}/сек`, 'Купить за $1 200');
+        setupOneTimeUpgrade(container, '#chefArea', biz, 'hasChef', 5000,
+          'Куплено — офлайн-доход кафе теперь 100%', 'Купить за $5 000');
       }
     }
   };
@@ -1170,16 +1332,24 @@
     if (e.target.id === 'bizModalOverlay') closeBizModal();
   });
 
-  // ---------- Wash eco-check random event ----------
+  // ---------- Per-business random events ----------
+  // Generic scheduler: each business owns a timestamp field (e.g. ecoCheckAt)
+  // for when its next random event may trigger. Only one event overlay shows
+  // at a time; new checks are skipped while one (or the detail modal) is open.
 
-  let ecoOverlayOpen = false;
+  let eventOverlayOpen = false;
 
-  function scheduleEcoCheck(biz, delayMs){
-    biz.ecoCheckAt = Date.now() + delayMs;
+  function scheduleEvent(biz, field, minMs, maxMs){
+    biz[field] = Date.now() + randRange(minMs, maxMs);
+  }
+
+  function hideOverlay(id){
+    eventOverlayOpen = false;
+    document.getElementById(id).style.display = 'none';
   }
 
   function showEcoOverlay(biz){
-    ecoOverlayOpen = true;
+    eventOverlayOpen = true;
     document.getElementById('ecoOverlay').style.display = 'flex';
     const payBtn = document.getElementById('ecoPayFine');
     const bribeBtn = document.getElementById('ecoBribe');
@@ -1189,8 +1359,8 @@
     payBtn.onclick = ()=>{
       if (capital < 300) return;
       capital -= 300;
-      scheduleEcoCheck(biz, randRange(120000, 180000));
-      hideEcoOverlay();
+      scheduleEvent(biz, 'ecoCheckAt', 120000, 180000);
+      hideOverlay('ecoOverlay');
       renderAll();
       saveProgress();
     };
@@ -1198,31 +1368,83 @@
       if (capital < 150) return;
       capital -= 150;
       if (Math.random() < 0.4){
-        scheduleEcoCheck(biz, 30000);
+        scheduleEvent(biz, 'ecoCheckAt', 30000, 30000);
       } else {
-        scheduleEcoCheck(biz, randRange(120000, 180000));
+        scheduleEvent(biz, 'ecoCheckAt', 120000, 180000);
       }
-      hideEcoOverlay();
+      hideOverlay('ecoOverlay');
       renderAll();
       saveProgress();
     };
   }
 
-  function hideEcoOverlay(){
-    ecoOverlayOpen = false;
-    document.getElementById('ecoOverlay').style.display = 'none';
+  function showKioskBreakOverlay(biz){
+    eventOverlayOpen = true;
+    document.getElementById('kioskBreakOverlay').style.display = 'flex';
+    const fixBtn = document.getElementById('kioskFixBtn');
+    fixBtn.disabled = capital < 80;
+
+    fixBtn.onclick = ()=>{
+      if (capital < 80) return;
+      capital -= 80;
+      biz.brokenUntil = 0;
+      scheduleEvent(biz, 'breakCheckAt', 120000, 180000);
+      hideOverlay('kioskBreakOverlay');
+      renderAll();
+      saveProgress();
+    };
+    document.getElementById('kioskWaitBtn').onclick = ()=>{
+      biz.brokenUntil = Date.now() + 2 * 60 * 1000;
+      scheduleEvent(biz, 'breakCheckAt', 120000, 180000);
+      hideOverlay('kioskBreakOverlay');
+      renderAll();
+      saveProgress();
+    };
   }
 
-  function checkEcoEvents(){
-    const wash = businesses.find(b=>b.id === 'wash');
-    if (!wash || wash.level <= 0) return;
-    if (!wash.ecoCheckAt){
-      scheduleEcoCheck(wash, randRange(120000, 180000));
-      return;
-    }
-    if (ecoOverlayOpen || document.getElementById('bizModalOverlay').style.display === 'flex') return;
-    if (Date.now() >= wash.ecoCheckAt){
-      showEcoOverlay(wash);
+  function showCafeReviewOverlay(biz){
+    eventOverlayOpen = true;
+    document.getElementById('cafeReviewOverlay').style.display = 'flex';
+    const fixBtn = document.getElementById('cafeFixBtn');
+    fixBtn.disabled = capital < 200;
+
+    fixBtn.onclick = ()=>{
+      if (capital < 200) return;
+      capital -= 200;
+      biz.reviewPenaltyUntil = 0;
+      scheduleEvent(biz, 'reviewCheckAt', 180000, 240000);
+      hideOverlay('cafeReviewOverlay');
+      renderAll();
+      saveProgress();
+    };
+    document.getElementById('cafeWaitBtn').onclick = ()=>{
+      biz.reviewPenaltyUntil = Date.now() + 3 * 60 * 1000;
+      scheduleEvent(biz, 'reviewCheckAt', 180000, 240000);
+      hideOverlay('cafeReviewOverlay');
+      renderAll();
+      saveProgress();
+    };
+  }
+
+  const RANDOM_EVENTS = [
+    { bizId:'wash', field:'ecoCheckAt', minGap:120000, maxGap:180000, show:showEcoOverlay },
+    { bizId:'kiosk', field:'breakCheckAt', minGap:120000, maxGap:180000, show:showKioskBreakOverlay },
+    { bizId:'cafe', field:'reviewCheckAt', minGap:180000, maxGap:240000, show:showCafeReviewOverlay },
+  ];
+
+  function checkRandomEvents(){
+    if (eventOverlayOpen || document.getElementById('bizModalOverlay').style.display === 'flex') return;
+    for (const cfg of RANDOM_EVENTS){
+      const biz = businesses.find(b=>b.id === cfg.bizId);
+      if (!biz || !biz.purchased || biz.level <= 0) continue;
+      if (!biz[cfg.field]){
+        scheduleEvent(biz, cfg.field, cfg.minGap, cfg.maxGap);
+        continue;
+      }
+      if (Date.now() >= biz[cfg.field]){
+        cfg.show(biz);
+        break;
+      }
     }
   }
 
@@ -1254,7 +1476,7 @@
     document.getElementById('statCapital').textContent = fmt(capital);
     document.getElementById('statIncome').textContent = fmt(totalIncome());
     document.getElementById('statEarned').textContent = fmt(totalEarned);
-    document.getElementById('statBizCount').textContent = businesses.filter(b=>b.level > 0).length;
+    document.getElementById('statBizCount').textContent = businesses.filter(b=>b.purchased).length;
   }
 
   // ---------- Rating (local demo leaderboard) ----------
@@ -1391,11 +1613,24 @@
   }
 
   // ---------- Offline income ----------
+  // Normally offline income is paid at 50%. Cafe's "hire a chef" upgrade lifts
+  // that penalty to 100% for cafe's own share of the income.
 
   function checkOfflineIncome(lastSeen){
     if (!lastSeen) return;
     const secondsAway = Math.min((Date.now() - lastSeen) / 1000, 8 * 3600);
-    const earned = Math.floor(totalIncome() * secondsAway * 0.5);
+
+    let ratePerSec = 0;
+    businesses.forEach(b=>{
+      const mult = (b.id === 'cafe' && b.hasChef) ? 1 : 0.5;
+      ratePerSec += incomePerSec(b) * mult;
+    });
+    const apartment = assets.find(a=>a.id === 'apartment');
+    if (apartment.status === 'kept') ratePerSec += apartment.rentIncome * 0.5;
+    const car = assets.find(a=>a.id === 'car');
+    if (car.status === 'kept') ratePerSec *= (1 + car.useBonusPct / 100);
+
+    const earned = Math.floor(ratePerSec * secondsAway);
     if (earned > 10){
       capital += earned;
       totalEarned += earned;
@@ -1412,6 +1647,45 @@
     saveProgress();
   });
 
+  // ---------- Job ("go to work") ----------
+
+  function getCurrentJob(){
+    return jobs.find(j=>j.id === currentJobId) || jobs[0];
+  }
+
+  function renderJob(){
+    const btn = document.getElementById('jobBtn');
+    if (!btn) return;
+    const job = getCurrentJob();
+    document.getElementById('jobName').textContent = job.name;
+    document.getElementById('jobMeta').textContent = `$${job.minPay}–${job.maxPay} за смену`;
+
+    const now = Date.now();
+    if (jobReadyAt && now < jobReadyAt){
+      const secLeft = Math.ceil((jobReadyAt - now) / 1000);
+      btn.textContent = `Кулдаун: ${secLeft} сек`;
+      btn.disabled = true;
+    } else {
+      btn.textContent = 'Пойти на работу';
+      btn.disabled = false;
+    }
+  }
+
+  function goToWork(){
+    const now = Date.now();
+    if (jobReadyAt && now < jobReadyAt) return;
+    const job = getCurrentJob();
+    const pay = Math.round(randRange(job.minPay, job.maxPay));
+    capital += pay;
+    totalEarned += pay;
+    jobReadyAt = now + job.cooldownMs;
+    if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+    renderAll();
+    saveProgress();
+  }
+
+  document.getElementById('jobBtn').addEventListener('click', goToWork);
+
   // ---------- Main render / loop ----------
 
   function renderAll(){
@@ -1419,6 +1693,7 @@
     renderAssets();
     renderList();
     renderRank();
+    renderJob();
     const activeView = document.querySelector('#app .view.active')?.id?.replace('view-', '');
     if (activeView === 'rating') renderRating();
     if (activeView === 'profile') renderProfile();
@@ -1428,7 +1703,13 @@
     if (!confirm('Точно сбросить весь прогресс?')) return;
     capital = 500;
     totalEarned = 0;
-    businesses.forEach(b=> b.level = 0);
+    jobReadyAt = 0;
+    currentJobId = 'gig';
+    businesses.forEach(b=>{
+      b.level = 0;
+      b.purchased = false;
+      EXTRA_BIZ_KEYS.forEach(k=>{ if (k !== 'purchased') delete b[k]; });
+    });
     assets.forEach(a=> a.status = null);
     saveProgress();
     showInheritance();
@@ -1450,7 +1731,8 @@
       const activeView = document.querySelector('#app .view.active')?.id?.replace('view-', '');
       if (activeView === 'profile') renderProfile();
     }
-    checkEcoEvents();
+    renderJob();
+    checkRandomEvents();
   }, 1000);
 
   loadProgress().then(lastSeen=>{
