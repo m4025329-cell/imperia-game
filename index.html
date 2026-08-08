@@ -372,80 +372,271 @@
     font-family: inherit;
     cursor: pointer;
   }
+
+  /* Assets (inheritance) section on business view */
+  .asset-card{
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px;
+    display:flex;
+    align-items:center;
+    gap: 12px;
+  }
+
+  .asset-icon{
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    background: var(--surface-2);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size: 20px;
+    flex-shrink:0;
+    border: 1px solid var(--border);
+  }
+
+  .asset-info{
+    flex: 1;
+    min-width: 0;
+  }
+
+  .asset-name{
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 2px;
+  }
+
+  .asset-meta{
+    font-size: 12px;
+    color: var(--text-dim);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .asset-sell-btn{
+    background: none;
+    border: 1px solid var(--gold-dim);
+    color: var(--gold);
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-size: 11px;
+    font-family: inherit;
+    cursor: pointer;
+    flex-shrink:0;
+  }
+
+  /* Inheritance start screen */
+  #view-inheritance{
+    padding: 0 0 30px;
+  }
+
+  .inheritance-intro{
+    padding: 32px 22px 6px;
+    text-align: center;
+  }
+
+  .inheritance-intro .brand{
+    display:block;
+    margin-bottom: 10px;
+  }
+
+  .inheritance-lead{
+    font-size: 14px;
+    color: var(--text-dim);
+    line-height: 1.5;
+  }
+
+  .inheritance-list{
+    display:flex;
+    flex-direction:column;
+    gap: 14px;
+    padding: 22px 18px 0;
+  }
+
+  .choice-card{
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 16px;
+  }
+
+  .choice-head{
+    display:flex;
+    align-items:center;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .choice-icon{
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size: 22px;
+    flex-shrink:0;
+  }
+
+  .choice-name{
+    font-size: 15px;
+    font-weight: 600;
+  }
+
+  .choice-value{
+    font-size: 11px;
+    color: var(--text-dim);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .choice-actions{
+    display:flex;
+    gap: 8px;
+  }
+
+  .choice-btn{
+    flex: 1;
+    border-radius: 10px;
+    padding: 10px 8px;
+    font-size: 12px;
+    font-family: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text);
+    text-align: center;
+    line-height: 1.4;
+  }
+
+  .choice-btn small{
+    display:block;
+    font-weight: 500;
+    color: var(--text-dim);
+    font-size: 10px;
+    margin-top: 2px;
+  }
+
+  .choice-btn.selected{
+    background: var(--gold);
+    color: #1a1300;
+    border-color: var(--gold);
+  }
+
+  .choice-btn.selected small{
+    color: #1a1300cc;
+  }
+
+  .inheritance-continue{
+    margin: 24px 18px 0;
+    width: calc(100% - 36px);
+    background: var(--gold);
+    color: #1a1300;
+    border: none;
+    border-radius: 12px;
+    padding: 14px;
+    font-size: 14px;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+  }
+
+  .inheritance-continue:disabled{
+    background: var(--surface-2);
+    color: var(--text-dim);
+    cursor: not-allowed;
+  }
 </style>
 </head>
 <body>
 
-  <header>
-    <div class="brand">Империя</div>
-    <div class="level-pill" id="rankLabel">Новичок</div>
-  </header>
-
-  <div class="view active" id="view-business">
-    <div class="capital-block">
-      <div class="capital-label">Капитал</div>
-      <div class="capital-value" id="capitalValue">$0</div>
-      <div class="income-rate" id="incomeRate">+$0 / сек</div>
+  <div class="view active" id="view-inheritance">
+    <div class="inheritance-intro">
+      <span class="brand">Наследство</span>
+      <div class="inheritance-lead">Дальний родственник оставил вам квартиру и машину. Продайте их ради стартового капитала — или оставьте себе и получайте с них выгоду.</div>
     </div>
-
-    <div class="section-title">Твои бизнесы</div>
-    <div class="biz-list" id="bizList"></div>
+    <div class="inheritance-list" id="inheritanceList"></div>
+    <button class="inheritance-continue" id="inheritanceContinue" disabled>Начать</button>
   </div>
 
-  <div class="view" id="view-rating">
-    <div class="section-title">Рейтинг магнатов</div>
-    <div class="rating-note">Локальный демо-рейтинг: реальные игроки появятся, когда подключим сервер.</div>
-    <div class="rating-list" id="ratingList"></div>
-  </div>
+  <div id="app" style="display:none">
+    <header>
+      <div class="brand">Империя</div>
+      <div class="level-pill" id="rankLabel">Новичок</div>
+    </header>
 
-  <div class="view" id="view-profile">
-    <div class="section-title">Профиль</div>
-    <div class="profile-card">
-      <div class="profile-avatar" id="profileAvatar">●</div>
-      <div class="profile-name" id="profileName">Игрок</div>
-      <div class="profile-rank" id="profileRank">Новичок</div>
-    </div>
-    <div class="stat-grid">
-      <div class="stat-card">
-        <div class="stat-label">Капитал</div>
-        <div class="stat-value" id="statCapital">$0</div>
+    <div class="view active" id="view-business">
+      <div class="capital-block">
+        <div class="capital-label">Капитал</div>
+        <div class="capital-value" id="capitalValue">$0</div>
+        <div class="income-rate" id="incomeRate">+$0 / сек</div>
       </div>
-      <div class="stat-card">
-        <div class="stat-label">Доход/сек</div>
-        <div class="stat-value" id="statIncome">$0</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Заработано всего</div>
-        <div class="stat-value" id="statEarned">$0</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Бизнесов открыто</div>
-        <div class="stat-value" id="statBizCount">0</div>
-      </div>
-    </div>
-    <button class="reset-btn" id="resetBtn">Сбросить прогресс</button>
-  </div>
 
-  <nav>
-    <button class="nav-item active" data-view="business">
-      <div class="nav-icon">◆</div>
-      <div>Бизнесы</div>
-    </button>
-    <button class="nav-item" data-view="rating">
-      <div class="nav-icon">▲</div>
-      <div>Рейтинг</div>
-    </button>
-    <button class="nav-item" data-view="profile">
-      <div class="nav-icon">●</div>
-      <div>Профиль</div>
-    </button>
-  </nav>
+      <div class="section-title">Активы</div>
+      <div class="biz-list" id="assetList"></div>
+
+      <div class="section-title">Твои бизнесы</div>
+      <div class="biz-list" id="bizList"></div>
+    </div>
+
+    <div class="view" id="view-rating">
+      <div class="section-title">Рейтинг магнатов</div>
+      <div class="rating-note">Локальный демо-рейтинг: реальные игроки появятся, когда подключим сервер.</div>
+      <div class="rating-list" id="ratingList"></div>
+    </div>
+
+    <div class="view" id="view-profile">
+      <div class="section-title">Профиль</div>
+      <div class="profile-card">
+        <div class="profile-avatar" id="profileAvatar">●</div>
+        <div class="profile-name" id="profileName">Игрок</div>
+        <div class="profile-rank" id="profileRank">Новичок</div>
+      </div>
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="stat-label">Капитал</div>
+          <div class="stat-value" id="statCapital">$0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Доход/сек</div>
+          <div class="stat-value" id="statIncome">$0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Заработано всего</div>
+          <div class="stat-value" id="statEarned">$0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Бизнесов открыто</div>
+          <div class="stat-value" id="statBizCount">0</div>
+        </div>
+      </div>
+      <button class="reset-btn" id="resetBtn">Сбросить прогресс</button>
+    </div>
+
+    <nav>
+      <button class="nav-item active" data-view="business">
+        <div class="nav-icon">◆</div>
+        <div>Бизнесы</div>
+      </button>
+      <button class="nav-item" data-view="rating">
+        <div class="nav-icon">▲</div>
+        <div>Рейтинг</div>
+      </button>
+      <button class="nav-item" data-view="profile">
+        <div class="nav-icon">●</div>
+        <div>Профиль</div>
+      </button>
+    </nav>
+  </div>
 
 <script>
   const tg = window.Telegram?.WebApp;
   if (tg) { tg.ready(); tg.expand(); }
 
-  const SAVE_KEY = 'imperia_save_v1';
+  const SAVE_KEY = 'imperia_save_v2';
 
   const businesses = [
     { id:'kiosk', name:'Ларёк с кофе', icon:'☕', baseCost:100, baseIncome:1, level:0 },
@@ -453,6 +644,27 @@
     { id:'cafe', name:'Кафе', icon:'🍽', baseCost:3500, baseIncome:22, level:0 },
     { id:'office', name:'Бизнес-центр', icon:'🏢', baseCost:20000, baseIncome:110, level:0 },
     { id:'factory', name:'Завод', icon:'⚙', baseCost:120000, baseIncome:650, level:0 },
+  ];
+
+  // Inheritance assets: sell for one-time cash, or keep for ongoing benefit.
+  // status: null (undecided) | 'sold' | 'kept'
+  const assets = [
+    {
+      id: 'apartment', name: 'Квартира', icon: '🏠',
+      sellValue: 8000, rentIncome: 4,
+      status: null,
+      sellLabel: 'Продать', sellSub: '+$8 000 сразу',
+      keepLabel: 'Сдавать в аренду', keepSub: '+$4/сек',
+      keptMeta: () => `+${fmt(4)}/сек · аренда`,
+    },
+    {
+      id: 'car', name: 'Машина', icon: '🚘',
+      sellValue: 2500, useBonusPct: 5,
+      status: null,
+      sellLabel: 'Продать', sellSub: '+$2 500 сразу',
+      keepLabel: 'Оставить себе', keepSub: '+5% к доходу',
+      keptMeta: () => `+5% к общему доходу`,
+    },
   ];
 
   let capital = 500;
@@ -465,6 +677,7 @@
       capital,
       totalEarned,
       levels: Object.fromEntries(businesses.map(b => [b.id, b.level])),
+      assetStatus: Object.fromEntries(assets.map(a => [a.id, a.status])),
       ts: Date.now(),
     };
   }
@@ -476,6 +689,13 @@
     if (state.levels){
       businesses.forEach(b=>{
         if (typeof state.levels[b.id] === 'number') b.level = state.levels[b.id];
+      });
+    }
+    if (state.assetStatus){
+      assets.forEach(a=>{
+        if (state.assetStatus[a.id] === 'sold' || state.assetStatus[a.id] === 'kept'){
+          a.status = state.assetStatus[a.id];
+        }
       });
     }
   }
@@ -491,7 +711,9 @@
     if (!tg?.CloudStorage) return;
     clearTimeout(cloudSaveTimer);
     cloudSaveTimer = setTimeout(()=>{
-      tg.CloudStorage.setItem(SAVE_KEY, JSON.stringify(serializeState()), ()=>{});
+      try{
+        tg.CloudStorage.setItem(SAVE_KEY, JSON.stringify(serializeState()), ()=>{});
+      }catch(e){}
     }, 4000);
   }
 
@@ -508,20 +730,24 @@
   }
 
   function loadCloudThenRender(){
-    if (!tg?.CloudStorage){ renderAll(); return; }
-    tg.CloudStorage.getItem(SAVE_KEY, (err, value)=>{
-      if (!err && value){
-        try{
-          const cloudState = JSON.parse(value);
-          const localRaw = localStorage.getItem(SAVE_KEY);
-          const localState = localRaw ? JSON.parse(localRaw) : null;
-          if (!localState || (cloudState.ts || 0) > (localState.ts || 0)){
-            applyState(cloudState);
-          }
-        }catch(e){}
-      }
-      renderAll();
-    });
+    if (!tg?.CloudStorage){ boot(); return; }
+    try{
+      tg.CloudStorage.getItem(SAVE_KEY, (err, value)=>{
+        if (!err && value){
+          try{
+            const cloudState = JSON.parse(value);
+            const localRaw = localStorage.getItem(SAVE_KEY);
+            const localState = localRaw ? JSON.parse(localRaw) : null;
+            if (!localState || (cloudState.ts || 0) > (localState.ts || 0)){
+              applyState(cloudState);
+            }
+          }catch(e){}
+        }
+        boot();
+      });
+    }catch(e){
+      boot();
+    }
   }
 
   // ---------- Game logic ----------
@@ -535,7 +761,12 @@
   }
 
   function totalIncome(){
-    return businesses.reduce((sum,b)=> sum + incomePerSec(b), 0);
+    let sum = businesses.reduce((s,b)=> s + incomePerSec(b), 0);
+    const apartment = assets.find(a=>a.id === 'apartment');
+    if (apartment.status === 'kept') sum += apartment.rentIncome;
+    const car = assets.find(a=>a.id === 'car');
+    if (car.status === 'kept') sum *= (1 + car.useBonusPct / 100);
+    return sum;
   }
 
   function fmt(n){
@@ -588,6 +819,42 @@
           saveAll();
           renderAll();
         }
+      });
+    });
+  }
+
+  function renderAssets(){
+    const list = document.getElementById('assetList');
+    if (!list) return;
+    list.innerHTML = '';
+    assets.forEach(asset=>{
+      const card = document.createElement('div');
+      card.className = 'asset-card';
+      const meta = asset.status === 'sold'
+        ? 'Продано'
+        : asset.keptMeta();
+      const sellBtn = asset.status === 'kept'
+        ? `<button class="asset-sell-btn" data-id="${asset.id}">Продать за ${fmt(asset.sellValue)}</button>`
+        : '';
+      card.innerHTML = `
+        <div class="asset-icon">${asset.icon}</div>
+        <div class="asset-info">
+          <div class="asset-name">${asset.name}</div>
+          <div class="asset-meta">${meta}</div>
+        </div>
+        ${sellBtn}
+      `;
+      list.appendChild(card);
+    });
+
+    list.querySelectorAll('.asset-sell-btn').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const asset = assets.find(a=>a.id === btn.dataset.id);
+        asset.status = 'sold';
+        capital += asset.sellValue;
+        if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+        saveAll();
+        renderAll();
       });
     });
   }
@@ -673,7 +940,7 @@
   // ---------- Views ----------
 
   function switchView(name){
-    document.querySelectorAll('.view').forEach(v=>{
+    document.querySelectorAll('#app .view').forEach(v=>{
       v.classList.toggle('active', v.id === 'view-' + name);
     });
     document.querySelectorAll('.nav-item').forEach(n=>{
@@ -687,44 +954,117 @@
     btn.addEventListener('click', ()=> switchView(btn.dataset.view));
   });
 
+  // ---------- Inheritance screen ----------
+
+  function inheritanceDone(){
+    return assets.every(a => a.status === 'sold' || a.status === 'kept');
+  }
+
+  function renderInheritance(){
+    const list = document.getElementById('inheritanceList');
+    list.innerHTML = '';
+    assets.forEach(asset=>{
+      const card = document.createElement('div');
+      card.className = 'choice-card';
+      card.innerHTML = `
+        <div class="choice-head">
+          <div class="choice-icon">${asset.icon}</div>
+          <div>
+            <div class="choice-name">${asset.name}</div>
+            <div class="choice-value">Стоимость: ${fmt(asset.sellValue)}</div>
+          </div>
+        </div>
+        <div class="choice-actions">
+          <button class="choice-btn ${asset.status === 'sold' ? 'selected' : ''}" data-id="${asset.id}" data-choice="sold">
+            ${asset.sellLabel}<small>${asset.sellSub}</small>
+          </button>
+          <button class="choice-btn ${asset.status === 'kept' ? 'selected' : ''}" data-id="${asset.id}" data-choice="kept">
+            ${asset.keepLabel}<small>${asset.keepSub}</small>
+          </button>
+        </div>
+      `;
+      list.appendChild(card);
+    });
+
+    list.querySelectorAll('.choice-btn').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const asset = assets.find(a=>a.id === btn.dataset.id);
+        asset.status = btn.dataset.choice;
+        if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+        renderInheritance();
+        document.getElementById('inheritanceContinue').disabled = !inheritanceDone();
+      });
+    });
+
+    document.getElementById('inheritanceContinue').disabled = !inheritanceDone();
+  }
+
+  document.getElementById('inheritanceContinue').addEventListener('click', ()=>{
+    assets.forEach(asset=>{
+      if (asset.status === 'sold') capital += asset.sellValue;
+    });
+    saveAll();
+    enterApp();
+  });
+
+  function enterApp(){
+    document.getElementById('view-inheritance').classList.remove('active');
+    document.getElementById('view-inheritance').style.display = 'none';
+    document.getElementById('app').style.display = '';
+    renderAll();
+  }
+
   // ---------- Main render / loop ----------
 
   function renderAll(){
     renderCapital();
+    renderAssets();
     renderList();
     renderRank();
-    const activeView = document.querySelector('.view.active')?.id?.replace('view-', '');
+    const activeView = document.querySelector('#app .view.active')?.id?.replace('view-', '');
     if (activeView === 'rating') renderRating();
     if (activeView === 'profile') renderProfile();
   }
 
-  loadLocal();
-  renderAll();
-  loadCloudThenRender();
-
-  setInterval(()=>{
-    const gain = totalIncome();
-    if (gain > 0){
-      capital += gain;
-      totalEarned += gain;
-      renderCapital(true);
-      renderList();
-      renderRank();
-      const activeView = document.querySelector('.view.active')?.id?.replace('view-', '');
-      if (activeView === 'profile') renderProfile();
-      saveLocal();
+  function boot(){
+    if (inheritanceDone()){
+      enterApp();
+    } else {
+      renderInheritance();
     }
-  }, 1000);
 
-  setInterval(saveCloud, 15000);
+    setInterval(()=>{
+      if (!inheritanceDone()) return;
+      const gain = totalIncome();
+      if (gain > 0){
+        capital += gain;
+        totalEarned += gain;
+        renderCapital(true);
+        renderList();
+        renderRank();
+        const activeView = document.querySelector('#app .view.active')?.id?.replace('view-', '');
+        if (activeView === 'profile') renderProfile();
+        saveLocal();
+      }
+    }, 1000);
+
+    setInterval(saveCloud, 15000);
+  }
+
+  loadLocal();
+  loadCloudThenRender();
 
   document.getElementById('resetBtn').addEventListener('click', ()=>{
     if (!confirm('Точно сбросить весь прогресс?')) return;
     capital = 500;
     totalEarned = 0;
     businesses.forEach(b=> b.level = 0);
+    assets.forEach(a=> a.status = null);
     saveAll();
-    renderAll();
+    document.getElementById('app').style.display = 'none';
+    document.getElementById('view-inheritance').style.display = '';
+    document.getElementById('view-inheritance').classList.add('active');
+    renderInheritance();
   });
 
   window.addEventListener('beforeunload', saveLocal);
