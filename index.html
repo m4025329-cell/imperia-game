@@ -824,8 +824,8 @@
     <div class="view active" id="view-business">
       <div class="capital-block">
         <div class="capital-label">Капитал</div>
-        <div class="capital-value" id="capitalValue">$0</div>
-        <div class="income-rate" id="incomeRate">+$0 / день</div>
+        <div class="capital-value" id="capitalValue">₽0</div>
+        <div class="income-rate" id="incomeRate">+₽0 / день</div>
       </div>
 
       <div id="offlineOverlay" class="overlay" style="display:none">
@@ -833,7 +833,7 @@
           <div class="overlay-icon">💰</div>
           <div class="overlay-title">Пока вас не было...</div>
           <div class="overlay-desc" id="offlineDesc">Ваш бизнес продолжал работать</div>
-          <div class="overlay-amount" id="offlineAmount">+$0</div>
+          <div class="overlay-amount" id="offlineAmount">+₽0</div>
           <button class="overlay-btn" id="offlineClaim">Забрать</button>
         </div>
       </div>
@@ -844,7 +844,7 @@
           <div class="overlay-title">Ежедневная награда</div>
           <div class="overlay-desc" id="dailyRewardDay">День 1</div>
           <div class="overlay-desc" id="dailyRewardStreak" style="margin-top:-10px;">Серия входов: 1</div>
-          <div class="overlay-amount" id="dailyRewardAmount">+$0</div>
+          <div class="overlay-amount" id="dailyRewardAmount">+₽0</div>
           <button class="overlay-btn" id="dailyRewardClaim">Забрать</button>
         </div>
       </div>
@@ -875,8 +875,8 @@
           <div class="overlay-title">Экологическая проверка</div>
           <div class="overlay-desc">На автомойку нагрянула проверка. Нужно решить вопрос.</div>
           <div class="eco-actions">
-            <button class="mechanic-btn" id="ecoPayFine">Заплатить штраф $300</button>
-            <button class="mechanic-btn" id="ecoBribe">Дать взятку $150</button>
+            <button class="mechanic-btn" id="ecoPayFine">Заплатить штраф ₽300</button>
+            <button class="mechanic-btn" id="ecoBribe">Дать взятку ₽150</button>
           </div>
         </div>
       </div>
@@ -887,7 +887,7 @@
           <div class="overlay-title">Кофемашина сломалась</div>
           <div class="overlay-desc">Ларёк временно не работает. Почините сейчас или подождите.</div>
           <div class="eco-actions">
-            <button class="mechanic-btn" id="kioskFixBtn">Починить за $80</button>
+            <button class="mechanic-btn" id="kioskFixBtn">Починить за ₽80</button>
             <button class="mechanic-btn" id="kioskWaitBtn">Подождать (простой 2 мин)</button>
           </div>
         </div>
@@ -899,7 +899,7 @@
           <div class="overlay-title">Плохой отзыв в интернете</div>
           <div class="overlay-desc">Доход кафе упал на 50% на 3 минуты.</div>
           <div class="eco-actions">
-            <button class="mechanic-btn" id="cafeFixBtn">Отработать за $200</button>
+            <button class="mechanic-btn" id="cafeFixBtn">Отработать за ₽200</button>
             <button class="mechanic-btn" id="cafeWaitBtn">Подождать</button>
           </div>
         </div>
@@ -921,15 +921,15 @@
       <div class="stat-grid">
         <div class="stat-card">
           <div class="stat-label">Капитал</div>
-          <div class="stat-value" id="statCapital">$0</div>
+          <div class="stat-value" id="statCapital">₽0</div>
         </div>
         <div class="stat-card">
           <div class="stat-label">Доход/день</div>
-          <div class="stat-value" id="statIncome">$0</div>
+          <div class="stat-value" id="statIncome">₽0</div>
         </div>
         <div class="stat-card">
           <div class="stat-label">Заработано всего</div>
-          <div class="stat-value" id="statEarned">$0</div>
+          <div class="stat-value" id="statEarned">₽0</div>
         </div>
         <div class="stat-card">
           <div class="stat-label">Бизнесов открыто</div>
@@ -971,18 +971,18 @@
   const userId = tg?.initDataUnsafe?.user?.id || 'guest_' + (localStorage.getItem('guestId') || (()=>{ const id=Math.random().toString(36).slice(2); localStorage.setItem('guestId', id); return id; })());
 
   // baseIncome is the internal per-second accrual rate (money still ticks
-  // every second). The player only ever sees it multiplied by 86400 ("/день").
+  // every second). The player only ever sees it multiplied by GAME_DAY_SECONDS ("/день").
   const businesses = [
-    { id:'kiosk', name:'Ларёк с кофе', icon:'☕', baseCost:8000, baseIncome:40, level:0, purchased:false },
-    { id:'wash', name:'Автомойка', icon:'🚗', baseCost:80000, baseIncome:350, level:0, purchased:false },
-    { id:'cafe', name:'Кафе', icon:'🍽', baseCost:180000, baseIncome:750, level:0, purchased:false },
-    { id:'gym', name:'Фитнес-клуб', icon:'🏋', baseCost:350000, baseIncome:1400, level:0, purchased:false },
-    { id:'office', name:'Бизнес-центр', icon:'🏢', baseCost:2500000, baseIncome:9000, level:0, purchased:false },
-    { id:'hotel', name:'Отель', icon:'🏨', baseCost:8000000, baseIncome:26000, level:0, purchased:false },
-    { id:'factory', name:'Завод', icon:'⚙', baseCost:18000000, baseIncome:55000, level:0, purchased:false },
-    { id:'bank', name:'Банк', icon:'🏦', baseCost:60000000, baseIncome:170000, level:0, purchased:false },
-    { id:'tech', name:'IT-корпорация', icon:'💻', baseCost:200000000, baseIncome:520000, level:0, purchased:false },
-    { id:'airline', name:'Авиакомпания', icon:'✈', baseCost:600000000, baseIncome:1400000, level:0, purchased:false },
+    { id:'kiosk', name:'Ларёк с кофе', icon:'☕', baseCost:700000, baseIncome:335, level:0, purchased:false },
+    { id:'wash', name:'Автомойка', icon:'🚗', baseCost:7000000, baseIncome:1335, level:0, purchased:false },
+    { id:'cafe', name:'Кафе', icon:'🍽', baseCost:15000000, baseIncome:2500, level:0, purchased:false },
+    { id:'gym', name:'Фитнес-клуб', icon:'🏋', baseCost:30000000, baseIncome:4170, level:0, purchased:false },
+    { id:'office', name:'Бизнес-центр', icon:'🏢', baseCost:200000000, baseIncome:16670, level:0, purchased:false },
+    { id:'hotel', name:'Отель', icon:'🏨', baseCost:700000000, baseIncome:50000, level:0, purchased:false },
+    { id:'factory', name:'Завод', icon:'⚙', baseCost:1500000000, baseIncome:133335, level:0, purchased:false },
+    { id:'bank', name:'Банк', icon:'🏦', baseCost:5000000000, baseIncome:416670, level:0, purchased:false },
+    { id:'tech', name:'IT-корпорация', icon:'💻', baseCost:15000000000, baseIncome:1000000, level:0, purchased:false },
+    { id:'airline', name:'Авиакомпания', icon:'✈', baseCost:50000000000, baseIncome:2500000, level:0, purchased:false },
   ];
 
   // Job system: five professions available from the very start (before any
@@ -990,11 +990,11 @@
   // tracked as a "next available at" timestamp (not a boolean) so cooldowns
   // survive a page reload.
   const jobs = [
-    { id:'flyers', name:'Раздача листовок', minPay:5, maxPay:8, cooldownMs:15000, unlockAt:0 },
-    { id:'courier', name:'Курьер', minPay:15, maxPay:20, cooldownMs:30000, unlockAt:200 },
-    { id:'waiter', name:'Официант', minPay:30, maxPay:40, cooldownMs:45000, unlockAt:1000 },
-    { id:'freelancer', name:'Фриланс-программист', minPay:80, maxPay:120, cooldownMs:90000, unlockAt:10000 },
-    { id:'consultant', name:'Бизнес-консультант', minPay:300, maxPay:400, cooldownMs:180000, unlockAt:100000 },
+    { id:'flyers', name:'Раздача листовок', minPay:500, maxPay:1000, cooldownMs:15000, unlockAt:0 },
+    { id:'courier', name:'Курьер', minPay:1000, maxPay:2000, cooldownMs:30000, unlockAt:15000 },
+    { id:'waiter', name:'Официант', minPay:2500, maxPay:4000, cooldownMs:45000, unlockAt:50000 },
+    { id:'freelancer', name:'Фриланс-программист', minPay:6000, maxPay:12000, cooldownMs:90000, unlockAt:500000 },
+    { id:'consultant', name:'Бизнес-консультант', minPay:20000, maxPay:35000, cooldownMs:180000, unlockAt:5000000 },
   ];
   const jobReadyAt = {};
   jobs.forEach(j=>{ jobReadyAt[j.id] = 0; });
@@ -1004,23 +1004,27 @@
   const assets = [
     {
       id: 'apartment', name: 'Квартира', icon: '🏠',
-      sellValue: 3000, rentIncome: 4,
+      sellValue: 1200000, rentIncome: 17,
       status: null,
-      sellLabel: 'Продать', sellSub: '+$3 000 сразу',
-      keepLabel: 'Сдавать в аренду', keepSub: () => `+${fmt(4 * 86400)}/день`,
-      keptMeta: () => `+${fmt(4 * 86400)}/день · аренда`,
+      sellLabel: 'Продать', sellSub: '+₽1 200 000 сразу',
+      keepLabel: 'Сдавать в аренду', keepSub: () => `+${fmt(17 * GAME_DAY_SECONDS)}/день`,
+      keptMeta: () => `+${fmt(17 * GAME_DAY_SECONDS)}/день · аренда`,
     },
     {
       id: 'car', name: 'Машина', icon: '🚘',
-      sellValue: 1200, useBonusPct: 5,
+      sellValue: 350000, rentIncome: 25,
       status: null,
-      sellLabel: 'Продать', sellSub: '+$1 200 сразу',
-      keepLabel: 'Оставить себе', keepSub: () => '+5% к доходу',
-      keptMeta: () => `+5% к общему доходу`,
+      sellLabel: 'Продать', sellSub: '+₽350 000 сразу',
+      keepLabel: 'Оставить как такси', keepSub: () => `+${fmt(25 * GAME_DAY_SECONDS)}/день`,
+      keptMeta: () => `+${fmt(25 * GAME_DAY_SECONDS)}/день · такси`,
     },
   ];
 
-  let capital = 200;
+  // A "game day" is a compact 60-second cycle used only for the "/день"
+  // income display — real-time capital accrual (every 1s) is unaffected.
+  const GAME_DAY_SECONDS = 60;
+
+  let capital = 15000;
   let totalEarned = 0;
 
   // Daily login rewards
@@ -1136,24 +1140,24 @@
     const apartment = assets.find(a=>a.id === 'apartment');
     if (apartment.status === 'kept') sum += apartment.rentIncome;
     const car = assets.find(a=>a.id === 'car');
-    if (car.status === 'kept') sum *= (1 + car.useBonusPct / 100);
+    if (car.status === 'kept') sum += car.rentIncome;
     return sum;
   }
 
-  // K/M/B abbreviation kicks in above $1,000 — needed because day-scaled
-  // income (rate * 86400) routinely lands in the millions/billions once
+  // K/M/B abbreviation kicks in above ₽1,000 — needed because day-scaled
+  // income (rate * GAME_DAY_SECONDS) routinely lands in the millions/billions once
   // businesses are earning realistic sums.
   const FMT_UNITS = [[1e9, 'B'], [1e6, 'M'], [1e3, 'K']];
 
   function fmt(n){
     const sign = n < 0 ? '-' : '';
     const abs = Math.floor(Math.abs(n));
-    if (abs < 1000) return sign + '$' + abs.toLocaleString('ru-RU');
+    if (abs < 1000) return sign + '₽' + abs.toLocaleString('ru-RU');
     for (const [threshold, suffix] of FMT_UNITS){
       if (abs >= threshold){
         const val = abs / threshold;
         const rounded = val >= 100 ? Math.round(val) : Math.round(val * 10) / 10;
-        return sign + '$' + rounded.toLocaleString('ru-RU') + suffix;
+        return sign + '₽' + rounded.toLocaleString('ru-RU') + suffix;
       }
     }
   }
@@ -1195,7 +1199,7 @@
         card.className = 'biz-card' + (biz.paused ? ' biz-card-paused' : '');
         const metaText = biz.paused
           ? '⏸ На паузе'
-          : `+${fmt(incomePerSec(biz) * 86400)}/день · <span class="biz-level">ур. ${biz.level}</span>`;
+          : `+${fmt(incomePerSec(biz) * GAME_DAY_SECONDS)}/день · <span class="biz-level">ур. ${biz.level}</span>`;
         card.innerHTML = `
           <div class="biz-icon">${biz.icon}</div>
           <div class="biz-info">
@@ -1338,7 +1342,7 @@
         container.innerHTML = `
           <div class="mechanic-card">
             <div class="mechanic-title">🧴 Химчистка</div>
-            <div class="mechanic-desc">Разовая покупка. Доход автомойки навсегда увеличивается на +${fmt(3 * 86400)}/день за каждый уровень.</div>
+            <div class="mechanic-desc">Разовая покупка. Доход автомойки навсегда увеличивается на +${fmt(3 * GAME_DAY_SECONDS)}/день за каждый уровень.</div>
             <div id="dryCleanArea"></div>
           </div>
           <div class="mechanic-card">
@@ -1352,7 +1356,7 @@
           </div>
         `;
         setupOneTimeUpgrade(container, '#dryCleanArea', biz, 'hasDryClean', 2000,
-          `Куплено — сейчас даёт +${fmt(3 * biz.level * 86400)}/день`, 'Купить за $2 000');
+          `Куплено — сейчас даёт +${fmt(3 * biz.level * GAME_DAY_SECONDS)}/день`, 'Купить за ₽2 000');
         setupBoostButton(container.querySelector('#rainyBtn'), biz, 60 * 1000, 5 * 60 * 1000,
           'Запустить дождливый день (x2 на 60 сек)');
       }
@@ -1362,7 +1366,7 @@
         container.innerHTML = `
           <div class="mechanic-card">
             <div class="mechanic-title">👩‍🍳 Обучить бариста</div>
-            <div class="mechanic-desc">Разовая покупка. Доход ларька навсегда увеличивается на +${fmt(2 * 86400)}/день за каждый уровень.</div>
+            <div class="mechanic-desc">Разовая покупка. Доход ларька навсегда увеличивается на +${fmt(2 * GAME_DAY_SECONDS)}/день за каждый уровень.</div>
             <div id="baristaArea"></div>
           </div>
           <div class="mechanic-card">
@@ -1372,11 +1376,11 @@
           </div>
           <div class="mechanic-card">
             <div class="mechanic-title">☕💥 Поломка кофемашины</div>
-            <div class="mechanic-desc">Случайное событие: раз в 2-3 минуты, пока ларёк открыт (ур. > 0), кофемашина может сломаться — почините сразу за $80 или подождите бесплатно (2 минуты без дохода).</div>
+            <div class="mechanic-desc">Случайное событие: раз в 2-3 минуты, пока ларёк открыт (ур. > 0), кофемашина может сломаться — почините сразу за ₽80 или подождите бесплатно (2 минуты без дохода).</div>
           </div>
         `;
         setupOneTimeUpgrade(container, '#baristaArea', biz, 'hasBarista', 150,
-          `Куплено — сейчас даёт +${fmt(2 * biz.level * 86400)}/день`, 'Купить за $150');
+          `Куплено — сейчас даёт +${fmt(2 * biz.level * GAME_DAY_SECONDS)}/день`, 'Купить за ₽150');
         setupBoostButton(container.querySelector('#rushBtn'), biz, 45 * 1000, 4 * 60 * 1000,
           'Запустить утренний час пик (x2 на 45 сек)');
       }
@@ -1386,7 +1390,7 @@
         container.innerHTML = `
           <div class="mechanic-card">
             <div class="mechanic-title">📋 Обновить меню</div>
-            <div class="mechanic-desc">Разовая покупка. Доход кафе навсегда увеличивается на +${fmt(8 * 86400)}/день за каждый уровень.</div>
+            <div class="mechanic-desc">Разовая покупка. Доход кафе навсегда увеличивается на +${fmt(8 * GAME_DAY_SECONDS)}/день за каждый уровень.</div>
             <div id="menuArea"></div>
           </div>
           <div class="mechanic-card">
@@ -1396,13 +1400,13 @@
           </div>
           <div class="mechanic-card">
             <div class="mechanic-title">📉 Плохой отзыв в интернете</div>
-            <div class="mechanic-desc">Случайное событие: раз в 3-4 минуты, пока кафе открыто (ур. > 0), доход может упасть на 50% на 3 минуты — отработайте за $200 или подождите.</div>
+            <div class="mechanic-desc">Случайное событие: раз в 3-4 минуты, пока кафе открыто (ур. > 0), доход может упасть на 50% на 3 минуты — отработайте за ₽200 или подождите.</div>
           </div>
         `;
         setupOneTimeUpgrade(container, '#menuArea', biz, 'hasNewMenu', 1200,
-          `Куплено — сейчас даёт +${fmt(8 * biz.level * 86400)}/день`, 'Купить за $1 200');
+          `Куплено — сейчас даёт +${fmt(8 * biz.level * GAME_DAY_SECONDS)}/день`, 'Купить за ₽1 200');
         setupOneTimeUpgrade(container, '#chefArea', biz, 'hasChef', 5000,
-          'Куплено — офлайн-доход кафе теперь 100%', 'Купить за $5 000');
+          'Куплено — офлайн-доход кафе теперь 100%', 'Купить за ₽5 000');
       }
     }
   };
@@ -1610,7 +1614,7 @@
   function renderCapital(pulse=false){
     const el = document.getElementById('capitalValue');
     el.textContent = fmt(capital);
-    document.getElementById('incomeRate').textContent = `+${fmt(totalIncome() * 86400)} / день`;
+    document.getElementById('incomeRate').textContent = `+${fmt(totalIncome() * GAME_DAY_SECONDS)} / день`;
     if (pulse){
       el.classList.add('pulse');
       setTimeout(()=> el.classList.remove('pulse'), 150);
@@ -1633,7 +1637,7 @@
     document.getElementById('profileRank').textContent = rankFor(totalIncome());
 
     document.getElementById('statCapital').textContent = fmt(capital);
-    document.getElementById('statIncome').textContent = fmt(totalIncome() * 86400);
+    document.getElementById('statIncome').textContent = fmt(totalIncome() * GAME_DAY_SECONDS);
     document.getElementById('statEarned').textContent = fmt(totalEarned);
     document.getElementById('statBizCount').textContent = businesses.filter(b=>b.purchased).length;
 
@@ -1850,7 +1854,7 @@
     const apartment = assets.find(a=>a.id === 'apartment');
     if (apartment.status === 'kept') ratePerSec += apartment.rentIncome * 0.3;
     const car = assets.find(a=>a.id === 'car');
-    if (car.status === 'kept') ratePerSec *= (1 + car.useBonusPct / 100);
+    if (car.status === 'kept') ratePerSec += car.rentIncome * 0.3;
 
     const earned = Math.floor(ratePerSec * secondsAway);
     if (earned > 10){
@@ -1918,7 +1922,7 @@
           <div class="asset-icon">💼</div>
           <div class="asset-info">
             <div class="asset-name">${job.name}</div>
-            <div class="asset-meta">$${job.minPay}–${job.maxPay} · кулдаун ${formatDuration(job.cooldownMs)}</div>
+            <div class="asset-meta">₽${job.minPay}–${job.maxPay} · кулдаун ${formatDuration(job.cooldownMs)}</div>
           </div>
           <button class="asset-sell-btn job-go-btn" data-id="${job.id}" style="min-width:100px" ${btnDisabled ? 'disabled' : ''}>${btnText}</button>
         `;
@@ -2022,7 +2026,7 @@
 
   document.getElementById('resetBtn').addEventListener('click', ()=>{
     if (!confirm('Точно сбросить весь прогресс?')) return;
-    capital = 200;
+    capital = 15000;
     totalEarned = 0;
     lastLoginDate = null;
     loginStreak = 0;
