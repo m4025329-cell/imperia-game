@@ -825,7 +825,7 @@
       <div class="capital-block">
         <div class="capital-label">Капитал</div>
         <div class="capital-value" id="capitalValue">$0</div>
-        <div class="income-rate" id="incomeRate">+$0 / сек</div>
+        <div class="income-rate" id="incomeRate">+$0 / день</div>
       </div>
 
       <div id="offlineOverlay" class="overlay" style="display:none">
@@ -924,7 +924,7 @@
           <div class="stat-value" id="statCapital">$0</div>
         </div>
         <div class="stat-card">
-          <div class="stat-label">Доход/сек</div>
+          <div class="stat-label">Доход/день</div>
           <div class="stat-value" id="statIncome">$0</div>
         </div>
         <div class="stat-card">
@@ -1005,15 +1005,15 @@
       sellValue: 8000, rentIncome: 4,
       status: null,
       sellLabel: 'Продать', sellSub: '+$8 000 сразу',
-      keepLabel: 'Сдавать в аренду', keepSub: '+$4/сек',
-      keptMeta: () => `+${fmt(4)}/сек · аренда`,
+      keepLabel: 'Сдавать в аренду', keepSub: () => `+${fmtCompact(4 * 86400)}/день`,
+      keptMeta: () => `+${fmtCompact(4 * 86400)}/день · аренда`,
     },
     {
       id: 'car', name: 'Машина', icon: '🚘',
       sellValue: 2500, useBonusPct: 5,
       status: null,
       sellLabel: 'Продать', sellSub: '+$2 500 сразу',
-      keepLabel: 'Оставить себе', keepSub: '+5% к доходу',
+      keepLabel: 'Оставить себе', keepSub: () => '+5% к доходу',
       keptMeta: () => `+5% к общему доходу`,
     },
   ];
@@ -1142,6 +1142,23 @@
     return '$' + Math.floor(n).toLocaleString('ru-RU');
   }
 
+  // Compact K/M/B/T formatting for rate values that get multiplied up to a
+  // daily figure (e.g. late-game businesses easily clear into the billions).
+  const COMPACT_UNITS = [[1e12, 'T'], [1e9, 'B'], [1e6, 'M'], [1e3, 'K']];
+
+  function fmtCompact(n){
+    const sign = n < 0 ? '-' : '';
+    const abs = Math.floor(Math.abs(n));
+    for (const [threshold, suffix] of COMPACT_UNITS){
+      if (abs >= threshold){
+        const val = abs / threshold;
+        const rounded = val >= 100 ? Math.round(val) : Math.round(val * 10) / 10;
+        return sign + '$' + rounded.toLocaleString('ru-RU') + suffix;
+      }
+    }
+    return fmt(n);
+  }
+
   function rankFor(inc){
     if (inc >= 500) return 'Магнат';
     if (inc >= 100) return 'Инвестор';
@@ -1179,7 +1196,7 @@
         card.className = 'biz-card' + (biz.paused ? ' biz-card-paused' : '');
         const metaText = biz.paused
           ? '⏸ На паузе'
-          : `+${fmt(incomePerSec(biz))}/сек · <span class="biz-level">ур. ${biz.level}</span>`;
+          : `+${fmtCompact(incomePerSec(biz) * 86400)}/день · <span class="biz-level">ур. ${biz.level}</span>`;
         card.innerHTML = `
           <div class="biz-icon">${biz.icon}</div>
           <div class="biz-info">
@@ -1322,7 +1339,7 @@
         container.innerHTML = `
           <div class="mechanic-card">
             <div class="mechanic-title">🧴 Химчистка</div>
-            <div class="mechanic-desc">Разовая покупка. Доход автомойки навсегда увеличивается на +3/сек за каждый уровень.</div>
+            <div class="mechanic-desc">Разовая покупка. Доход автомойки навсегда увеличивается на +${fmtCompact(3 * 86400)}/день за каждый уровень.</div>
             <div id="dryCleanArea"></div>
           </div>
           <div class="mechanic-card">
@@ -1336,7 +1353,7 @@
           </div>
         `;
         setupOneTimeUpgrade(container, '#dryCleanArea', biz, 'hasDryClean', 2000,
-          `Куплено — сейчас даёт +${fmt(3 * biz.level)}/сек`, 'Купить за $2 000');
+          `Куплено — сейчас даёт +${fmtCompact(3 * biz.level * 86400)}/день`, 'Купить за $2 000');
         setupBoostButton(container.querySelector('#rainyBtn'), biz, 60 * 1000, 5 * 60 * 1000,
           'Запустить дождливый день (x2 на 60 сек)');
       }
@@ -1346,7 +1363,7 @@
         container.innerHTML = `
           <div class="mechanic-card">
             <div class="mechanic-title">👩‍🍳 Обучить бариста</div>
-            <div class="mechanic-desc">Разовая покупка. Доход ларька навсегда увеличивается на +2/сек за каждый уровень.</div>
+            <div class="mechanic-desc">Разовая покупка. Доход ларька навсегда увеличивается на +${fmtCompact(2 * 86400)}/день за каждый уровень.</div>
             <div id="baristaArea"></div>
           </div>
           <div class="mechanic-card">
@@ -1360,7 +1377,7 @@
           </div>
         `;
         setupOneTimeUpgrade(container, '#baristaArea', biz, 'hasBarista', 150,
-          `Куплено — сейчас даёт +${fmt(2 * biz.level)}/сек`, 'Купить за $150');
+          `Куплено — сейчас даёт +${fmtCompact(2 * biz.level * 86400)}/день`, 'Купить за $150');
         setupBoostButton(container.querySelector('#rushBtn'), biz, 45 * 1000, 4 * 60 * 1000,
           'Запустить утренний час пик (x2 на 45 сек)');
       }
@@ -1370,12 +1387,12 @@
         container.innerHTML = `
           <div class="mechanic-card">
             <div class="mechanic-title">📋 Обновить меню</div>
-            <div class="mechanic-desc">Разовая покупка. Доход кафе навсегда увеличивается на +8/сек за каждый уровень.</div>
+            <div class="mechanic-desc">Разовая покупка. Доход кафе навсегда увеличивается на +${fmtCompact(8 * 86400)}/день за каждый уровень.</div>
             <div id="menuArea"></div>
           </div>
           <div class="mechanic-card">
             <div class="mechanic-title">👨‍🍳 Нанять шеф-повара</div>
-            <div class="mechanic-desc">Разовая покупка. Доход кафе начисляется офлайн на 100%, без обычного 50%-го штрафа за оффлайн-доход.</div>
+            <div class="mechanic-desc">Разовая покупка. Доход кафе начисляется офлайн на 100%, без обычного 30%-го ограничения на оффлайн-доход.</div>
             <div id="chefArea"></div>
           </div>
           <div class="mechanic-card">
@@ -1384,7 +1401,7 @@
           </div>
         `;
         setupOneTimeUpgrade(container, '#menuArea', biz, 'hasNewMenu', 1200,
-          `Куплено — сейчас даёт +${fmt(8 * biz.level)}/сек`, 'Купить за $1 200');
+          `Куплено — сейчас даёт +${fmtCompact(8 * biz.level * 86400)}/день`, 'Купить за $1 200');
         setupOneTimeUpgrade(container, '#chefArea', biz, 'hasChef', 5000,
           'Куплено — офлайн-доход кафе теперь 100%', 'Купить за $5 000');
       }
@@ -1594,7 +1611,7 @@
   function renderCapital(pulse=false){
     const el = document.getElementById('capitalValue');
     el.textContent = fmt(capital);
-    document.getElementById('incomeRate').textContent = `+${fmt(totalIncome())} / сек`;
+    document.getElementById('incomeRate').textContent = `+${fmtCompact(totalIncome() * 86400)} / день`;
     if (pulse){
       el.classList.add('pulse');
       setTimeout(()=> el.classList.remove('pulse'), 150);
@@ -1617,7 +1634,7 @@
     document.getElementById('profileRank').textContent = rankFor(totalIncome());
 
     document.getElementById('statCapital').textContent = fmt(capital);
-    document.getElementById('statIncome').textContent = fmt(totalIncome());
+    document.getElementById('statIncome').textContent = fmtCompact(totalIncome() * 86400);
     document.getElementById('statEarned').textContent = fmt(totalEarned);
     document.getElementById('statBizCount').textContent = businesses.filter(b=>b.purchased).length;
 
@@ -1772,7 +1789,7 @@
             ${asset.sellLabel}<small>${asset.sellSub}</small>
           </button>
           <button class="choice-btn ${asset.status === 'kept' ? 'selected' : ''}" data-id="${asset.id}" data-choice="kept">
-            ${asset.keepLabel}<small>${asset.keepSub}</small>
+            ${asset.keepLabel}<small>${asset.keepSub()}</small>
           </button>
         </div>
       `;
