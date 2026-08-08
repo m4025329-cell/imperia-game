@@ -7,7 +7,7 @@
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import { getFirestore, doc, getDoc, setDoc, collection, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyB828C0bapGUHV2HHIWGBOpVA4PdplpJ2Y",
@@ -23,6 +23,11 @@
   window.__docRef = doc;
   window.__getDoc = getDoc;
   window.__setDoc = setDoc;
+  window.__collection = collection;
+  window.__query = query;
+  window.__orderBy = orderBy;
+  window.__limit = limit;
+  window.__getDocs = getDocs;
 </script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap');
@@ -738,11 +743,36 @@
     opacity: 0.6;
   }
 
+  .biz-card-paused{
+    opacity: 0.7;
+  }
+
   .asset-sell-btn:disabled{
     opacity: 0.5;
     cursor: not-allowed;
     border-color: var(--border);
     color: var(--text-dim);
+  }
+
+  /* Live clock in header */
+  .header-clock{
+    font-size: 11px;
+    color: var(--text-dim);
+    font-family: 'JetBrains Mono', monospace;
+    margin-top: 2px;
+  }
+
+  /* Business sell/pause controls */
+  .mechanic-btn.secondary{
+    background: var(--surface-2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    margin-bottom: 8px;
+  }
+
+  .mechanic-btn.danger{
+    background: #6b2f2f;
+    color: #f5d5d5;
   }
 </style>
 </head>
@@ -761,7 +791,10 @@
 
   <div id="app" style="display:none">
     <header>
-      <div class="brand">Империя</div>
+      <div>
+        <div class="brand">Империя</div>
+        <div class="header-clock" id="headerClock">--:--</div>
+      </div>
       <div class="level-pill" id="rankLabel">Новичок</div>
     </header>
 
@@ -783,16 +816,7 @@
       </div>
 
       <div class="section-title">Работа</div>
-      <div class="biz-list">
-        <div class="asset-card">
-          <div class="asset-icon">💼</div>
-          <div class="asset-info">
-            <div class="asset-name" id="jobName">Подработка</div>
-            <div class="asset-meta" id="jobMeta">$10–30 за смену</div>
-          </div>
-          <button class="asset-sell-btn" id="jobBtn" style="min-width:130px">Пойти на работу</button>
-        </div>
-      </div>
+      <div class="biz-list" id="jobList"></div>
 
       <div class="section-title">Активы</div>
       <div class="biz-list" id="assetList"></div>
@@ -850,7 +874,6 @@
 
     <div class="view" id="view-rating">
       <div class="section-title">Рейтинг магнатов</div>
-      <div class="rating-note">Локальный демо-рейтинг: реальные игроки появятся, когда подключим общий сервер.</div>
       <div class="rating-list" id="ratingList"></div>
     </div>
 
@@ -917,14 +940,19 @@
     { id:'airline', name:'Авиакомпания', icon:'✈', baseCost:6000000, baseIncome:29000, level:0, purchased:false },
   ];
 
-  // Simple job system: available from the very start, before any business is
-  // purchased. `jobs` is a list so more (better-paid) professions can be added
-  // later and unlocked by capital/rank; `currentJobId` picks the active one.
+  // Job system: five professions available from the very start (before any
+  // business purchase), unlocking as capital grows. Each has its own cooldown
+  // tracked as a "next available at" timestamp (not a boolean) so cooldowns
+  // survive a page reload.
   const jobs = [
-    { id:'gig', name:'Подработка', minPay:10, maxPay:30, cooldownMs:30000 },
+    { id:'flyers', name:'Раздача листовок', minPay:5, maxPay:10, cooldownMs:15000, unlockAt:0 },
+    { id:'courier', name:'Курьер', minPay:15, maxPay:25, cooldownMs:30000, unlockAt:200 },
+    { id:'waiter', name:'Официант', minPay:30, maxPay:50, cooldownMs:45000, unlockAt:1000 },
+    { id:'freelancer', name:'Фриланс-программист', minPay:80, maxPay:150, cooldownMs:90000, unlockAt:10000 },
+    { id:'consultant', name:'Бизнес-консультант', minPay:300, maxPay:500, cooldownMs:180000, unlockAt:100000 },
   ];
-  let currentJobId = 'gig';
-  let jobReadyAt = 0;
+  const jobReadyAt = {};
+  jobs.forEach(j=>{ jobReadyAt[j.id] = 0; });
 
   // Inheritance assets: sell for one-time cash, or keep for ongoing benefit.
   // status: null (undecided) | 'sold' | 'kept'
@@ -954,7 +982,7 @@
   // explicitly so the save/load code stays generic as more mechanics are
   // added per business — just add the field name here.
   const EXTRA_BIZ_KEYS = [
-    'purchased',
+    'purchased', 'paused',
     'hasDryClean', 'boostUntil', 'boostReadyAt', 'ecoCheckAt',
     'hasBarista', 'brokenUntil', 'breakCheckAt',
     'hasNewMenu', 'hasChef', 'reviewPenaltyUntil', 'reviewCheckAt',
@@ -970,8 +998,9 @@
         const data = snap.data();
         capital = data.capital ?? capital;
         totalEarned = data.totalEarned ?? totalEarned;
-        jobReadyAt = data.jobReadyAt ?? jobReadyAt;
-        currentJobId = data.currentJobId ?? currentJobId;
+        if (data.jobReadyAt && typeof data.jobReadyAt === 'object'){
+          Object.assign(jobReadyAt, data.jobReadyAt);
+        }
         (data.businesses || []).forEach(saved=>{
           const b = businesses.find(x=>x.id === saved.id);
           if (b){
@@ -993,14 +1022,19 @@
     return null;
   }
 
+  function currentPlayerName(){
+    const user = tgUser();
+    return user?.first_name || ('Игрок' + String(userId).slice(-4));
+  }
+
   async function saveProgress(){
     try{
       const ref = window.__docRef(window.__db, 'players', String(userId));
       await window.__setDoc(ref, {
+        playerName: currentPlayerName(),
         capital,
         totalEarned,
         jobReadyAt,
-        currentJobId,
         businesses: businesses.map(b=>{
           const obj = { id:b.id, level:b.level };
           EXTRA_BIZ_KEYS.forEach(k=>{ if (b[k] !== undefined) obj[k] = b[k]; });
@@ -1019,6 +1053,7 @@
   }
 
   function incomePerSec(biz){
+    if (biz.paused) return 0;
     let income = biz.baseIncome * biz.level;
     const now = Date.now();
     if (biz.id === 'wash'){
@@ -1082,12 +1117,15 @@
           </div>
         `;
       } else {
-        card.className = 'biz-card';
+        card.className = 'biz-card' + (biz.paused ? ' biz-card-paused' : '');
+        const metaText = biz.paused
+          ? '⏸ На паузе'
+          : `+${fmt(incomePerSec(biz))}/сек · <span class="biz-level">ур. ${biz.level}</span>`;
         card.innerHTML = `
           <div class="biz-icon">${biz.icon}</div>
           <div class="biz-info">
             <div class="biz-name">${biz.name}</div>
-            <div class="biz-meta">+${fmt(incomePerSec(biz))}/сек · <span class="biz-level">ур. ${biz.level}</span></div>
+            <div class="biz-meta">${metaText}</div>
           </div>
           <div class="biz-action">
             <button class="buy-btn ${affordable ? 'affordable':''}" ${affordable ? '' : 'disabled'} data-id="${biz.id}">
@@ -1294,27 +1332,73 @@
     }
   };
 
-  let bizModalInterval = null;
-  let currentModalBiz = null;
-
-  function refreshBizModal(){
-    if (!currentModalBiz) return;
-    const body = document.getElementById('bizModalBody');
-    if (BUSINESS_MECHANICS[currentModalBiz.id]){
-      BUSINESS_MECHANICS[currentModalBiz.id].render(currentModalBiz, body);
+  // Sum of every level-up cost paid so far (levels 0..level-1), used to
+  // compute the 40% sell refund.
+  function totalSpentOn(biz){
+    let spent = 0;
+    for (let lvl = 0; lvl < biz.level; lvl++){
+      spent += Math.round(biz.baseCost * Math.pow(1.15, lvl));
     }
+    return spent;
   }
 
-  function openBizModal(biz){
-    currentModalBiz = biz;
-    document.getElementById('bizModalIcon').textContent = biz.icon;
-    document.getElementById('bizModalName').textContent = biz.name;
+  // Sell/pause controls, appended below whatever mechanics content a business
+  // has (or the placeholder). Available for any purchased business.
+  function renderBizActions(biz, container){
+    const refund = Math.floor(totalSpentOn(biz) * 0.4);
+    const wrap = document.createElement('div');
+    wrap.className = 'mechanic-card';
+    wrap.innerHTML = `
+      <div class="mechanic-title">⚙ Управление бизнесом</div>
+      <button class="mechanic-btn secondary" id="pauseBizBtn">${biz.paused ? 'Возобновить бизнес' : 'Приостановить бизнес'}</button>
+      <button class="mechanic-btn danger" id="sellBizBtn">Продать бизнес за ${fmt(refund)}</button>
+    `;
+    container.appendChild(wrap);
+
+    wrap.querySelector('#pauseBizBtn').addEventListener('click', ()=>{
+      biz.paused = !biz.paused;
+      if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+      renderAll();
+      saveProgress();
+      refreshBizModal();
+    });
+
+    wrap.querySelector('#sellBizBtn').addEventListener('click', ()=>{
+      if (!confirm(`Продать «${biz.name}»? Вы получите ${fmt(refund)} (40% от вложенного), уровень и апгрейды бизнеса будут сброшены.`)) return;
+      capital += refund;
+      biz.purchased = false;
+      biz.level = 0;
+      EXTRA_BIZ_KEYS.forEach(k=>{ if (k !== 'purchased') delete biz[k]; });
+      if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('heavy');
+      renderAll();
+      saveProgress();
+      closeBizModal();
+    });
+  }
+
+  function drawBizModalBody(biz){
     const body = document.getElementById('bizModalBody');
     if (BUSINESS_MECHANICS[biz.id]){
       BUSINESS_MECHANICS[biz.id].render(biz, body);
     } else {
       body.innerHTML = `<div class="mechanic-placeholder">Уникальные механики появятся в следующих обновлениях.</div>`;
     }
+    if (biz.purchased) renderBizActions(biz, body);
+  }
+
+  let bizModalInterval = null;
+  let currentModalBiz = null;
+
+  function refreshBizModal(){
+    if (!currentModalBiz) return;
+    drawBizModalBody(currentModalBiz);
+  }
+
+  function openBizModal(biz){
+    currentModalBiz = biz;
+    document.getElementById('bizModalIcon').textContent = biz.icon;
+    document.getElementById('bizModalName').textContent = biz.name;
+    drawBizModalBody(biz);
     document.getElementById('bizModalOverlay').style.display = 'flex';
     clearInterval(bizModalInterval);
     bizModalInterval = setInterval(refreshBizModal, 1000);
@@ -1436,7 +1520,7 @@
     if (eventOverlayOpen || document.getElementById('bizModalOverlay').style.display === 'flex') return;
     for (const cfg of RANDOM_EVENTS){
       const biz = businesses.find(b=>b.id === cfg.bizId);
-      if (!biz || !biz.purchased || biz.level <= 0) continue;
+      if (!biz || !biz.purchased || biz.level <= 0 || biz.paused) continue;
       if (!biz[cfg.field]){
         scheduleEvent(biz, cfg.field, cfg.minGap, cfg.maxGap);
         continue;
@@ -1479,51 +1563,50 @@
     document.getElementById('statBizCount').textContent = businesses.filter(b=>b.purchased).length;
   }
 
-  // ---------- Rating (local demo leaderboard) ----------
+  // ---------- Rating (real Firestore leaderboard, top 20 by capital) ----------
 
-  const BOT_NAMES = ['Александр К.', 'Марина В.', 'Тимур Б.', 'Ольга С.', 'Данил Р.', 'Каролина Ф.', 'Егор П.'];
-  const BOT_ICONS = ['🎩','👑','💼','🦊','🐺','🦁','🐯'];
-
-  function botLeaderboard(myIncome){
-    const base = Math.max(myIncome, 5);
-    return BOT_NAMES.map((name, i)=>{
-      const factor = [4.2, 2.6, 1.7, 1.1, 0.7, 0.4, 0.2][i] ?? 0.3;
-      const jitter = 0.85 + (Math.sin(i * 12.9898) * 0.5 + 0.5) * 0.3;
-      return {
-        name,
-        icon: BOT_ICONS[i % BOT_ICONS.length],
-        income: Math.round(base * factor * jitter),
-        isMe: false,
-      };
-    });
-  }
-
-  function renderRating(){
-    const myIncome = totalIncome();
-    const user = tgUser();
-    const myName = user ? [user.first_name, user.last_name].filter(Boolean).join(' ') || user.username || 'Ты' : 'Ты';
-
-    const rows = [
-      ...botLeaderboard(myIncome),
-      { name: myName + ' (ты)', icon:'●', income: myIncome, isMe: true },
-    ].sort((a,b)=> b.income - a.income);
-
+  async function renderRating(){
     const list = document.getElementById('ratingList');
-    list.innerHTML = '';
-    rows.forEach((row, i)=>{
-      const el = document.createElement('div');
-      el.className = 'rating-row' + (row.isMe ? ' me' : '');
-      el.innerHTML = `
-        <div class="rating-place">${i+1}</div>
-        <div class="rating-avatar">${row.icon}</div>
-        <div class="rating-info">
-          <div class="rating-name">${row.name}</div>
-          <div class="rating-sub">${rankFor(row.income)}</div>
-        </div>
-        <div class="rating-income">+${fmt(row.income)}/с</div>
-      `;
-      list.appendChild(el);
-    });
+    list.innerHTML = `<div class="rating-note">Загрузка рейтинга...</div>`;
+    try{
+      const q = window.__query(
+        window.__collection(window.__db, 'players'),
+        window.__orderBy('capital', 'desc'),
+        window.__limit(20)
+      );
+      const snap = await window.__getDocs(q);
+      const rows = [];
+      snap.forEach(docSnap=>{
+        const d = docSnap.data();
+        rows.push({
+          name: d.playerName || 'Игрок',
+          capital: d.capital || 0,
+          isMe: docSnap.id === String(userId),
+        });
+      });
+
+      list.innerHTML = '';
+      if (rows.length === 0){
+        list.innerHTML = `<div class="rating-note">Пока никто не сыграл — стань первым в рейтинге!</div>`;
+        return;
+      }
+      rows.forEach((row, i)=>{
+        const el = document.createElement('div');
+        el.className = 'rating-row' + (row.isMe ? ' me' : '');
+        el.innerHTML = `
+          <div class="rating-place">${i+1}</div>
+          <div class="rating-avatar">${row.isMe ? '●' : '👤'}</div>
+          <div class="rating-info">
+            <div class="rating-name">${row.name}${row.isMe ? ' (ты)' : ''}</div>
+          </div>
+          <div class="rating-income">${fmt(row.capital)}</div>
+        `;
+        list.appendChild(el);
+      });
+    } catch(e){
+      console.error('Rating load failed', e);
+      list.innerHTML = `<div class="rating-note">Не удалось загрузить рейтинг.</div>`;
+    }
   }
 
   // ---------- Views ----------
@@ -1647,44 +1730,94 @@
     saveProgress();
   });
 
-  // ---------- Job ("go to work") ----------
+  // ---------- Jobs ("go to work") ----------
+  // Five professions, unlocked as capital grows. Each has its own cooldown
+  // stored as a "ready at" timestamp in jobReadyAt so it survives a reload.
 
-  function getCurrentJob(){
-    return jobs.find(j=>j.id === currentJobId) || jobs[0];
+  function formatDuration(ms){
+    const s = Math.round(ms / 1000);
+    if (s < 60) return `${s} сек`;
+    if (s % 60 === 0) return `${s / 60} мин`;
+    return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')} мин`;
   }
 
   function renderJob(){
-    const btn = document.getElementById('jobBtn');
-    if (!btn) return;
-    const job = getCurrentJob();
-    document.getElementById('jobName').textContent = job.name;
-    document.getElementById('jobMeta').textContent = `$${job.minPay}–${job.maxPay} за смену`;
-
+    const list = document.getElementById('jobList');
+    if (!list) return;
+    list.innerHTML = '';
     const now = Date.now();
-    if (jobReadyAt && now < jobReadyAt){
-      const secLeft = Math.ceil((jobReadyAt - now) / 1000);
-      btn.textContent = `Кулдаун: ${secLeft} сек`;
-      btn.disabled = true;
-    } else {
-      btn.textContent = 'Пойти на работу';
-      btn.disabled = false;
-    }
+
+    jobs.forEach(job=>{
+      const unlocked = capital >= job.unlockAt;
+      const card = document.createElement('div');
+
+      if (!unlocked){
+        card.className = 'asset-card biz-card-locked';
+        card.innerHTML = `
+          <div class="asset-icon">🔒</div>
+          <div class="asset-info">
+            <div class="asset-name">${job.name}</div>
+            <div class="asset-meta">Откроется при капитале ${fmt(job.unlockAt)}</div>
+          </div>
+        `;
+      } else {
+        const readyAt = jobReadyAt[job.id] || 0;
+        let btnText, btnDisabled;
+        if (readyAt && now < readyAt){
+          const secLeft = Math.ceil((readyAt - now) / 1000);
+          btnText = secLeft >= 60 ? `${Math.floor(secLeft / 60)}:${String(secLeft % 60).padStart(2, '0')}` : `${secLeft} сек`;
+          btnDisabled = true;
+        } else {
+          btnText = 'Работать';
+          btnDisabled = false;
+        }
+        card.className = 'asset-card';
+        card.innerHTML = `
+          <div class="asset-icon">💼</div>
+          <div class="asset-info">
+            <div class="asset-name">${job.name}</div>
+            <div class="asset-meta">$${job.minPay}–${job.maxPay} · кулдаун ${formatDuration(job.cooldownMs)}</div>
+          </div>
+          <button class="asset-sell-btn job-go-btn" data-id="${job.id}" style="min-width:100px" ${btnDisabled ? 'disabled' : ''}>${btnText}</button>
+        `;
+      }
+      list.appendChild(card);
+    });
+
+    list.querySelectorAll('.job-go-btn').forEach(btn=>{
+      btn.addEventListener('click', ()=> goToWork(btn.dataset.id));
+    });
   }
 
-  function goToWork(){
+  function goToWork(jobId){
+    const job = jobs.find(j=>j.id === jobId);
+    if (!job || capital < job.unlockAt) return;
     const now = Date.now();
-    if (jobReadyAt && now < jobReadyAt) return;
-    const job = getCurrentJob();
+    const readyAt = jobReadyAt[job.id] || 0;
+    if (readyAt && now < readyAt) return;
     const pay = Math.round(randRange(job.minPay, job.maxPay));
     capital += pay;
     totalEarned += pay;
-    jobReadyAt = now + job.cooldownMs;
+    jobReadyAt[job.id] = now + job.cooldownMs;
     if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
     renderAll();
     saveProgress();
   }
 
-  document.getElementById('jobBtn').addEventListener('click', goToWork);
+  // ---------- Live clock ----------
+  // Just a live time/date readout for now (no gameplay effect) — a basis for
+  // a future day/night visual cycle.
+
+  function renderClock(){
+    const el = document.getElementById('headerClock');
+    if (!el) return;
+    const now = new Date();
+    const date = now.toLocaleDateString('ru-RU', { day:'2-digit', month:'2-digit' });
+    const time = now.toLocaleTimeString('ru-RU', { hour:'2-digit', minute:'2-digit' });
+    el.textContent = `${date} · ${time}`;
+  }
+  renderClock();
+  setInterval(renderClock, 1000);
 
   // ---------- Main render / loop ----------
 
@@ -1703,8 +1836,7 @@
     if (!confirm('Точно сбросить весь прогресс?')) return;
     capital = 500;
     totalEarned = 0;
-    jobReadyAt = 0;
-    currentJobId = 'gig';
+    jobs.forEach(j=>{ jobReadyAt[j.id] = 0; });
     businesses.forEach(b=>{
       b.level = 0;
       b.purchased = false;
