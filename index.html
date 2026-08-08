@@ -197,6 +197,27 @@
     object-fit: cover;
   }
 
+  .biz-icon-locked{
+    position: relative;
+  }
+
+  .biz-icon-locked::after{
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(5,7,13,0.62);
+  }
+
+  .biz-lock{
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.6));
+  }
+
   .biz-info{
     flex: 1;
     min-width: 0;
@@ -1302,7 +1323,7 @@
       if (!biz.purchased){
         card.className = 'biz-card biz-card-locked';
         card.innerHTML = `
-          <div class="biz-icon">🔒</div>
+          <div class="biz-icon biz-icon-locked"><img src="images/${biz.id}.jpg" alt=""><span class="biz-lock">🔒</span></div>
           <div class="biz-info">
             <div class="biz-name">${biz.name}</div>
             <div class="biz-meta">Бизнес закрыт</div>
