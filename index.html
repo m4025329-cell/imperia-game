@@ -263,7 +263,7 @@
     top: 4px;
     left: 0;
     height: 3px;
-    width: 33.333%;
+    width: 25%;
     border-radius: 2px;
     background: linear-gradient(90deg, var(--gold-dim), var(--gold-light));
     box-shadow: 0 0 10px rgba(212,175,55,0.7);
@@ -274,6 +274,7 @@
 
   .nav-indicator[data-index="1"]{ transform: translateX(100%); }
   .nav-indicator[data-index="2"]{ transform: translateX(200%); }
+  .nav-indicator[data-index="3"]{ transform: translateX(300%); }
 
   .nav-item{
     flex:1;
@@ -944,12 +945,6 @@
         </div>
       </div>
 
-      <div class="section-title">Работа</div>
-      <div class="biz-list" id="jobList"></div>
-
-      <div class="section-title">Активы</div>
-      <div class="biz-list" id="assetList"></div>
-
       <div class="section-title">Твои бизнесы</div>
       <div class="biz-list" id="bizList"></div>
 
@@ -1001,9 +996,14 @@
       </div>
     </div>
 
-    <div class="view" id="view-rating">
-      <div class="section-title">Рейтинг магнатов</div>
-      <div class="rating-list" id="ratingList"></div>
+    <div class="view" id="view-assets">
+      <div class="section-title">Активы</div>
+      <div class="biz-list" id="assetList"></div>
+    </div>
+
+    <div class="view" id="view-work">
+      <div class="section-title">Подработка</div>
+      <div class="biz-list" id="jobList"></div>
     </div>
 
     <div class="view" id="view-profile">
@@ -1040,6 +1040,9 @@
 
       <button class="mechanic-btn secondary share-btn" id="shareBtn">Поделиться достижением</button>
 
+      <div class="section-title">Рейтинг магнатов</div>
+      <div class="rating-list" id="ratingList"></div>
+
       <button class="reset-btn" id="resetBtn">Сбросить прогресс</button>
     </div>
 
@@ -1049,9 +1052,13 @@
         <div class="nav-icon">◆</div>
         <div>Бизнесы</div>
       </button>
-      <button class="nav-item" data-view="rating">
-        <div class="nav-icon">▲</div>
-        <div>Рейтинг</div>
+      <button class="nav-item" data-view="assets">
+        <div class="nav-icon">🏠</div>
+        <div>Активы</div>
+      </button>
+      <button class="nav-item" data-view="work">
+        <div class="nav-icon">💼</div>
+        <div>Работа</div>
       </button>
       <button class="nav-item" data-view="profile">
         <div class="nav-icon">●</div>
@@ -1359,7 +1366,7 @@
     assets.forEach(asset=>{
       const card = document.createElement('div');
       card.className = 'asset-card';
-      const meta = asset.status === 'sold' ? 'Продано' : asset.keptMeta();
+      const meta = asset.status === 'sold' ? `Продано за ${fmt(asset.sellValue)}` : asset.keptMeta();
       const sellBtn = asset.status === 'kept'
         ? `<button class="asset-sell-btn" data-id="${asset.id}">Продать за ${fmt(asset.sellValue)}</button>`
         : '';
@@ -1860,7 +1867,7 @@
 
   // ---------- Views ----------
 
-  const NAV_ORDER = ['business', 'rating', 'profile'];
+  const NAV_ORDER = ['business', 'assets', 'work', 'profile'];
 
   function switchView(name){
     document.querySelectorAll('#app .view').forEach(v=>{
@@ -1871,8 +1878,9 @@
     });
     const indicator = document.getElementById('navIndicator');
     if (indicator) indicator.dataset.index = NAV_ORDER.indexOf(name);
-    if (name === 'rating') renderRating();
-    if (name === 'profile') renderProfile();
+    if (name === 'assets') renderAssets();
+    if (name === 'work') renderJob();
+    if (name === 'profile'){ renderProfile(); renderRating(); }
   }
 
   document.querySelectorAll('.nav-item').forEach(btn=>{
@@ -2132,8 +2140,7 @@
     renderRank();
     renderJob();
     const activeView = document.querySelector('#app .view.active')?.id?.replace('view-', '');
-    if (activeView === 'rating') renderRating();
-    if (activeView === 'profile') renderProfile();
+    if (activeView === 'profile'){ renderProfile(); renderRating(); }
   }
 
   document.getElementById('resetBtn').addEventListener('click', ()=>{
