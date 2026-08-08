@@ -131,6 +131,7 @@
     display:flex;
     align-items:center;
     gap: 12px;
+    cursor: pointer;
   }
 
   .biz-icon{
@@ -633,6 +634,104 @@
     color: var(--text-dim);
     font-size: 13px;
   }
+
+  /* Business detail modal */
+  .biz-modal-card{
+    text-align: left;
+    position: relative;
+    max-width: 340px;
+  }
+
+  .modal-close-btn{
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-size: 18px;
+    cursor: pointer;
+    padding: 4px 8px;
+    line-height: 1;
+  }
+
+  .biz-modal-header{
+    display:flex;
+    align-items:center;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .biz-modal-name{
+    font-family: 'Playfair Display', serif;
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--gold-light);
+  }
+
+  .mechanic-card{
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px;
+    margin-bottom: 10px;
+    text-align: left;
+  }
+
+  .mechanic-title{
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+
+  .mechanic-desc{
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-bottom: 10px;
+    line-height: 1.4;
+  }
+
+  .mechanic-btn{
+    width: 100%;
+    background: var(--gold);
+    color: #1a1300;
+    border: none;
+    border-radius: 8px;
+    padding: 10px;
+    font-size: 12px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+  }
+
+  .mechanic-btn:disabled{
+    background: var(--border);
+    color: var(--text-dim);
+    cursor: not-allowed;
+  }
+
+  .mechanic-btn.affordable{
+    box-shadow: 0 0 0 1px var(--gold-light) inset;
+  }
+
+  .mechanic-status{
+    font-size: 12px;
+    color: var(--green);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .mechanic-placeholder{
+    padding: 30px 10px;
+    text-align: center;
+    color: var(--text-dim);
+    font-size: 13px;
+  }
+
+  .eco-actions{
+    display:flex;
+    flex-direction:column;
+    gap: 8px;
+  }
 </style>
 </head>
 <body>
@@ -676,6 +775,29 @@
 
       <div class="section-title">Твои бизнесы</div>
       <div class="biz-list" id="bizList"></div>
+
+      <div class="overlay" id="bizModalOverlay" style="display:none">
+        <div class="overlay-card biz-modal-card">
+          <button class="modal-close-btn" id="bizModalClose">✕</button>
+          <div class="biz-modal-header">
+            <div class="biz-icon" id="bizModalIcon"></div>
+            <div class="biz-modal-name" id="bizModalName"></div>
+          </div>
+          <div id="bizModalBody"></div>
+        </div>
+      </div>
+
+      <div class="overlay" id="ecoOverlay" style="display:none">
+        <div class="overlay-card">
+          <div class="overlay-icon">🌱</div>
+          <div class="overlay-title">Экологическая проверка</div>
+          <div class="overlay-desc">На автомойку нагрянула проверка. Нужно решить вопрос.</div>
+          <div class="eco-actions">
+            <button class="mechanic-btn" id="ecoPayFine">Заплатить штраф $300</button>
+            <button class="mechanic-btn" id="ecoBribe">Дать взятку $150</button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div class="view" id="view-rating">
@@ -771,6 +893,11 @@
   let capital = 500;
   let totalEarned = 0;
 
+  // Extra per-business state used by business-specific mechanics (e.g. wash's
+  // hasDryClean/boostUntil/boostReadyAt/ecoCheckAt). Listed explicitly so the
+  // save/load code stays generic as more mechanics are added per business.
+  const EXTRA_BIZ_KEYS = ['hasDryClean', 'boostUntil', 'boostReadyAt', 'ecoCheckAt'];
+
   // ---------- Save / Load (Firebase Firestore) ----------
 
   async function loadProgress(){
@@ -783,7 +910,10 @@
         totalEarned = data.totalEarned ?? totalEarned;
         (data.businesses || []).forEach(saved=>{
           const b = businesses.find(x=>x.id === saved.id);
-          if (b) b.level = saved.level;
+          if (b){
+            b.level = saved.level;
+            EXTRA_BIZ_KEYS.forEach(k=>{ if (saved[k] !== undefined) b[k] = saved[k]; });
+          }
         });
         (data.assets || []).forEach(saved=>{
           const a = assets.find(x=>x.id === saved.id);
@@ -801,7 +931,11 @@
       await window.__setDoc(ref, {
         capital,
         totalEarned,
-        businesses: businesses.map(b=>({ id:b.id, level:b.level })),
+        businesses: businesses.map(b=>{
+          const obj = { id:b.id, level:b.level };
+          EXTRA_BIZ_KEYS.forEach(k=>{ if (b[k] !== undefined) obj[k] = b[k]; });
+          return obj;
+        }),
         assets: assets.map(a=>({ id:a.id, status:a.status })),
         lastSeen: Date.now()
       });
@@ -815,7 +949,12 @@
   }
 
   function incomePerSec(biz){
-    return biz.baseIncome * biz.level;
+    let income = biz.baseIncome * biz.level;
+    if (biz.id === 'wash'){
+      if (biz.hasDryClean) income += 3 * biz.level;
+      if (biz.boostUntil && Date.now() < biz.boostUntil) income *= 2;
+    }
+    return income;
   }
 
   function totalIncome(){
@@ -862,11 +1001,17 @@
           </button>
         </div>
       `;
+      card.addEventListener('click', (e)=>{
+        if (e.target.closest('.buy-btn')) return;
+        openBizModal(biz);
+      });
+
       list.appendChild(card);
     });
 
     list.querySelectorAll('.buy-btn').forEach(btn=>{
-      btn.addEventListener('click', ()=>{
+      btn.addEventListener('click', (e)=>{
+        e.stopPropagation();
         const biz = businesses.find(b=>b.id === btn.dataset.id);
         const cost = costFor(biz);
         if (capital >= cost){
@@ -912,6 +1057,173 @@
         saveProgress();
       });
     });
+  }
+
+  // ---------- Business detail modal & per-business mechanics ----------
+
+  function randRange(min, max){
+    return min + Math.random() * (max - min);
+  }
+
+  const BUSINESS_MECHANICS = {
+    wash: {
+      render(biz, container){
+        container.innerHTML = `
+          <div class="mechanic-card">
+            <div class="mechanic-title">🧴 Химчистка</div>
+            <div class="mechanic-desc">Разовая покупка. Доход автомойки навсегда увеличивается на +3/сек за каждый уровень.</div>
+            <div id="dryCleanArea"></div>
+          </div>
+          <div class="mechanic-card">
+            <div class="mechanic-title">🌧 Дождливый день</div>
+            <div class="mechanic-desc">Временный буст x2 к доходу автомойки на 60 секунд. Кулдаун между использованиями — 5 минут.</div>
+            <button class="mechanic-btn" id="rainyBtn"></button>
+          </div>
+          <div class="mechanic-card">
+            <div class="mechanic-title">🌱 Экологическая проверка</div>
+            <div class="mechanic-desc">Случайное событие: раз в 2-3 минуты, пока автомойка открыта (ур. > 0), может нагрянуть проверка — придётся заплатить штраф или дать взятку.</div>
+          </div>
+        `;
+
+        const dryCleanArea = container.querySelector('#dryCleanArea');
+        if (biz.hasDryClean){
+          dryCleanArea.innerHTML = `<div class="mechanic-status">Куплено — сейчас даёт +${fmt(3 * biz.level)}/сек</div>`;
+        } else {
+          const affordable = capital >= 2000;
+          dryCleanArea.innerHTML = `<button class="mechanic-btn ${affordable ? 'affordable' : ''}" id="buyDryClean" ${affordable ? '' : 'disabled'}>Купить за $2 000</button>`;
+          dryCleanArea.querySelector('#buyDryClean').addEventListener('click', ()=>{
+            if (capital >= 2000){
+              capital -= 2000;
+              biz.hasDryClean = true;
+              if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+              renderAll();
+              saveProgress();
+              refreshBizModal();
+            }
+          });
+        }
+
+        const rainyBtn = container.querySelector('#rainyBtn');
+        const now = Date.now();
+        if (biz.boostUntil && now < biz.boostUntil){
+          const secLeft = Math.ceil((biz.boostUntil - now) / 1000);
+          rainyBtn.textContent = `Активен x2: ${secLeft} сек`;
+          rainyBtn.disabled = true;
+        } else if (biz.boostReadyAt && now < biz.boostReadyAt){
+          const secLeft = Math.ceil((biz.boostReadyAt - now) / 1000);
+          const m = Math.floor(secLeft / 60), s = secLeft % 60;
+          rainyBtn.textContent = `Кулдаун: ${m}:${String(s).padStart(2, '0')}`;
+          rainyBtn.disabled = true;
+        } else {
+          rainyBtn.textContent = 'Запустить дождливый день (x2 на 60 сек)';
+          rainyBtn.disabled = false;
+        }
+        rainyBtn.addEventListener('click', ()=>{
+          const t = Date.now();
+          if ((biz.boostUntil && t < biz.boostUntil) || (biz.boostReadyAt && t < biz.boostReadyAt)) return;
+          biz.boostUntil = t + 60 * 1000;
+          biz.boostReadyAt = t + 60 * 1000 + 5 * 60 * 1000;
+          if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+          renderAll();
+          saveProgress();
+          refreshBizModal();
+        });
+      }
+    }
+  };
+
+  let bizModalInterval = null;
+  let currentModalBiz = null;
+
+  function refreshBizModal(){
+    if (!currentModalBiz) return;
+    const body = document.getElementById('bizModalBody');
+    if (BUSINESS_MECHANICS[currentModalBiz.id]){
+      BUSINESS_MECHANICS[currentModalBiz.id].render(currentModalBiz, body);
+    }
+  }
+
+  function openBizModal(biz){
+    currentModalBiz = biz;
+    document.getElementById('bizModalIcon').textContent = biz.icon;
+    document.getElementById('bizModalName').textContent = biz.name;
+    const body = document.getElementById('bizModalBody');
+    if (BUSINESS_MECHANICS[biz.id]){
+      BUSINESS_MECHANICS[biz.id].render(biz, body);
+    } else {
+      body.innerHTML = `<div class="mechanic-placeholder">Уникальные механики появятся в следующих обновлениях.</div>`;
+    }
+    document.getElementById('bizModalOverlay').style.display = 'flex';
+    clearInterval(bizModalInterval);
+    bizModalInterval = setInterval(refreshBizModal, 1000);
+  }
+
+  function closeBizModal(){
+    document.getElementById('bizModalOverlay').style.display = 'none';
+    clearInterval(bizModalInterval);
+    bizModalInterval = null;
+    currentModalBiz = null;
+  }
+
+  document.getElementById('bizModalClose').addEventListener('click', closeBizModal);
+  document.getElementById('bizModalOverlay').addEventListener('click', (e)=>{
+    if (e.target.id === 'bizModalOverlay') closeBizModal();
+  });
+
+  // ---------- Wash eco-check random event ----------
+
+  let ecoOverlayOpen = false;
+
+  function scheduleEcoCheck(biz, delayMs){
+    biz.ecoCheckAt = Date.now() + delayMs;
+  }
+
+  function showEcoOverlay(biz){
+    ecoOverlayOpen = true;
+    document.getElementById('ecoOverlay').style.display = 'flex';
+    const payBtn = document.getElementById('ecoPayFine');
+    const bribeBtn = document.getElementById('ecoBribe');
+    payBtn.disabled = capital < 300;
+    bribeBtn.disabled = capital < 150;
+
+    payBtn.onclick = ()=>{
+      if (capital < 300) return;
+      capital -= 300;
+      scheduleEcoCheck(biz, randRange(120000, 180000));
+      hideEcoOverlay();
+      renderAll();
+      saveProgress();
+    };
+    bribeBtn.onclick = ()=>{
+      if (capital < 150) return;
+      capital -= 150;
+      if (Math.random() < 0.4){
+        scheduleEcoCheck(biz, 30000);
+      } else {
+        scheduleEcoCheck(biz, randRange(120000, 180000));
+      }
+      hideEcoOverlay();
+      renderAll();
+      saveProgress();
+    };
+  }
+
+  function hideEcoOverlay(){
+    ecoOverlayOpen = false;
+    document.getElementById('ecoOverlay').style.display = 'none';
+  }
+
+  function checkEcoEvents(){
+    const wash = businesses.find(b=>b.id === 'wash');
+    if (!wash || wash.level <= 0) return;
+    if (!wash.ecoCheckAt){
+      scheduleEcoCheck(wash, randRange(120000, 180000));
+      return;
+    }
+    if (ecoOverlayOpen || document.getElementById('bizModalOverlay').style.display === 'flex') return;
+    if (Date.now() >= wash.ecoCheckAt){
+      showEcoOverlay(wash);
+    }
   }
 
   function renderCapital(pulse=false){
@@ -1138,6 +1450,7 @@
       const activeView = document.querySelector('#app .view.active')?.id?.replace('view-', '');
       if (activeView === 'profile') renderProfile();
     }
+    checkEcoEvents();
   }, 1000);
 
   loadProgress().then(lastSeen=>{
