@@ -774,6 +774,29 @@
     background: #6b2f2f;
     color: #f5d5d5;
   }
+
+  /* Referral & share */
+  .referral-card{
+    margin: 0 18px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px;
+    text-align: left;
+  }
+
+  .referral-link{
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    word-break: break-all;
+    margin-bottom: 10px;
+  }
+
+  .share-btn{
+    margin: 0 18px 8px;
+    width: calc(100% - 36px);
+  }
 </style>
 </head>
 <body>
@@ -812,6 +835,17 @@
           <div class="overlay-desc" id="offlineDesc">Ваш бизнес продолжал работать</div>
           <div class="overlay-amount" id="offlineAmount">+$0</div>
           <button class="overlay-btn" id="offlineClaim">Забрать</button>
+        </div>
+      </div>
+
+      <div id="dailyRewardOverlay" class="overlay" style="display:none">
+        <div class="overlay-card">
+          <div class="overlay-icon">🎁</div>
+          <div class="overlay-title">Ежедневная награда</div>
+          <div class="overlay-desc" id="dailyRewardDay">День 1</div>
+          <div class="overlay-desc" id="dailyRewardStreak" style="margin-top:-10px;">Серия входов: 1</div>
+          <div class="overlay-amount" id="dailyRewardAmount">+$0</div>
+          <button class="overlay-btn" id="dailyRewardClaim">Забрать</button>
         </div>
       </div>
 
@@ -902,6 +936,15 @@
           <div class="stat-value" id="statBizCount">0</div>
         </div>
       </div>
+      <div class="section-title">Пригласить друзей</div>
+      <div class="referral-card">
+        <div class="referral-link" id="referralLinkText"></div>
+        <button class="mechanic-btn" id="copyReferralBtn">Скопировать ссылку</button>
+        <div class="mechanic-status" id="referralCountText" style="margin-top:10px;"></div>
+      </div>
+
+      <button class="mechanic-btn secondary share-btn" id="shareBtn">Поделиться достижением</button>
+
       <button class="reset-btn" id="resetBtn">Сбросить прогресс</button>
     </div>
 
@@ -925,19 +968,19 @@
   const tg = window.Telegram?.WebApp;
   if (tg) { tg.ready(); tg.expand(); }
 
-  const userId = tg?.initDataUnsafe?.user?.id || 'guest_' + (localStorage.getItem('guestId') || (()=>{ const id='guest_'+Math.random().toString(36).slice(2); localStorage.setItem('guestId', id); return id; })());
+  const userId = tg?.initDataUnsafe?.user?.id || 'guest_' + (localStorage.getItem('guestId') || (()=>{ const id=Math.random().toString(36).slice(2); localStorage.setItem('guestId', id); return id; })());
 
   const businesses = [
-    { id:'kiosk', name:'Ларёк с кофе', icon:'☕', baseCost:100, baseIncome:1, level:0, purchased:false },
-    { id:'wash', name:'Автомойка', icon:'🚗', baseCost:600, baseIncome:5, level:0, purchased:false },
-    { id:'cafe', name:'Кафе', icon:'🍽', baseCost:3500, baseIncome:22, level:0, purchased:false },
-    { id:'gym', name:'Фитнес-клуб', icon:'🏋', baseCost:9000, baseIncome:48, level:0, purchased:false },
-    { id:'office', name:'Бизнес-центр', icon:'🏢', baseCost:20000, baseIncome:110, level:0, purchased:false },
-    { id:'hotel', name:'Отель', icon:'🏨', baseCost:55000, baseIncome:290, level:0, purchased:false },
-    { id:'factory', name:'Завод', icon:'⚙', baseCost:120000, baseIncome:650, level:0, purchased:false },
-    { id:'bank', name:'Банк', icon:'🏦', baseCost:400000, baseIncome:2100, level:0, purchased:false },
-    { id:'tech', name:'IT-корпорация', icon:'💻', baseCost:1500000, baseIncome:7800, level:0, purchased:false },
-    { id:'airline', name:'Авиакомпания', icon:'✈', baseCost:6000000, baseIncome:29000, level:0, purchased:false },
+    { id:'kiosk', name:'Ларёк с кофе', icon:'☕', baseCost:140, baseIncome:1, level:0, purchased:false },
+    { id:'wash', name:'Автомойка', icon:'🚗', baseCost:850, baseIncome:5, level:0, purchased:false },
+    { id:'cafe', name:'Кафе', icon:'🍽', baseCost:4900, baseIncome:22, level:0, purchased:false },
+    { id:'gym', name:'Фитнес-клуб', icon:'🏋', baseCost:12600, baseIncome:48, level:0, purchased:false },
+    { id:'office', name:'Бизнес-центр', icon:'🏢', baseCost:28000, baseIncome:110, level:0, purchased:false },
+    { id:'hotel', name:'Отель', icon:'🏨', baseCost:77000, baseIncome:290, level:0, purchased:false },
+    { id:'factory', name:'Завод', icon:'⚙', baseCost:168000, baseIncome:650, level:0, purchased:false },
+    { id:'bank', name:'Банк', icon:'🏦', baseCost:560000, baseIncome:2100, level:0, purchased:false },
+    { id:'tech', name:'IT-корпорация', icon:'💻', baseCost:2100000, baseIncome:7800, level:0, purchased:false },
+    { id:'airline', name:'Авиакомпания', icon:'✈', baseCost:8400000, baseIncome:29000, level:0, purchased:false },
   ];
 
   // Job system: five professions available from the very start (before any
@@ -945,11 +988,11 @@
   // tracked as a "next available at" timestamp (not a boolean) so cooldowns
   // survive a page reload.
   const jobs = [
-    { id:'flyers', name:'Раздача листовок', minPay:5, maxPay:10, cooldownMs:15000, unlockAt:0 },
-    { id:'courier', name:'Курьер', minPay:15, maxPay:25, cooldownMs:30000, unlockAt:200 },
-    { id:'waiter', name:'Официант', minPay:30, maxPay:50, cooldownMs:45000, unlockAt:1000 },
-    { id:'freelancer', name:'Фриланс-программист', minPay:80, maxPay:150, cooldownMs:90000, unlockAt:10000 },
-    { id:'consultant', name:'Бизнес-консультант', minPay:300, maxPay:500, cooldownMs:180000, unlockAt:100000 },
+    { id:'flyers', name:'Раздача листовок', minPay:5, maxPay:8, cooldownMs:15000, unlockAt:0 },
+    { id:'courier', name:'Курьер', minPay:15, maxPay:20, cooldownMs:30000, unlockAt:200 },
+    { id:'waiter', name:'Официант', minPay:30, maxPay:40, cooldownMs:45000, unlockAt:1000 },
+    { id:'freelancer', name:'Фриланс-программист', minPay:80, maxPay:120, cooldownMs:90000, unlockAt:10000 },
+    { id:'consultant', name:'Бизнес-консультант', minPay:300, maxPay:400, cooldownMs:180000, unlockAt:100000 },
   ];
   const jobReadyAt = {};
   jobs.forEach(j=>{ jobReadyAt[j.id] = 0; });
@@ -975,8 +1018,16 @@
     },
   ];
 
-  let capital = 500;
+  let capital = 200;
   let totalEarned = 0;
+
+  // Daily login rewards
+  let lastLoginDate = null;
+  let loginStreak = 0;
+
+  // Referral system
+  let referredBy = null;
+  let referralCount = 0;
 
   // Extra per-business state used by business-specific mechanics. Listed
   // explicitly so the save/load code stays generic as more mechanics are
@@ -998,6 +1049,10 @@
         const data = snap.data();
         capital = data.capital ?? capital;
         totalEarned = data.totalEarned ?? totalEarned;
+        lastLoginDate = data.lastLoginDate ?? lastLoginDate;
+        loginStreak = data.loginStreak ?? loginStreak;
+        referredBy = data.referredBy ?? referredBy;
+        referralCount = data.referralCount ?? referralCount;
         if (data.jobReadyAt && typeof data.jobReadyAt === 'object'){
           Object.assign(jobReadyAt, data.jobReadyAt);
         }
@@ -1034,6 +1089,10 @@
         playerName: currentPlayerName(),
         capital,
         totalEarned,
+        lastLoginDate,
+        loginStreak,
+        referredBy,
+        referralCount,
         jobReadyAt,
         businesses: businesses.map(b=>{
           const obj = { id:b.id, level:b.level };
@@ -1049,7 +1108,7 @@
   // ---------- Game logic ----------
 
   function costFor(biz){
-    return Math.round(biz.baseCost * Math.pow(1.15, biz.level));
+    return Math.round(biz.baseCost * Math.pow(1.2, biz.level));
   }
 
   function incomePerSec(biz){
@@ -1337,7 +1396,7 @@
   function totalSpentOn(biz){
     let spent = 0;
     for (let lvl = 0; lvl < biz.level; lvl++){
-      spent += Math.round(biz.baseCost * Math.pow(1.15, lvl));
+      spent += Math.round(biz.baseCost * Math.pow(1.2, lvl));
     }
     return spent;
   }
@@ -1561,6 +1620,68 @@
     document.getElementById('statIncome').textContent = fmt(totalIncome());
     document.getElementById('statEarned').textContent = fmt(totalEarned);
     document.getElementById('statBizCount').textContent = businesses.filter(b=>b.purchased).length;
+
+    document.getElementById('referralLinkText').textContent = referralLink();
+    document.getElementById('referralCountText').textContent = `Приглашено друзей: ${referralCount}`;
+  }
+
+  // ---------- Referrals & sharing ----------
+
+  function referralLink(){
+    return `https://t.me/ImperiaBusinessBot/play?startapp=REF_${userId}`;
+  }
+
+  document.getElementById('copyReferralBtn').addEventListener('click', async ()=>{
+    const btn = document.getElementById('copyReferralBtn');
+    try{
+      await navigator.clipboard.writeText(referralLink());
+      if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+      const old = btn.textContent;
+      btn.textContent = 'Скопировано!';
+      setTimeout(()=>{ btn.textContent = old; }, 1500);
+    } catch(e){
+      console.error('Copy failed', e);
+    }
+  });
+
+  document.getElementById('shareBtn').addEventListener('click', ()=>{
+    const text = `Я построил бизнес-империю на ${fmt(capital)} в игре Империя! 🏆`;
+    const url = referralLink();
+    if (tg?.openTelegramLink){
+      tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`);
+    } else if (navigator.share){
+      navigator.share({ text, url }).catch(()=>{});
+    } else {
+      navigator.clipboard?.writeText(`${text} ${url}`);
+    }
+  });
+
+  // Credits the referral bonus once, the first time a new player opens the
+  // game through another player's link (tg start_param = REF_<referrerId>).
+  async function checkReferral(){
+    if (referredBy) return;
+    const startParam = tg?.initDataUnsafe?.start_param;
+    if (!startParam || !startParam.startsWith('REF_')) return;
+    const referrerId = startParam.slice(4);
+    if (!referrerId || referrerId === String(userId)) return;
+
+    referredBy = referrerId;
+    capital += 300;
+    totalEarned += 300;
+    renderAll();
+    saveProgress();
+
+    try{
+      const refRef = window.__docRef(window.__db, 'players', referrerId);
+      const refSnap = await window.__getDoc(refRef);
+      if (refSnap.exists()){
+        const refData = refSnap.data();
+        await window.__setDoc(refRef, {
+          capital: (refData.capital || 0) + 300,
+          referralCount: (refData.referralCount || 0) + 1,
+        }, { merge: true });
+      }
+    } catch(e){ console.error('Referral credit failed', e); }
   }
 
   // ---------- Rating (real Firestore leaderboard, top 20 by capital) ----------
@@ -1677,6 +1798,8 @@
     });
     saveProgress();
     enterApp();
+    checkReferral();
+    checkDailyReward();
   });
 
   function enterApp(){
@@ -1696,20 +1819,20 @@
   }
 
   // ---------- Offline income ----------
-  // Normally offline income is paid at 50%. Cafe's "hire a chef" upgrade lifts
+  // Normally offline income is paid at 30%. Cafe's "hire a chef" upgrade lifts
   // that penalty to 100% for cafe's own share of the income.
 
   function checkOfflineIncome(lastSeen){
-    if (!lastSeen) return;
-    const secondsAway = Math.min((Date.now() - lastSeen) / 1000, 8 * 3600);
+    if (!lastSeen) return false;
+    const secondsAway = Math.min((Date.now() - lastSeen) / 1000, 6 * 3600);
 
     let ratePerSec = 0;
     businesses.forEach(b=>{
-      const mult = (b.id === 'cafe' && b.hasChef) ? 1 : 0.5;
+      const mult = (b.id === 'cafe' && b.hasChef) ? 1 : 0.3;
       ratePerSec += incomePerSec(b) * mult;
     });
     const apartment = assets.find(a=>a.id === 'apartment');
-    if (apartment.status === 'kept') ratePerSec += apartment.rentIncome * 0.5;
+    if (apartment.status === 'kept') ratePerSec += apartment.rentIncome * 0.3;
     const car = assets.find(a=>a.id === 'car');
     if (car.status === 'kept') ratePerSec *= (1 + car.useBonusPct / 100);
 
@@ -1722,12 +1845,15 @@
       document.getElementById('offlineDesc').textContent = `Ваш бизнес работал ${hrs}ч ${mins}м`;
       document.getElementById('offlineOverlay').style.display = 'flex';
       renderAll();
+      return true;
     }
+    return false;
   }
 
   document.getElementById('offlineClaim').addEventListener('click', ()=>{
     document.getElementById('offlineOverlay').style.display = 'none';
     saveProgress();
+    checkDailyReward();
   });
 
   // ---------- Jobs ("go to work") ----------
@@ -1804,6 +1930,52 @@
     saveProgress();
   }
 
+  // ---------- Daily login rewards ----------
+  // Streak resets unless the player returns on the very next calendar day.
+  // Every completed 7-day cycle multiplies the whole reward table by x1.5.
+
+  const DAILY_REWARDS = [50, 75, 120, 180, 260, 380, 600];
+
+  function todayStr(){
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+
+  function daysBetween(a, b){
+    return Math.round((new Date(b + 'T00:00:00') - new Date(a + 'T00:00:00')) / 86400000);
+  }
+
+  function rewardForStreak(streak){
+    const cycle = Math.floor((streak - 1) / 7);
+    const dayInCycle = (streak - 1) % 7;
+    return Math.round(DAILY_REWARDS[dayInCycle] * Math.pow(1.5, cycle));
+  }
+
+  function checkDailyReward(){
+    const today = todayStr();
+    if (lastLoginDate === today) return;
+
+    loginStreak = (lastLoginDate && daysBetween(lastLoginDate, today) === 1) ? loginStreak + 1 : 1;
+    lastLoginDate = today;
+
+    const reward = rewardForStreak(loginStreak);
+    const dayInCycle = ((loginStreak - 1) % 7) + 1;
+    const cycle = Math.floor((loginStreak - 1) / 7) + 1;
+
+    document.getElementById('dailyRewardDay').textContent = cycle > 1 ? `День ${dayInCycle} (круг ${cycle})` : `День ${dayInCycle}`;
+    document.getElementById('dailyRewardStreak').textContent = `Серия входов: ${loginStreak}`;
+    document.getElementById('dailyRewardAmount').textContent = `+${fmt(reward)}`;
+    document.getElementById('dailyRewardOverlay').style.display = 'flex';
+
+    document.getElementById('dailyRewardClaim').onclick = ()=>{
+      capital += reward;
+      totalEarned += reward;
+      document.getElementById('dailyRewardOverlay').style.display = 'none';
+      renderAll();
+      saveProgress();
+    };
+  }
+
   // ---------- Live clock ----------
   // Just a live time/date readout for now (no gameplay effect) — a basis for
   // a future day/night visual cycle.
@@ -1834,8 +2006,10 @@
 
   document.getElementById('resetBtn').addEventListener('click', ()=>{
     if (!confirm('Точно сбросить весь прогресс?')) return;
-    capital = 500;
+    capital = 200;
     totalEarned = 0;
+    lastLoginDate = null;
+    loginStreak = 0;
     jobs.forEach(j=>{ jobReadyAt[j.id] = 0; });
     businesses.forEach(b=>{
       b.level = 0;
@@ -1870,7 +2044,9 @@
   loadProgress().then(lastSeen=>{
     if (inheritanceDone()){
       enterApp();
-      checkOfflineIncome(lastSeen);
+      checkReferral();
+      const offlineShown = checkOfflineIncome(lastSeen);
+      if (!offlineShown) checkDailyReward();
     } else {
       showInheritance();
     }
