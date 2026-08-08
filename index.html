@@ -5,6 +5,25 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Империя</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyB828C0bapGUHV2HHIWGBOpVA4PdplpJ2Y",
+    authDomain: "imperia-game.firebaseapp.com",
+    projectId: "imperia-game",
+    storageBucket: "imperia-game.firebasestorage.app",
+    messagingSenderId: "204004168426",
+    appId: "1:204004168426:web:9851446701008e23297d93"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  window.__db = getFirestore(app);
+  window.__docRef = doc;
+  window.__getDoc = getDoc;
+  window.__setDoc = setDoc;
+</script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap');
 
@@ -211,6 +230,62 @@
 
   .view{ display:none; }
   .view.active{ display:block; }
+
+  .overlay{
+    position: fixed;
+    inset: 0;
+    background: rgba(2,3,7,0.85);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    z-index: 100;
+    padding: 20px;
+  }
+
+  .overlay-card{
+    background: var(--surface);
+    border: 1px solid var(--gold-dim);
+    border-radius: 18px;
+    padding: 28px 24px;
+    text-align:center;
+    max-width: 320px;
+    width: 100%;
+  }
+
+  .overlay-icon{ font-size: 32px; margin-bottom: 10px; }
+
+  .overlay-title{
+    font-family: 'Playfair Display', serif;
+    font-size: 18px;
+    color: var(--gold-light);
+    margin-bottom: 8px;
+  }
+
+  .overlay-desc{
+    font-size: 13px;
+    color: var(--text-dim);
+    margin-bottom: 16px;
+  }
+
+  .overlay-amount{
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 30px;
+    font-weight: 700;
+    color: var(--green);
+    margin-bottom: 20px;
+  }
+
+  .overlay-btn{
+    background: var(--gold);
+    color: #1a1300;
+    border: none;
+    border-radius: 10px;
+    padding: 12px 20px;
+    font-size: 14px;
+    font-weight: 600;
+    width: 100%;
+    cursor: pointer;
+  }
 
   /* Rating view */
   .rating-list{
@@ -549,11 +624,22 @@
     color: var(--text-dim);
     cursor: not-allowed;
   }
+
+  .boot-screen{
+    min-height: 100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color: var(--text-dim);
+    font-size: 13px;
+  }
 </style>
 </head>
 <body>
 
-  <div class="view active" id="view-inheritance">
+  <div class="boot-screen" id="bootScreen">Загрузка...</div>
+
+  <div class="view" id="view-inheritance">
     <div class="inheritance-intro">
       <span class="brand">Наследство</span>
       <div class="inheritance-lead">Дальний родственник оставил вам квартиру и машину. Продайте их ради стартового капитала — или оставьте себе и получайте с них выгоду.</div>
@@ -575,6 +661,16 @@
         <div class="income-rate" id="incomeRate">+$0 / сек</div>
       </div>
 
+      <div id="offlineOverlay" class="overlay" style="display:none">
+        <div class="overlay-card">
+          <div class="overlay-icon">💰</div>
+          <div class="overlay-title">Пока вас не было...</div>
+          <div class="overlay-desc" id="offlineDesc">Ваш бизнес продолжал работать</div>
+          <div class="overlay-amount" id="offlineAmount">+$0</div>
+          <button class="overlay-btn" id="offlineClaim">Забрать</button>
+        </div>
+      </div>
+
       <div class="section-title">Активы</div>
       <div class="biz-list" id="assetList"></div>
 
@@ -584,7 +680,7 @@
 
     <div class="view" id="view-rating">
       <div class="section-title">Рейтинг магнатов</div>
-      <div class="rating-note">Локальный демо-рейтинг: реальные игроки появятся, когда подключим сервер.</div>
+      <div class="rating-note">Локальный демо-рейтинг: реальные игроки появятся, когда подключим общий сервер.</div>
       <div class="rating-list" id="ratingList"></div>
     </div>
 
@@ -632,18 +728,23 @@
     </nav>
   </div>
 
-<script>
+<script type="module">
   const tg = window.Telegram?.WebApp;
   if (tg) { tg.ready(); tg.expand(); }
 
-  const SAVE_KEY = 'imperia_save_v2';
+  const userId = tg?.initDataUnsafe?.user?.id || 'guest_' + (localStorage.getItem('guestId') || (()=>{ const id='guest_'+Math.random().toString(36).slice(2); localStorage.setItem('guestId', id); return id; })());
 
   const businesses = [
     { id:'kiosk', name:'Ларёк с кофе', icon:'☕', baseCost:100, baseIncome:1, level:0 },
     { id:'wash', name:'Автомойка', icon:'🚗', baseCost:600, baseIncome:5, level:0 },
     { id:'cafe', name:'Кафе', icon:'🍽', baseCost:3500, baseIncome:22, level:0 },
+    { id:'gym', name:'Фитнес-клуб', icon:'🏋', baseCost:9000, baseIncome:48, level:0 },
     { id:'office', name:'Бизнес-центр', icon:'🏢', baseCost:20000, baseIncome:110, level:0 },
+    { id:'hotel', name:'Отель', icon:'🏨', baseCost:55000, baseIncome:290, level:0 },
     { id:'factory', name:'Завод', icon:'⚙', baseCost:120000, baseIncome:650, level:0 },
+    { id:'bank', name:'Банк', icon:'🏦', baseCost:400000, baseIncome:2100, level:0 },
+    { id:'tech', name:'IT-корпорация', icon:'💻', baseCost:1500000, baseIncome:7800, level:0 },
+    { id:'airline', name:'Авиакомпания', icon:'✈', baseCost:6000000, baseIncome:29000, level:0 },
   ];
 
   // Inheritance assets: sell for one-time cash, or keep for ongoing benefit.
@@ -670,84 +771,41 @@
   let capital = 500;
   let totalEarned = 0;
 
-  // ---------- Save / Load ----------
+  // ---------- Save / Load (Firebase Firestore) ----------
 
-  function serializeState(){
-    return {
-      capital,
-      totalEarned,
-      levels: Object.fromEntries(businesses.map(b => [b.id, b.level])),
-      assetStatus: Object.fromEntries(assets.map(a => [a.id, a.status])),
-      ts: Date.now(),
-    };
-  }
-
-  function applyState(state){
-    if (!state) return;
-    if (typeof state.capital === 'number') capital = state.capital;
-    if (typeof state.totalEarned === 'number') totalEarned = state.totalEarned;
-    if (state.levels){
-      businesses.forEach(b=>{
-        if (typeof state.levels[b.id] === 'number') b.level = state.levels[b.id];
-      });
-    }
-    if (state.assetStatus){
-      assets.forEach(a=>{
-        if (state.assetStatus[a.id] === 'sold' || state.assetStatus[a.id] === 'kept'){
-          a.status = state.assetStatus[a.id];
-        }
-      });
-    }
-  }
-
-  function saveLocal(){
+  async function loadProgress(){
     try{
-      localStorage.setItem(SAVE_KEY, JSON.stringify(serializeState()));
-    }catch(e){}
+      const ref = window.__docRef(window.__db, 'players', String(userId));
+      const snap = await window.__getDoc(ref);
+      if (snap.exists()){
+        const data = snap.data();
+        capital = data.capital ?? capital;
+        totalEarned = data.totalEarned ?? totalEarned;
+        (data.businesses || []).forEach(saved=>{
+          const b = businesses.find(x=>x.id === saved.id);
+          if (b) b.level = saved.level;
+        });
+        (data.assets || []).forEach(saved=>{
+          const a = assets.find(x=>x.id === saved.id);
+          if (a && (saved.status === 'sold' || saved.status === 'kept')) a.status = saved.status;
+        });
+        return data.lastSeen;
+      }
+    } catch(e){ console.error('Load failed', e); }
+    return null;
   }
 
-  let cloudSaveTimer = null;
-  function saveCloud(){
-    if (!tg?.CloudStorage) return;
-    clearTimeout(cloudSaveTimer);
-    cloudSaveTimer = setTimeout(()=>{
-      try{
-        tg.CloudStorage.setItem(SAVE_KEY, JSON.stringify(serializeState()), ()=>{});
-      }catch(e){}
-    }, 4000);
-  }
-
-  function saveAll(){
-    saveLocal();
-    saveCloud();
-  }
-
-  function loadLocal(){
+  async function saveProgress(){
     try{
-      const raw = localStorage.getItem(SAVE_KEY);
-      if (raw) applyState(JSON.parse(raw));
-    }catch(e){}
-  }
-
-  function loadCloudThenRender(){
-    if (!tg?.CloudStorage){ boot(); return; }
-    try{
-      tg.CloudStorage.getItem(SAVE_KEY, (err, value)=>{
-        if (!err && value){
-          try{
-            const cloudState = JSON.parse(value);
-            const localRaw = localStorage.getItem(SAVE_KEY);
-            const localState = localRaw ? JSON.parse(localRaw) : null;
-            if (!localState || (cloudState.ts || 0) > (localState.ts || 0)){
-              applyState(cloudState);
-            }
-          }catch(e){}
-        }
-        boot();
+      const ref = window.__docRef(window.__db, 'players', String(userId));
+      await window.__setDoc(ref, {
+        capital,
+        totalEarned,
+        businesses: businesses.map(b=>({ id:b.id, level:b.level })),
+        assets: assets.map(a=>({ id:a.id, status:a.status })),
+        lastSeen: Date.now()
       });
-    }catch(e){
-      boot();
-    }
+    } catch(e){ console.error('Save failed', e); }
   }
 
   // ---------- Game logic ----------
@@ -781,8 +839,7 @@
   }
 
   function renderRank(){
-    const label = rankFor(totalIncome());
-    document.getElementById('rankLabel').textContent = label;
+    document.getElementById('rankLabel').textContent = rankFor(totalIncome());
   }
 
   function renderList(){
@@ -816,8 +873,8 @@
           capital -= cost;
           biz.level += 1;
           if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
-          saveAll();
           renderAll();
+          saveProgress();
         }
       });
     });
@@ -830,9 +887,7 @@
     assets.forEach(asset=>{
       const card = document.createElement('div');
       card.className = 'asset-card';
-      const meta = asset.status === 'sold'
-        ? 'Продано'
-        : asset.keptMeta();
+      const meta = asset.status === 'sold' ? 'Продано' : asset.keptMeta();
       const sellBtn = asset.status === 'kept'
         ? `<button class="asset-sell-btn" data-id="${asset.id}">Продать за ${fmt(asset.sellValue)}</button>`
         : '';
@@ -853,8 +908,8 @@
         asset.status = 'sold';
         capital += asset.sellValue;
         if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
-        saveAll();
         renderAll();
+        saveProgress();
       });
     });
   }
@@ -1003,16 +1058,47 @@
     assets.forEach(asset=>{
       if (asset.status === 'sold') capital += asset.sellValue;
     });
-    saveAll();
+    saveProgress();
     enterApp();
   });
 
   function enterApp(){
+    document.getElementById('bootScreen').style.display = 'none';
     document.getElementById('view-inheritance').classList.remove('active');
     document.getElementById('view-inheritance').style.display = 'none';
     document.getElementById('app').style.display = '';
     renderAll();
   }
+
+  function showInheritance(){
+    document.getElementById('bootScreen').style.display = 'none';
+    document.getElementById('app').style.display = 'none';
+    document.getElementById('view-inheritance').style.display = '';
+    document.getElementById('view-inheritance').classList.add('active');
+    renderInheritance();
+  }
+
+  // ---------- Offline income ----------
+
+  function checkOfflineIncome(lastSeen){
+    if (!lastSeen) return;
+    const secondsAway = Math.min((Date.now() - lastSeen) / 1000, 8 * 3600);
+    const earned = Math.floor(totalIncome() * secondsAway * 0.5);
+    if (earned > 10){
+      capital += earned;
+      totalEarned += earned;
+      document.getElementById('offlineAmount').textContent = fmt(earned);
+      const hrs = Math.floor(secondsAway/3600), mins = Math.floor((secondsAway%3600)/60);
+      document.getElementById('offlineDesc').textContent = `Ваш бизнес работал ${hrs}ч ${mins}м`;
+      document.getElementById('offlineOverlay').style.display = 'flex';
+      renderAll();
+    }
+  }
+
+  document.getElementById('offlineClaim').addEventListener('click', ()=>{
+    document.getElementById('offlineOverlay').style.display = 'none';
+    saveProgress();
+  });
 
   // ---------- Main render / loop ----------
 
@@ -1026,50 +1112,41 @@
     if (activeView === 'profile') renderProfile();
   }
 
-  function boot(){
-    if (inheritanceDone()){
-      enterApp();
-    } else {
-      renderInheritance();
-    }
-
-    setInterval(()=>{
-      if (!inheritanceDone()) return;
-      const gain = totalIncome();
-      if (gain > 0){
-        capital += gain;
-        totalEarned += gain;
-        renderCapital(true);
-        renderList();
-        renderRank();
-        const activeView = document.querySelector('#app .view.active')?.id?.replace('view-', '');
-        if (activeView === 'profile') renderProfile();
-        saveLocal();
-      }
-    }, 1000);
-
-    setInterval(saveCloud, 15000);
-  }
-
-  loadLocal();
-  loadCloudThenRender();
-
   document.getElementById('resetBtn').addEventListener('click', ()=>{
     if (!confirm('Точно сбросить весь прогресс?')) return;
     capital = 500;
     totalEarned = 0;
     businesses.forEach(b=> b.level = 0);
     assets.forEach(a=> a.status = null);
-    saveAll();
-    document.getElementById('app').style.display = 'none';
-    document.getElementById('view-inheritance').style.display = '';
-    document.getElementById('view-inheritance').classList.add('active');
-    renderInheritance();
+    saveProgress();
+    showInheritance();
   });
 
-  window.addEventListener('beforeunload', saveLocal);
-  document.addEventListener('visibilitychange', ()=>{
-    if (document.visibilityState === 'hidden') saveAll();
+  setInterval(saveProgress, 10000);
+  document.addEventListener('visibilitychange', ()=>{ if (document.hidden) saveProgress(); });
+  window.addEventListener('beforeunload', saveProgress);
+
+  setInterval(()=>{
+    if (!inheritanceDone()) return;
+    const gain = totalIncome();
+    if (gain > 0){
+      capital += gain;
+      totalEarned += gain;
+      renderCapital(true);
+      renderList();
+      renderRank();
+      const activeView = document.querySelector('#app .view.active')?.id?.replace('view-', '');
+      if (activeView === 'profile') renderProfile();
+    }
+  }, 1000);
+
+  loadProgress().then(lastSeen=>{
+    if (inheritanceDone()){
+      enterApp();
+      checkOfflineIncome(lastSeen);
+    } else {
+      showInheritance();
+    }
   });
 </script>
 
