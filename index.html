@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Империя</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap');
+
+  :root{
+    --bg: #05070d;
+    --surface: #0e1424;
+    --surface-2: #161d33;
+    --border: #232b47;
+    --gold: #d4af37;
+    --gold-light: #fbe58a;
+    --gold-dim: #9c7a1e;
+    --text: #eef1f8;
+    --text-dim: #8b93a7;
+    --green: #4a9d6f;
+  }
+
+  *{ box-sizing: border-box; margin:0; padding:0; }
+
+  body{
+    background: radial-gradient(circle at 50% 0%, #101a30 0%, var(--bg) 60%);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+    padding-bottom: 90px;
+  }
+
+  header{
+    padding: 20px 18px 14px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .brand{
+    font-family: 'Playfair Display', serif;
+    font-weight: 700;
+    font-size: 20px;
+    letter-spacing: 0.5px;
+    color: var(--gold-light);
+  }
+
+  .level-pill{
+    font-size: 11px;
+    color: var(--gold);
+    border: 1px solid var(--gold-dim);
+    border-radius: 20px;
+    padding: 3px 10px;
+    font-weight: 500;
+  }
+
+  .capital-block{
+    padding: 22px 18px 18px;
+    text-align: center;
+  }
+
+  .capital-label{
+    font-size: 12px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 6px;
+  }
+
+  .capital-value{
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    font-size: 38px;
+    color: var(--gold-light);
+    letter-spacing: 0.5px;
+    transition: transform 0.15s ease;
+  }
+
+  .capital-value.pulse{
+    transform: scale(1.04);
+  }
+
+  .income-rate{
+    margin-top: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--green);
+  }
+
+  .section-title{
+    padding: 18px 18px 10px;
+    font-size: 13px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+  }
+
+  .biz-list{
+    display:flex;
+    flex-direction:column;
+    gap: 10px;
+    padding: 0 18px;
+  }
+
+  .biz-card{
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px;
+    display:flex;
+    align-items:center;
+    gap: 12px;
+  }
+
+  .biz-icon{
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    background: var(--surface-2);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size: 20px;
+    flex-shrink:0;
+    border: 1px solid var(--border);
+  }
+
+  .biz-info{
+    flex: 1;
+    min-width: 0;
+  }
+
+  .biz-name{
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 2px;
+  }
+
+  .biz-meta{
+    font-size: 12px;
+    color: var(--text-dim);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .biz-action{
+    display:flex;
+    flex-direction:column;
+    align-items:flex-end;
+    gap: 4px;
+    flex-shrink:0;
+  }
+
+  .buy-btn{
+    background: var(--gold);
+    color: #1a1300;
+    border: none;
+    border-radius: 8px;
+    padding: 7px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    font-family: 'JetBrains Mono', monospace;
+    cursor: pointer;
+  }
+
+  .buy-btn:disabled{
+    background: var(--surface-2);
+    color: var(--text-dim);
+  }
+
+  .buy-btn.affordable{
+    box-shadow: 0 0 0 1px var(--gold-light) inset;
+  }
+
+  .biz-level{
+    font-size: 11px;
+    color: var(--gold);
+  }
+
+  nav{
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    display:flex;
+    padding: 10px 8px calc(10px + env(safe-area-inset-bottom));
+  }
+
+  .nav-item{
+    flex:1;
+    text-align:center;
+    font-size: 11px;
+    color: var(--text-dim);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap: 3px;
+    cursor: pointer;
+    background: none;
+    border: none;
+    font-family: inherit;
+    padding: 4px 0;
+  }
+
+  .nav-item.active{
+    color: var(--gold-light);
+  }
+
+  .nav-icon{ font-size: 18px; }
+
+  .view{ display:none; }
+  .view.active{ display:block; }
+
+  /* Rating view */
+  .rating-list{
+    display:flex;
+    flex-direction:column;
+    gap: 8px;
+    padding: 0 18px;
+  }
+
+  .rating-row{
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 10px 12px;
+    display:flex;
+    align-items:center;
+    gap: 12px;
+  }
+
+  .rating-row.me{
+    border-color: var(--gold-dim);
+    box-shadow: 0 0 0 1px var(--gold-dim) inset;
+  }
+
+  .rating-place{
+    width: 26px;
+    text-align:center;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    color: var(--text-dim);
+    flex-shrink:0;
+  }
+
+  .rating-row:nth-child(1) .rating-place{ color:#fbe58a; }
+  .rating-row:nth-child(2) .rating-place{ color:#c9cbd6; }
+  .rating-row:nth-child(3) .rating-place{ color:#c98a4b; }
+
+  .rating-avatar{
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size: 15px;
+    flex-shrink:0;
+  }
+
+  .rating-info{
+    flex:1;
+    min-width:0;
+  }
+
+  .rating-name{
+    font-size: 13px;
+    font-weight: 600;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+
+  .rating-sub{
+    font-size: 11px;
+    color: var(--text-dim);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .rating-income{
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--green);
+    flex-shrink:0;
+  }
+
+  .rating-note{
+    padding: 4px 18px 4px;
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+
+  /* Profile view */
+  .profile-card{
+    margin: 4px 18px 20px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 22px 18px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    text-align:center;
+    gap: 4px;
+  }
+
+  .profile-avatar{
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: var(--surface-2);
+    border: 1px solid var(--gold-dim);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size: 26px;
+    margin-bottom: 8px;
+  }
+
+  .profile-name{
+    font-family: 'Playfair Display', serif;
+    font-weight: 700;
+    font-size: 18px;
+    color: var(--gold-light);
+  }
+
+  .profile-rank{
+    font-size: 12px;
+    color: var(--gold);
+  }
+
+  .stat-grid{
+    padding: 0 18px;
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .stat-card{
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px;
+  }
+
+  .stat-label{
+    font-size: 11px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 4px;
+  }
+
+  .stat-value{
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    font-size: 16px;
+    color: var(--text);
+  }
+
+  .reset-btn{
+    margin: 20px 18px 0;
+    background: none;
+    border: 1px solid #6b2f2f;
+    color: #d98a8a;
+    border-radius: 10px;
+    padding: 10px;
+    font-size: 12px;
+    font-family: inherit;
+    cursor: pointer;
+  }
+</style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">Империя</div>
+    <div class="level-pill" id="rankLabel">Новичок</div>
+  </header>
+
+  <div class="view active" id="view-business">
+    <div class="capital-block">
+      <div class="capital-label">Капитал</div>
+      <div class="capital-value" id="capitalValue">$0</div>
+      <div class="income-rate" id="incomeRate">+$0 / сек</div>
+    </div>
+
+    <div class="section-title">Твои бизнесы</div>
+    <div class="biz-list" id="bizList"></div>
+  </div>
+
+  <div class="view" id="view-rating">
+    <div class="section-title">Рейтинг магнатов</div>
+    <div class="rating-note">Локальный демо-рейтинг: реальные игроки появятся, когда подключим сервер.</div>
+    <div class="rating-list" id="ratingList"></div>
+  </div>
+
+  <div class="view" id="view-profile">
+    <div class="section-title">Профиль</div>
+    <div class="profile-card">
+      <div class="profile-avatar" id="profileAvatar">●</div>
+      <div class="profile-name" id="profileName">Игрок</div>
+      <div class="profile-rank" id="profileRank">Новичок</div>
+    </div>
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="stat-label">Капитал</div>
+        <div class="stat-value" id="statCapital">$0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Доход/сек</div>
+        <div class="stat-value" id="statIncome">$0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Заработано всего</div>
+        <div class="stat-value" id="statEarned">$0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Бизнесов открыто</div>
+        <div class="stat-value" id="statBizCount">0</div>
+      </div>
+    </div>
+    <button class="reset-btn" id="resetBtn">Сбросить прогресс</button>
+  </div>
+
+  <nav>
+    <button class="nav-item active" data-view="business">
+      <div class="nav-icon">◆</div>
+      <div>Бизнесы</div>
+    </button>
+    <button class="nav-item" data-view="rating">
+      <div class="nav-icon">▲</div>
+      <div>Рейтинг</div>
+    </button>
+    <button class="nav-item" data-view="profile">
+      <div class="nav-icon">●</div>
+      <div>Профиль</div>
+    </button>
+  </nav>
+
+<script>
+  const tg = window.Telegram?.WebApp;
+  if (tg) { tg.ready(); tg.expand(); }
+
+  const SAVE_KEY = 'imperia_save_v1';
+
+  const businesses = [
+    { id:'kiosk', name:'Ларёк с кофе', icon:'☕', baseCost:100, baseIncome:1, level:0 },
+    { id:'wash', name:'Автомойка', icon:'🚗', baseCost:600, baseIncome:5, level:0 },
+    { id:'cafe', name:'Кафе', icon:'🍽', baseCost:3500, baseIncome:22, level:0 },
+    { id:'office', name:'Бизнес-центр', icon:'🏢', baseCost:20000, baseIncome:110, level:0 },
+    { id:'factory', name:'Завод', icon:'⚙', baseCost:120000, baseIncome:650, level:0 },
+  ];
+
+  let capital = 500;
+  let totalEarned = 0;
+
+  // ---------- Save / Load ----------
+
+  function serializeState(){
+    return {
+      capital,
+      totalEarned,
+      levels: Object.fromEntries(businesses.map(b => [b.id, b.level])),
+      ts: Date.now(),
+    };
+  }
+
+  function applyState(state){
+    if (!state) return;
+    if (typeof state.capital === 'number') capital = state.capital;
+    if (typeof state.totalEarned === 'number') totalEarned = state.totalEarned;
+    if (state.levels){
+      businesses.forEach(b=>{
+        if (typeof state.levels[b.id] === 'number') b.level = state.levels[b.id];
+      });
+    }
+  }
+
+  function saveLocal(){
+    try{
+      localStorage.setItem(SAVE_KEY, JSON.stringify(serializeState()));
+    }catch(e){}
+  }
+
+  let cloudSaveTimer = null;
+  function saveCloud(){
+    if (!tg?.CloudStorage) return;
+    clearTimeout(cloudSaveTimer);
+    cloudSaveTimer = setTimeout(()=>{
+      tg.CloudStorage.setItem(SAVE_KEY, JSON.stringify(serializeState()), ()=>{});
+    }, 4000);
+  }
+
+  function saveAll(){
+    saveLocal();
+    saveCloud();
+  }
+
+  function loadLocal(){
+    try{
+      const raw = localStorage.getItem(SAVE_KEY);
+      if (raw) applyState(JSON.parse(raw));
+    }catch(e){}
+  }
+
+  function loadCloudThenRender(){
+    if (!tg?.CloudStorage){ renderAll(); return; }
+    tg.CloudStorage.getItem(SAVE_KEY, (err, value)=>{
+      if (!err && value){
+        try{
+          const cloudState = JSON.parse(value);
+          const localRaw = localStorage.getItem(SAVE_KEY);
+          const localState = localRaw ? JSON.parse(localRaw) : null;
+          if (!localState || (cloudState.ts || 0) > (localState.ts || 0)){
+            applyState(cloudState);
+          }
+        }catch(e){}
+      }
+      renderAll();
+    });
+  }
+
+  // ---------- Game logic ----------
+
+  function costFor(biz){
+    return Math.round(biz.baseCost * Math.pow(1.15, biz.level));
+  }
+
+  function incomePerSec(biz){
+    return biz.baseIncome * biz.level;
+  }
+
+  function totalIncome(){
+    return businesses.reduce((sum,b)=> sum + incomePerSec(b), 0);
+  }
+
+  function fmt(n){
+    return '$' + Math.floor(n).toLocaleString('ru-RU');
+  }
+
+  function rankFor(inc){
+    if (inc >= 500) return 'Магнат';
+    if (inc >= 100) return 'Инвестор';
+    if (inc >= 20) return 'Предприниматель';
+    return 'Новичок';
+  }
+
+  function renderRank(){
+    const label = rankFor(totalIncome());
+    document.getElementById('rankLabel').textContent = label;
+  }
+
+  function renderList(){
+    const list = document.getElementById('bizList');
+    list.innerHTML = '';
+    businesses.forEach(biz=>{
+      const cost = costFor(biz);
+      const affordable = capital >= cost;
+      const card = document.createElement('div');
+      card.className = 'biz-card';
+      card.innerHTML = `
+        <div class="biz-icon">${biz.icon}</div>
+        <div class="biz-info">
+          <div class="biz-name">${biz.name}</div>
+          <div class="biz-meta">+${fmt(incomePerSec(biz))}/сек · <span class="biz-level">ур. ${biz.level}</span></div>
+        </div>
+        <div class="biz-action">
+          <button class="buy-btn ${affordable ? 'affordable':''}" ${affordable ? '' : 'disabled'} data-id="${biz.id}">
+            ${fmt(cost)}
+          </button>
+        </div>
+      `;
+      list.appendChild(card);
+    });
+
+    list.querySelectorAll('.buy-btn').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const biz = businesses.find(b=>b.id === btn.dataset.id);
+        const cost = costFor(biz);
+        if (capital >= cost){
+          capital -= cost;
+          biz.level += 1;
+          if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+          saveAll();
+          renderAll();
+        }
+      });
+    });
+  }
+
+  function renderCapital(pulse=false){
+    const el = document.getElementById('capitalValue');
+    el.textContent = fmt(capital);
+    document.getElementById('incomeRate').textContent = `+${fmt(totalIncome())} / сек`;
+    if (pulse){
+      el.classList.add('pulse');
+      setTimeout(()=> el.classList.remove('pulse'), 150);
+    }
+  }
+
+  // ---------- Profile ----------
+
+  function tgUser(){
+    return tg?.initDataUnsafe?.user || null;
+  }
+
+  function renderProfile(){
+    const user = tgUser();
+    const name = user ? [user.first_name, user.last_name].filter(Boolean).join(' ') || user.username || 'Игрок' : 'Игрок';
+    const initial = name.trim().charAt(0).toUpperCase() || '●';
+
+    document.getElementById('profileName').textContent = name;
+    document.getElementById('profileAvatar').textContent = initial;
+    document.getElementById('profileRank').textContent = rankFor(totalIncome());
+
+    document.getElementById('statCapital').textContent = fmt(capital);
+    document.getElementById('statIncome').textContent = fmt(totalIncome());
+    document.getElementById('statEarned').textContent = fmt(totalEarned);
+    document.getElementById('statBizCount').textContent = businesses.filter(b=>b.level > 0).length;
+  }
+
+  // ---------- Rating (local demo leaderboard) ----------
+
+  const BOT_NAMES = ['Александр К.', 'Марина В.', 'Тимур Б.', 'Ольга С.', 'Данил Р.', 'Каролина Ф.', 'Егор П.'];
+  const BOT_ICONS = ['🎩','👑','💼','🦊','🐺','🦁','🐯'];
+
+  function botLeaderboard(myIncome){
+    const base = Math.max(myIncome, 5);
+    return BOT_NAMES.map((name, i)=>{
+      const factor = [4.2, 2.6, 1.7, 1.1, 0.7, 0.4, 0.2][i] ?? 0.3;
+      const jitter = 0.85 + (Math.sin(i * 12.9898) * 0.5 + 0.5) * 0.3;
+      return {
+        name,
+        icon: BOT_ICONS[i % BOT_ICONS.length],
+        income: Math.round(base * factor * jitter),
+        isMe: false,
+      };
+    });
+  }
+
+  function renderRating(){
+    const myIncome = totalIncome();
+    const user = tgUser();
+    const myName = user ? [user.first_name, user.last_name].filter(Boolean).join(' ') || user.username || 'Ты' : 'Ты';
+
+    const rows = [
+      ...botLeaderboard(myIncome),
+      { name: myName + ' (ты)', icon:'●', income: myIncome, isMe: true },
+    ].sort((a,b)=> b.income - a.income);
+
+    const list = document.getElementById('ratingList');
+    list.innerHTML = '';
+    rows.forEach((row, i)=>{
+      const el = document.createElement('div');
+      el.className = 'rating-row' + (row.isMe ? ' me' : '');
+      el.innerHTML = `
+        <div class="rating-place">${i+1}</div>
+        <div class="rating-avatar">${row.icon}</div>
+        <div class="rating-info">
+          <div class="rating-name">${row.name}</div>
+          <div class="rating-sub">${rankFor(row.income)}</div>
+        </div>
+        <div class="rating-income">+${fmt(row.income)}/с</div>
+      `;
+      list.appendChild(el);
+    });
+  }
+
+  // ---------- Views ----------
+
+  function switchView(name){
+    document.querySelectorAll('.view').forEach(v=>{
+      v.classList.toggle('active', v.id === 'view-' + name);
+    });
+    document.querySelectorAll('.nav-item').forEach(n=>{
+      n.classList.toggle('active', n.dataset.view === name);
+    });
+    if (name === 'rating') renderRating();
+    if (name === 'profile') renderProfile();
+  }
+
+  document.querySelectorAll('.nav-item').forEach(btn=>{
+    btn.addEventListener('click', ()=> switchView(btn.dataset.view));
+  });
+
+  // ---------- Main render / loop ----------
+
+  function renderAll(){
+    renderCapital();
+    renderList();
+    renderRank();
+    const activeView = document.querySelector('.view.active')?.id?.replace('view-', '');
+    if (activeView === 'rating') renderRating();
+    if (activeView === 'profile') renderProfile();
+  }
+
+  loadLocal();
+  renderAll();
+  loadCloudThenRender();
+
+  setInterval(()=>{
+    const gain = totalIncome();
+    if (gain > 0){
+      capital += gain;
+      totalEarned += gain;
+      renderCapital(true);
+      renderList();
+      renderRank();
+      const activeView = document.querySelector('.view.active')?.id?.replace('view-', '');
+      if (activeView === 'profile') renderProfile();
+      saveLocal();
+    }
+  }, 1000);
+
+  setInterval(saveCloud, 15000);
+
+  document.getElementById('resetBtn').addEventListener('click', ()=>{
+    if (!confirm('Точно сбросить весь прогресс?')) return;
+    capital = 500;
+    totalEarned = 0;
+    businesses.forEach(b=> b.level = 0);
+    saveAll();
+    renderAll();
+  });
+
+  window.addEventListener('beforeunload', saveLocal);
+  document.addEventListener('visibilitychange', ()=>{
+    if (document.visibilityState === 'hidden') saveAll();
+  });
+</script>
+
+</body>
+</html>
