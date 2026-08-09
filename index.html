@@ -864,6 +864,57 @@
     gap: 8px;
   }
 
+  .item-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap: 10px;
+    padding: 8px 0;
+    border-top: 1px solid var(--border);
+  }
+
+  .item-row:first-of-type{ border-top: none; margin-top: 4px; }
+
+  .item-name{ font-size: 12px; font-weight: 600; }
+
+  .item-bonus{
+    font-size: 11px;
+    color: var(--gold);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .item-buy-btn{
+    background: linear-gradient(145deg, var(--gold-light), var(--gold));
+    color: #1a1300;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    font-family: 'JetBrains Mono', monospace;
+    cursor: pointer;
+    flex-shrink:0;
+  }
+
+  .item-buy-btn:disabled{
+    background: var(--surface-2);
+    color: var(--text-dim);
+    cursor: not-allowed;
+  }
+
+  .job-risk-hint{
+    font-size: 10px;
+    color: var(--gold-dim);
+    margin-top: 2px;
+  }
+
+  .job-outcome{
+    font-size: 11px;
+    color: var(--green);
+    margin-top: 2px;
+    font-weight: 600;
+  }
+
   /* Locked (not yet purchased) business card */
   .biz-card-locked{
     opacity: 0.6;
@@ -1024,11 +1075,34 @@
           </div>
         </div>
       </div>
+
+      <div class="overlay" id="genericEventOverlay" style="display:none">
+        <div class="overlay-card">
+          <div class="overlay-icon" id="genericEventIcon">⚠</div>
+          <div class="overlay-title" id="genericEventTitle"></div>
+          <div class="overlay-desc" id="genericEventDesc"></div>
+          <div class="eco-actions">
+            <button class="mechanic-btn" id="genericEventFastBtn"></button>
+            <button class="mechanic-btn secondary" id="genericEventSlowBtn"></button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div class="view" id="view-assets">
       <div class="section-title">Активы</div>
       <div class="biz-list" id="assetList"></div>
+
+      <div class="overlay" id="assetModalOverlay" style="display:none">
+        <div class="overlay-card biz-modal-card">
+          <button class="modal-close-btn" id="assetModalClose">✕</button>
+          <div class="biz-modal-header">
+            <div class="biz-icon" id="assetModalIcon"></div>
+            <div class="biz-modal-name" id="assetModalName"></div>
+          </div>
+          <div id="assetModalBody"></div>
+        </div>
+      </div>
     </div>
 
     <div class="view" id="view-work">
@@ -1203,18 +1277,61 @@
       sellValue: 1200000, rentIncome: 17,
       status: null,
       sellLabel: 'Продать', sellSub: '+₽1 200 000 сразу',
-      keepLabel: 'Сдавать в аренду', keepSub: () => `+${fmt(17 * GAME_DAY_SECONDS)}/день`,
-      keptMeta: () => `+${fmt(17 * GAME_DAY_SECONDS)}/день · аренда`,
+      keepLabel: 'Сдавать в аренду',
+      keepSub: (a) => `+${fmt(assetIncome(a) * GAME_DAY_SECONDS)}/день`,
+      keptMeta: (a) => `+${fmt(assetIncome(a) * GAME_DAY_SECONDS)}/день · аренда${a.floodUntil && Date.now() < a.floodUntil ? ' · 💧 потоп' : ''}`,
     },
     {
       id: 'car', name: 'Машина', icon: '🚘',
       sellValue: 350000, rentIncome: 25,
       status: null,
       sellLabel: 'Продать', sellSub: '+₽350 000 сразу',
-      keepLabel: 'Оставить как такси', keepSub: () => `+${fmt(25 * GAME_DAY_SECONDS)}/день`,
-      keptMeta: () => `+${fmt(25 * GAME_DAY_SECONDS)}/день · такси`,
+      keepLabel: 'Оставить как такси',
+      keepSub: (a) => `+${fmt(assetIncome(a) * GAME_DAY_SECONDS)}/день`,
+      keptMeta: (a) => `+${fmt(assetIncome(a) * GAME_DAY_SECONDS)}/день · такси${a.brokenUntil && Date.now() < a.brokenUntil ? ' · 🔧 в ремонте' : ''}`,
     },
   ];
+
+  // Renovation/maintenance boost apartment rent / car taxi income; a flood or
+  // accident zeroes it out until fixed (or the free-but-slow wait finishes).
+  function assetIncome(asset){
+    const now = Date.now();
+    if (asset.id === 'apartment'){
+      if (asset.floodUntil && now < asset.floodUntil) return 0;
+      return asset.rentIncome * (asset.hasRenovation ? 1.6 : 1);
+    }
+    if (asset.id === 'car'){
+      if (asset.brokenUntil && now < asset.brokenUntil) return 0;
+      return asset.rentIncome * (asset.hasMaintenance ? 1.5 : 1);
+    }
+    return asset.rentIncome;
+  }
+
+  // Config driving the asset detail modal + its random event, per asset id.
+  function assetModalContent(asset){
+    if (asset.id === 'apartment'){
+      return {
+        upgradeFlag: 'hasRenovation', upgradeCost: 400000, upgradeLabel: 'Купить за ₽400 000',
+        upgradeTitle: '🔨 Ремонт квартиры',
+        upgradeDesc: 'Разовый ремонт. Арендный доход навсегда +60%.',
+        eventIcon: '💧', eventTitle: 'Потоп у соседей сверху', eventField: 'floodUntil', eventCheckField: 'floodCheckAt',
+        eventDesc: 'Иногда квартиру заливает. Почините срочно за деньги или ждите бесплатного, но долгого ремонта.',
+        eventFastCost: 60000, eventFastLabel: 'Срочный ремонт',
+        eventDowntimeMs: 5 * 60 * 1000, eventSlowLabel: 'Ждать (простой 5 мин)',
+        eventGapMin: 240000, eventGapMax: 360000,
+      };
+    }
+    return {
+      upgradeFlag: 'hasMaintenance', upgradeCost: 120000, upgradeLabel: 'Купить за ₽120 000',
+      upgradeTitle: '🔧 Техобслуживание',
+      upgradeDesc: 'ТО снижает шанс аварии и повышает доход такси на +50%.',
+      eventIcon: '💥', eventTitle: 'Авария', eventField: 'brokenUntil', eventCheckField: 'breakCheckAt',
+      eventDesc: 'Машина попала в аварию. Почините срочно за деньги или ждите бесплатного ремонта.',
+      eventFastCost: 25000, eventFastLabel: 'Срочный ремонт',
+      eventDowntimeMs: 4 * 60 * 1000, eventSlowLabel: 'Ждать (простой 4 мин)',
+      eventGapMin: 300000, eventGapMax: 420000,
+    };
+  }
 
   // A "game day" is a compact 60-second cycle used only for the "/день"
   // income display — real-time capital accrual (every 1s) is unaffected.
@@ -1239,6 +1356,16 @@
     'hasDryClean', 'boostUntil', 'boostReadyAt', 'ecoCheckAt',
     'hasBarista', 'brokenUntil', 'breakCheckAt',
     'hasNewMenu', 'hasChef', 'reviewPenaltyUntil', 'reviewCheckAt',
+    // Generic per-category mechanics (all businesses without bespoke ones above)
+    'hasUpgrade', 'eventUntil', 'eventCheckAt',
+    // Purchasable equipment items (all 60 businesses)
+    'items',
+  ];
+
+  // Same idea as EXTRA_BIZ_KEYS but for the two inheritance assets.
+  const EXTRA_ASSET_KEYS = [
+    'hasRenovation', 'floodUntil', 'floodCheckAt',
+    'hasMaintenance', 'brokenUntil', 'breakCheckAt',
   ];
 
   // ---------- Save / Load (Firebase Firestore) ----------
@@ -1271,7 +1398,10 @@
         businesses.forEach(b=>{ if (b.level > 0) b.purchased = true; });
         (data.assets || []).forEach(saved=>{
           const a = assets.find(x=>x.id === saved.id);
-          if (a && (saved.status === 'sold' || saved.status === 'kept')) a.status = saved.status;
+          if (a){
+            if (saved.status === 'sold' || saved.status === 'kept') a.status = saved.status;
+            EXTRA_ASSET_KEYS.forEach(k=>{ if (saved[k] !== undefined) a[k] = saved[k]; });
+          }
         });
         return data.lastSeen;
       }
@@ -1301,7 +1431,11 @@
           EXTRA_BIZ_KEYS.forEach(k=>{ if (b[k] !== undefined) obj[k] = b[k]; });
           return obj;
         }),
-        assets: assets.map(a=>({ id:a.id, status:a.status })),
+        assets: assets.map(a=>{
+          const obj = { id:a.id, status:a.status };
+          EXTRA_ASSET_KEYS.forEach(k=>{ if (a[k] !== undefined) obj[k] = a[k]; });
+          return obj;
+        }),
         lastSeen: Date.now()
       });
     } catch(e){ console.error('Save failed', e); }
@@ -1327,16 +1461,21 @@
     } else if (biz.id === 'cafe'){
       if (biz.hasNewMenu) income += 8 * biz.level;
       if (biz.reviewPenaltyUntil && now < biz.reviewPenaltyUntil) income *= 0.5;
+    } else {
+      if (biz.eventUntil && now < biz.eventUntil) return 0;
+      if (biz.hasUpgrade) income += biz.baseIncome * 0.15 * biz.level;
+      if (biz.boostUntil && now < biz.boostUntil) income *= 2;
     }
+    income *= (1 + itemsBonusPct(biz) / 100);
     return income;
   }
 
   function totalIncome(){
     let sum = businesses.reduce((s,b)=> s + incomePerSec(b), 0);
     const apartment = assets.find(a=>a.id === 'apartment');
-    if (apartment.status === 'kept') sum += apartment.rentIncome;
+    if (apartment.status === 'kept') sum += assetIncome(apartment);
     const car = assets.find(a=>a.id === 'car');
-    if (car.status === 'kept') sum += car.rentIncome;
+    if (car.status === 'kept') sum += assetIncome(car);
     return sum;
   }
 
@@ -1459,10 +1598,11 @@
     assets.forEach(asset=>{
       const card = document.createElement('div');
       card.className = 'asset-card';
-      const meta = asset.status === 'sold' ? `Продано за ${fmt(asset.sellValue)}` : asset.keptMeta();
+      const meta = asset.status === 'sold' ? `Продано за ${fmt(asset.sellValue)}` : asset.keptMeta(asset);
       const sellBtn = asset.status === 'kept'
         ? `<button class="asset-sell-btn" data-id="${asset.id}">Продать за ${fmt(asset.sellValue)}</button>`
         : '';
+      if (asset.status === 'kept') card.style.cursor = 'pointer';
       card.innerHTML = `
         <div class="asset-icon"><img src="images/${asset.id}.jpg" alt=""></div>
         <div class="asset-info">
@@ -1471,11 +1611,17 @@
         </div>
         ${sellBtn}
       `;
+      card.addEventListener('click', (e)=>{
+        if (e.target.closest('.asset-sell-btn')) return;
+        if (asset.status !== 'kept') return;
+        openAssetModal(asset);
+      });
       list.appendChild(card);
     });
 
     list.querySelectorAll('.asset-sell-btn').forEach(btn=>{
-      btn.addEventListener('click', ()=>{
+      btn.addEventListener('click', (e)=>{
+        e.stopPropagation();
         const asset = assets.find(a=>a.id === btn.dataset.id);
         asset.status = 'sold';
         capital += asset.sellValue;
@@ -1485,6 +1631,60 @@
       });
     });
   }
+
+  // ---------- Asset detail modal (apartment renovation, car maintenance) ----------
+
+  let currentModalAsset = null;
+
+  function drawAssetModalBody(asset){
+    const body = document.getElementById('assetModalBody');
+    const cfg = assetModalContent(asset);
+    body.innerHTML = `
+      <div class="mechanic-card">
+        <div class="mechanic-title">${cfg.upgradeTitle}</div>
+        <div class="mechanic-desc">${cfg.upgradeDesc}</div>
+        <div id="assetUpgradeArea"></div>
+      </div>
+      <div class="mechanic-card">
+        <div class="mechanic-title">${cfg.eventIcon} ${cfg.eventTitle}</div>
+        <div class="mechanic-desc">${cfg.eventDesc} Случайное событие, раз в несколько минут.</div>
+      </div>
+    `;
+    const area = body.querySelector('#assetUpgradeArea');
+    if (asset[cfg.upgradeFlag]){
+      area.innerHTML = `<div class="mechanic-status">Куплено</div>`;
+    } else {
+      const affordable = capital >= cfg.upgradeCost;
+      area.innerHTML = `<button class="mechanic-btn ${affordable ? 'affordable' : ''}" ${affordable ? '' : 'disabled'}>${cfg.upgradeLabel}</button>`;
+      area.querySelector('button').addEventListener('click', ()=>{
+        if (capital < cfg.upgradeCost) return;
+        capital -= cfg.upgradeCost;
+        asset[cfg.upgradeFlag] = true;
+        if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+        renderAll();
+        saveProgress();
+        drawAssetModalBody(asset);
+      });
+    }
+  }
+
+  function openAssetModal(asset){
+    currentModalAsset = asset;
+    document.getElementById('assetModalIcon').innerHTML = `<img src="images/${asset.id}.jpg" alt="">`;
+    document.getElementById('assetModalName').textContent = asset.name;
+    drawAssetModalBody(asset);
+    document.getElementById('assetModalOverlay').style.display = 'flex';
+  }
+
+  function closeAssetModal(){
+    document.getElementById('assetModalOverlay').style.display = 'none';
+    currentModalAsset = null;
+  }
+
+  document.getElementById('assetModalClose').addEventListener('click', closeAssetModal);
+  document.getElementById('assetModalOverlay').addEventListener('click', (e)=>{
+    if (e.target.id === 'assetModalOverlay') closeAssetModal();
+  });
 
   // ---------- Business detail modal & per-business mechanics ----------
 
@@ -1542,6 +1742,108 @@
       saveProgress();
       refreshBizModal();
     };
+  }
+
+  // Generic mechanics (permanent upgrade + timed boost + random event) applied
+  // to every business whose id isn't in BUSINESS_MECHANICS below, keyed by
+  // the business' `category`. Numbers scale off that business' own
+  // baseCost/baseIncome so they stay proportional at any price tier.
+  const CATEGORY_MECHANICS = {
+    retail: {
+      upgradeIcon:'🏗', upgradeName:'Расширение торгового зала',
+      boostIcon:'🏷', boostName:'Распродажа', boostDesc:'Наплыв покупателей: x2 к доходу на 60 секунд. Кулдаун 5 минут.',
+      eventIcon:'📋', eventTitle:'Проверка Роспотребнадзора', eventDesc:'Нагрянула внеплановая проверка — придётся уладить вопрос.',
+      eventFastLabel:'Уладить на месте',
+    },
+    services: {
+      upgradeIcon:'🎓', upgradeName:'Обучение персонала',
+      boostIcon:'👥', boostName:'Наплыв клиентов', boostDesc:'Сарафанное радио сработало: x2 к доходу на 60 секунд. Кулдаун 5 минут.',
+      eventIcon:'😠', eventTitle:'Жалоба клиента', eventDesc:'Недовольный клиент грозится испортить репутацию в отзывах.',
+      eventFastLabel:'Уладить со скидкой',
+    },
+    manufacturing: {
+      upgradeIcon:'⚙', upgradeName:'Модернизация линии',
+      boostIcon:'🌙', boostName:'Ночная смена', boostDesc:'Дополнительная смена: x2 к доходу на 60 секунд. Кулдаун 5 минут.',
+      eventIcon:'🔩', eventTitle:'Поломка оборудования', eventDesc:'Один из узлов вышел из строя.',
+      eventFastLabel:'Экстренный ремонт',
+    },
+    medicine: {
+      upgradeIcon:'🩻', upgradeName:'Новое оборудование',
+      boostIcon:'🗓', boostName:'День открытых дверей', boostDesc:'Приток пациентов: x2 к доходу на 60 секунд. Кулдаун 5 минут.',
+      eventIcon:'📑', eventTitle:'Проверка Минздрава', eventDesc:'Плановая проверка требует немедленного внимания.',
+      eventFastLabel:'Уладить с юристом',
+    },
+    finance: {
+      upgradeIcon:'📊', upgradeName:'Расширение аналитического отдела',
+      boostIcon:'📈', boostName:'Удачные сделки', boostDesc:'Рынок пошёл в вашу пользу: x2 к доходу на 60 секунд. Кулдаун 5 минут.',
+      eventIcon:'🔍', eventTitle:'Аудит и проверка ЦБ', eventDesc:'Регулятор запросил внеплановый аудит.',
+      eventFastLabel:'Нанять юристов',
+    },
+    entertainment: {
+      upgradeIcon:'🎤', upgradeName:'Новая программа',
+      boostIcon:'🔥', boostName:'Хайповое событие', boostDesc:'О вас заговорили: x2 к доходу на 60 секунд. Кулдаун 5 минут.',
+      eventIcon:'📣', eventTitle:'Жалоба соседей на шум', eventDesc:'Соседи вызвали проверку из-за шума.',
+      eventFastLabel:'Договориться',
+    },
+    agriculture: {
+      upgradeIcon:'🚜', upgradeName:'Новая техника',
+      boostIcon:'☀', boostName:'Урожайный сезон', boostDesc:'Погода на вашей стороне: x2 к доходу на 60 секунд. Кулдаун 5 минут.',
+      eventIcon:'🐛', eventTitle:'Порча урожая', eventDesc:'Вредители или болезнь угрожают части хозяйства.',
+      eventFastLabel:'Вызвать агронома',
+    },
+    realestate: {
+      upgradeIcon:'🛠', upgradeName:'Косметический ремонт',
+      boostIcon:'🏙', boostName:'Полная загрузка', boostDesc:'Все площади заняты арендаторами: x2 к доходу на 60 секунд. Кулдаун 5 минут.',
+      eventIcon:'🚰', eventTitle:'Прорыв трубы', eventDesc:'Авария коммуникаций требует немедленного ремонта.',
+      eventFastLabel:'Срочный ремонт',
+    },
+    transport: {
+      upgradeIcon:'🚛', upgradeName:'Обновление парка',
+      boostIcon:'📦', boostName:'Высокий сезон', boostDesc:'Пик спроса на перевозки: x2 к доходу на 60 секунд. Кулдаун 5 минут.',
+      eventIcon:'🔧', eventTitle:'Поломка транспорта', eventDesc:'Одна из единиц техники встала на ремонт.',
+      eventFastLabel:'Экстренный ремонт',
+    },
+    it: {
+      upgradeIcon:'🖥', upgradeName:'Новые сервера',
+      boostIcon:'🚀', boostName:'Вирусный запуск', boostDesc:'Продукт неожиданно завирусился: x2 к доходу на 60 секунд. Кулдаун 5 минут.',
+      eventIcon:'🛡', eventTitle:'Кибератака', eventDesc:'Система зафиксировала попытку взлома.',
+      eventFastLabel:'Нанять безопасников',
+    },
+  };
+
+  // Shared numeric ramp for every business' 10-item equipment list (fraction
+  // of baseCost per item, cumulative % income bonus per item). Only the
+  // flavor names differ per category.
+  const ITEM_COST_RAMP = [0.03, 0.05, 0.08, 0.12, 0.18, 0.26, 0.36, 0.5, 0.68, 0.9];
+  const ITEM_BONUS_RAMP = [2, 3, 4, 5, 6, 8, 10, 12, 15, 18];
+
+  const ITEM_NAMES = {
+    retail: ['Новая вывеска','Кассовый терминал','Вторая касса','Расширение ассортимента','Система видеонаблюдения','Ремонт торгового зала','Программа лояльности','Автоматизация склада','Франшизная лицензия','Флагманский ремонт'],
+    services: ['Новое рабочее место','CRM-система записи','Обучение сотрудников','Расширение зала ожидания','Брендированная форма','Дополнительный специалист','Сертификация качества','Программа лояльности','Второй филиал в здании','Премиум-ремонт интерьера'],
+    manufacturing: ['Дополнительный станок','Автоматическая линия','Склад сырья','Контроль качества (ОТК)','Вторая смена','Роботизация участка','Сертификат ISO','Логистический хаб','Модернизация цеха','Флагманская линия'],
+    medicine: ['Новый диагностический аппарат','Дополнительный кабинет приёма','Второй специалист','Лабораторное оборудование','Сертификация клиники','Электронная запись пациентов','Расширение штата','Премиум-оборудование','Второй филиал','Флагманская реновация'],
+    finance: ['Второй аналитик','Терминал рыночных данных','CRM для клиентов','Юридический отдел','Рекламная кампания','Расширение офиса','Расширенная лицензия','Алгоритмический трейдинг','Филиал в новом районе','Флагманский офис'],
+    entertainment: ['Новая звуковая система','Дополнительная зона отдыха','Шоу-программа','Реклама в соцсетях','VIP-зона','Расширение зала','Франшиза бренда','Ночная лицензия','Второй этаж','Флагманский ремонт'],
+    agriculture: ['Новый трактор','Система полива','Удобрения премиум-класса','Дополнительное поле','Ветеринарный контроль','Автоматизация кормления','Сертификат "Эко"','Холодильный склад','Расширение угодий','Флагманская модернизация'],
+    realestate: ['Косметический ремонт','Система "умный дом"','Охрана и консьерж','Ландшафтный дизайн','Реклама объекта','Расширение площадей','Премиум-отделка','Парковка для гостей','Второй корпус','Флагманская реконструкция'],
+    transport: ['Новая машина в парк','GPS-трекинг','Второй водитель','Логистический софт','Реклама на бортах','Расширение маршрутов','Топливные карты','Страхование парка','Второй гараж','Флагманский автопарк'],
+    it: ['Новый сервер','Мониторинг 24/7','Дополнительный разработчик','CI/CD пайплайн','Маркетинг продукта','Масштабирование инфраструктуры','Сертификация безопасности','R&D отдел','Экспансия на новый рынок','Флагманский релиз'],
+  };
+
+  const ITEM_TEMPLATES = {};
+  Object.keys(ITEM_NAMES).forEach(cat=>{
+    ITEM_TEMPLATES[cat] = ITEM_NAMES[cat].map((name, i)=>({
+      name, costMult: ITEM_COST_RAMP[i], bonusPct: ITEM_BONUS_RAMP[i],
+    }));
+  });
+
+  function itemsFor(biz){
+    return ITEM_TEMPLATES[biz.category] || ITEM_TEMPLATES.services;
+  }
+
+  function itemsBonusPct(biz){
+    const list = itemsFor(biz);
+    return (biz.items || []).reduce((sum, idx)=> sum + (list[idx]?.bonusPct || 0), 0);
   }
 
   const BUSINESS_MECHANICS = {
@@ -1663,13 +1965,82 @@
     });
   }
 
+  // Generic upgrade + boost + event mechanics for the 57 businesses without a
+  // bespoke BUSINESS_MECHANICS entry, flavored by CATEGORY_MECHANICS[biz.category].
+  function renderGenericMechanics(biz, container){
+    const cm = CATEGORY_MECHANICS[biz.category] || CATEGORY_MECHANICS.services;
+    const upgradeCost = Math.round(biz.baseCost * 0.5);
+    container.innerHTML = `
+      <div class="mechanic-card">
+        <div class="mechanic-title">${cm.upgradeIcon} ${cm.upgradeName}</div>
+        <div class="mechanic-desc">Разовая покупка. Доход навсегда увеличивается на +${fmt(biz.baseIncome * 0.15 * GAME_DAY_SECONDS)}/день за каждый уровень.</div>
+        <div id="genUpgradeArea"></div>
+      </div>
+      <div class="mechanic-card">
+        <div class="mechanic-title">${cm.boostIcon} ${cm.boostName}</div>
+        <div class="mechanic-desc">${cm.boostDesc}</div>
+        <button class="mechanic-btn" id="genBoostBtn"></button>
+      </div>
+      <div class="mechanic-card">
+        <div class="mechanic-title">${cm.eventIcon} ${cm.eventTitle}</div>
+        <div class="mechanic-desc">${cm.eventDesc} Случайное событие: раз в 3-5 минут, пока бизнес открыт (ур. > 0) и не на паузе.</div>
+      </div>
+    `;
+    setupOneTimeUpgrade(container, '#genUpgradeArea', biz, 'hasUpgrade', upgradeCost,
+      `Куплено — сейчас даёт +${fmt(biz.baseIncome * 0.15 * biz.level * GAME_DAY_SECONDS)}/день`,
+      `Купить за ${fmt(upgradeCost)}`);
+    setupBoostButton(container.querySelector('#genBoostBtn'), biz, 60 * 1000, 5 * 60 * 1000,
+      `Запустить: ${cm.boostName} (x2 на 60 сек)`);
+  }
+
+  // Equipment list shown for every business (all 60) — a purchasable-item
+  // layer on top of level/upgrade/boost, applying flat cumulative % bonuses.
+  function renderItemsSection(biz, container){
+    const list = itemsFor(biz);
+    const owned = biz.items || [];
+    const wrap = document.createElement('div');
+    wrap.className = 'mechanic-card';
+    const rows = list.map((item, idx)=>{
+      const cost = Math.round(biz.baseCost * item.costMult);
+      const bought = owned.includes(idx);
+      const affordable = capital >= cost;
+      return `
+        <div class="item-row">
+          <div>
+            <div class="item-name">${bought ? '✅ ' : ''}${item.name}</div>
+            <div class="item-bonus">+${item.bonusPct}% к доходу</div>
+          </div>
+          ${bought ? '' : `<button class="item-buy-btn ${affordable ? 'affordable' : ''}" ${affordable ? '' : 'disabled'} data-idx="${idx}">${fmt(cost)}</button>`}
+        </div>
+      `;
+    }).join('');
+    wrap.innerHTML = `<div class="mechanic-title">🧰 Оборудование</div>${rows}`;
+    container.appendChild(wrap);
+
+    wrap.querySelectorAll('.item-buy-btn').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const idx = Number(btn.dataset.idx);
+        const cost = Math.round(biz.baseCost * list[idx].costMult);
+        if (capital < cost) return;
+        capital -= cost;
+        biz.items = biz.items || [];
+        biz.items.push(idx);
+        if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+        renderAll();
+        saveProgress();
+        refreshBizModal();
+      });
+    });
+  }
+
   function drawBizModalBody(biz){
     const body = document.getElementById('bizModalBody');
     if (BUSINESS_MECHANICS[biz.id]){
       BUSINESS_MECHANICS[biz.id].render(biz, body);
     } else {
-      body.innerHTML = `<div class="mechanic-placeholder">Уникальные механики появятся в следующих обновлениях.</div>`;
+      renderGenericMechanics(biz, body);
     }
+    renderItemsSection(biz, body);
     if (biz.purchased) renderBizActions(biz, body);
   }
 
@@ -1803,6 +2174,77 @@
     { bizId:'cafe', field:'reviewCheckAt', minGap:180000, maxGap:240000, show:showCafeReviewOverlay },
   ];
 
+  // Shared overlay for every business event NOT covered by the three bespoke
+  // ones above, flavored by CATEGORY_MECHANICS[biz.category].
+  function showGenericEventOverlay(biz){
+    const cm = CATEGORY_MECHANICS[biz.category] || CATEGORY_MECHANICS.services;
+    const fastCost = Math.round(biz.baseCost * 0.02);
+    eventOverlayOpen = true;
+    document.getElementById('genericEventIcon').textContent = cm.eventIcon;
+    document.getElementById('genericEventTitle').textContent = cm.eventTitle;
+    document.getElementById('genericEventDesc').textContent = cm.eventDesc;
+    const fastBtn = document.getElementById('genericEventFastBtn');
+    const slowBtn = document.getElementById('genericEventSlowBtn');
+    fastBtn.textContent = `${cm.eventFastLabel} за ${fmt(fastCost)}`;
+    fastBtn.disabled = capital < fastCost;
+    slowBtn.textContent = 'Подождать (простой 3 минуты)';
+    document.getElementById('genericEventOverlay').style.display = 'flex';
+
+    fastBtn.onclick = ()=>{
+      if (capital < fastCost) return;
+      capital -= fastCost;
+      biz.eventUntil = 0;
+      scheduleEvent(biz, 'eventCheckAt', 180000, 300000);
+      hideOverlay('genericEventOverlay');
+      renderAll();
+      saveProgress();
+    };
+    slowBtn.onclick = ()=>{
+      biz.eventUntil = Date.now() + 180000;
+      scheduleEvent(biz, 'eventCheckAt', 180000, 300000);
+      hideOverlay('genericEventOverlay');
+      renderAll();
+      saveProgress();
+    };
+  }
+
+  // Same shared overlay, reused for the apartment flood / car accident events.
+  function scheduleAssetEvent(asset, cfg){
+    const mult = asset[cfg.upgradeFlag] ? 2 : 1;
+    asset[cfg.eventCheckField] = Date.now() + randRange(cfg.eventGapMin * mult, cfg.eventGapMax * mult);
+  }
+
+  function showAssetEventOverlay(asset){
+    const cfg = assetModalContent(asset);
+    eventOverlayOpen = true;
+    document.getElementById('genericEventIcon').textContent = cfg.eventIcon;
+    document.getElementById('genericEventTitle').textContent = cfg.eventTitle;
+    document.getElementById('genericEventDesc').textContent = cfg.eventDesc;
+    const fastBtn = document.getElementById('genericEventFastBtn');
+    const slowBtn = document.getElementById('genericEventSlowBtn');
+    fastBtn.textContent = `${cfg.eventFastLabel} за ${fmt(cfg.eventFastCost)}`;
+    fastBtn.disabled = capital < cfg.eventFastCost;
+    slowBtn.textContent = cfg.eventSlowLabel;
+    document.getElementById('genericEventOverlay').style.display = 'flex';
+
+    fastBtn.onclick = ()=>{
+      if (capital < cfg.eventFastCost) return;
+      capital -= cfg.eventFastCost;
+      asset[cfg.eventField] = 0;
+      scheduleAssetEvent(asset, cfg);
+      hideOverlay('genericEventOverlay');
+      renderAll();
+      saveProgress();
+    };
+    slowBtn.onclick = ()=>{
+      asset[cfg.eventField] = Date.now() + cfg.eventDowntimeMs;
+      scheduleAssetEvent(asset, cfg);
+      hideOverlay('genericEventOverlay');
+      renderAll();
+      saveProgress();
+    };
+  }
+
   function checkRandomEvents(){
     if (eventOverlayOpen || document.getElementById('bizModalOverlay').style.display === 'flex') return;
     for (const cfg of RANDOM_EVENTS){
@@ -1814,7 +2256,33 @@
       }
       if (Date.now() >= biz[cfg.field]){
         cfg.show(biz);
-        break;
+        return;
+      }
+    }
+    // Generic per-category events for the other 57 businesses.
+    for (const biz of businesses){
+      if (BUSINESS_MECHANICS[biz.id]) continue;
+      if (!biz.purchased || biz.level <= 0 || biz.paused) continue;
+      if (!biz.eventCheckAt){
+        scheduleEvent(biz, 'eventCheckAt', 180000, 300000);
+        continue;
+      }
+      if (Date.now() >= biz.eventCheckAt){
+        showGenericEventOverlay(biz);
+        return;
+      }
+    }
+    // Apartment flood / car accident.
+    for (const asset of assets){
+      if (asset.status !== 'kept') continue;
+      const cfg = assetModalContent(asset);
+      if (!asset[cfg.eventCheckField]){
+        scheduleAssetEvent(asset, cfg);
+        continue;
+      }
+      if (Date.now() >= asset[cfg.eventCheckField]){
+        showAssetEventOverlay(asset);
+        return;
       }
     }
   }
@@ -2005,7 +2473,7 @@
             ${asset.sellLabel}<small>${asset.sellSub}</small>
           </button>
           <button class="choice-btn ${asset.status === 'kept' ? 'selected' : ''}" data-id="${asset.id}" data-choice="kept">
-            ${asset.keepLabel}<small>${asset.keepSub()}</small>
+            ${asset.keepLabel}<small>${asset.keepSub(asset)}</small>
           </button>
         </div>
       `;
@@ -2065,9 +2533,9 @@
       ratePerSec += incomePerSec(b) * mult;
     });
     const apartment = assets.find(a=>a.id === 'apartment');
-    if (apartment.status === 'kept') ratePerSec += apartment.rentIncome * 0.3;
+    if (apartment.status === 'kept') ratePerSec += assetIncome(apartment) * 0.3;
     const car = assets.find(a=>a.id === 'car');
-    if (car.status === 'kept') ratePerSec += car.rentIncome * 0.3;
+    if (car.status === 'kept') ratePerSec += assetIncome(car) * 0.3;
 
     const earned = Math.floor(ratePerSec * secondsAway);
     if (earned > 10){
@@ -2099,6 +2567,34 @@
     if (s % 60 === 0) return `${s / 60} мин`;
     return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')} мин`;
   }
+
+  // Per-profession risk/bonus mini-mechanic applied on payout in goToWork().
+  // Each is optional: a chance of a bonus multiplier and/or a chance of a
+  // penalty multiplier (independent rolls, penalty checked first).
+  const JOB_RISKS = {
+    cleaner: { bonusChance:0.15, bonusMult:1.5, bonusLabel:'🍀 Нашли забытые чаевые!' },
+    courier: { bonusChance:0.2, bonusMult:2, bonusLabel:'💰 Щедрые чаевые x2!' },
+    cashier: { penaltyChance:0.12, penaltyMult:0, penaltyLabel:'⚠ Недостача в кассе — без оплаты' },
+    waiter: { penaltyChance:0.15, penaltyMult:0, penaltyLabel:'😬 Уронили заказ — без оплаты' },
+    mover: { bonusChance:0.15, bonusMult:1.8, bonusLabel:'💪 Премия за тяжёлый переезд' },
+    taxidriver: { penaltyChance:0.2, penaltyMult:0.5, penaltyLabel:'🚦 Пробки — меньше заказов', bonusChance:0.2, bonusMult:1.6, bonusLabel:'🌆 Удачная смена, много заказов' },
+    freelancer: { bonusChance:0.2, bonusMult:3, bonusLabel:'🚀 Крупный заказ!' },
+    photographer: { bonusChance:0.18, bonusMult:2.2, bonusLabel:'📸 Виральное фото — доп. заказы' },
+    realtor: { bonusChance:0.15, bonusMult:2.5, bonusLabel:'🏆 Крупная сделка закрыта!' },
+    consultant: { penaltyChance:0.12, penaltyMult:0.3, penaltyLabel:'📉 Клиент передумал в последний момент' },
+    lawyer: { penaltyChance:0.15, penaltyMult:0.4, penaltyLabel:'⚖ Дело проиграно', bonusChance:0.15, bonusMult:2, bonusLabel:'⚖ Дело выиграно — бонус!' },
+  };
+
+  function riskHintText(risk){
+    const parts = [];
+    if (risk.bonusChance) parts.push(`${Math.round(risk.bonusChance * 100)}% шанс x${risk.bonusMult}`);
+    if (risk.penaltyChance) parts.push(`${Math.round(risk.penaltyChance * 100)}% шанс потерь`);
+    return parts.join(' · ');
+  }
+
+  // Transient result of the last goToWork() payout, shown under the job card
+  // for a couple seconds (cleared automatically once `until` passes).
+  let jobOutcome = null;
 
   function renderJob(){
     const list = document.getElementById('jobList');
@@ -2135,12 +2631,18 @@
           }
           btnDisabled = false;
         }
+        const risk = JOB_RISKS[job.id];
+        const hint = risk ? `<div class="job-risk-hint">${riskHintText(risk)}</div>` : '';
+        const outcome = (jobOutcome && jobOutcome.jobId === job.id && now < jobOutcome.until)
+          ? `<div class="job-outcome">${jobOutcome.text}</div>` : '';
         card.className = 'asset-card';
         card.innerHTML = `
           <div class="asset-icon">💼</div>
           <div class="asset-info">
             <div class="asset-name">${job.name}</div>
             <div class="asset-meta">₽${job.minPay}–${job.maxPay} · кулдаун ${formatDuration(job.cooldownMs)}</div>
+            ${hint}
+            ${outcome}
           </div>
           <button class="asset-sell-btn job-go-btn" data-id="${job.id}" style="min-width:100px" ${btnDisabled ? 'disabled' : ''}>${btnText}</button>
         `;
@@ -2171,7 +2673,17 @@
     }
 
     delete jobTaps[jobId];
-    const pay = Math.round(randRange(job.minPay, job.maxPay));
+    let pay = Math.round(randRange(job.minPay, job.maxPay));
+    const risk = JOB_RISKS[jobId];
+    if (risk){
+      if (risk.penaltyChance && Math.random() < risk.penaltyChance){
+        pay = Math.round(pay * risk.penaltyMult);
+        jobOutcome = { jobId, text: risk.penaltyLabel, until: now + 2500 };
+      } else if (risk.bonusChance && Math.random() < risk.bonusChance){
+        pay = Math.round(pay * risk.bonusMult);
+        jobOutcome = { jobId, text: risk.bonusLabel, until: now + 2500 };
+      }
+    }
     capital += pay;
     totalEarned += pay;
     jobReadyAt[job.id] = now + job.cooldownMs;
