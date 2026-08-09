@@ -1106,16 +1106,66 @@
   // baseIncome is the internal per-second accrual rate (money still ticks
   // every second). The player only ever sees it multiplied by GAME_DAY_SECONDS ("/день").
   const businesses = [
-    { id:'kiosk', name:'Ларёк с кофе', icon:'☕', baseCost:700000, baseIncome:335, level:0, purchased:false },
-    { id:'wash', name:'Автомойка', icon:'🚗', baseCost:7000000, baseIncome:1335, level:0, purchased:false },
-    { id:'cafe', name:'Кафе', icon:'🍽', baseCost:15000000, baseIncome:2500, level:0, purchased:false },
-    { id:'gym', name:'Фитнес-клуб', icon:'🏋', baseCost:30000000, baseIncome:4170, level:0, purchased:false },
-    { id:'office', name:'Бизнес-центр', icon:'🏢', baseCost:200000000, baseIncome:16670, level:0, purchased:false },
-    { id:'hotel', name:'Отель', icon:'🏨', baseCost:700000000, baseIncome:50000, level:0, purchased:false },
-    { id:'factory', name:'Завод', icon:'⚙', baseCost:1500000000, baseIncome:133335, level:0, purchased:false },
-    { id:'bank', name:'Банк', icon:'🏦', baseCost:5000000000, baseIncome:416670, level:0, purchased:false },
-    { id:'tech', name:'IT-корпорация', icon:'💻', baseCost:15000000000, baseIncome:1000000, level:0, purchased:false },
-    { id:'airline', name:'Авиакомпания', icon:'✈', baseCost:50000000000, baseIncome:2500000, level:0, purchased:false },
+    { id:'vending', name:'Точка вендинга', icon:'🥤', category:'retail', baseCost:150000, baseIncome:120, level:0, purchased:false },
+    { id:'shoerepair', name:'Мастерская по ремонту обуви', icon:'👞', category:'services', baseCost:190000, baseIncome:150, level:0, purchased:false },
+    { id:'foodtruck', name:'Фудтрак', icon:'🌭', category:'retail', baseCost:250000, baseIncome:190, level:0, purchased:false },
+    { id:'phonerepair', name:'Ремонт телефонов', icon:'📱', category:'services', baseCost:310000, baseIncome:230, level:0, purchased:false },
+    { id:'nails', name:'Маникюрный салон', icon:'💅', category:'services', baseCost:400000, baseIncome:270, level:0, purchased:false },
+    { id:'laundromat', name:'Прачечная самообслуживания', icon:'🧺', category:'services', baseCost:510000, baseIncome:330, level:0, purchased:false },
+    { id:'kiosk', name:'Ларёк с кофе', icon:'☕', category:'retail', baseCost:660000, baseIncome:410, level:0, purchased:false },
+    { id:'flowershop', name:'Цветочный магазин', icon:'💐', category:'retail', baseCost:840000, baseIncome:500, level:0, purchased:false },
+    { id:'barbershop', name:'Барбершоп', icon:'💈', category:'services', baseCost:1100000, baseIncome:600, level:0, purchased:false },
+    { id:'minibakery', name:'Мини-пекарня', icon:'🥐', category:'manufacturing', baseCost:1400000, baseIncome:740, level:0, purchased:false },
+    { id:'tattoo', name:'Тату-салон', icon:'🎨', category:'services', baseCost:1800000, baseIncome:900, level:0, purchased:false },
+    { id:'photostudio', name:'Фотостудия', icon:'📷', category:'services', baseCost:2200000, baseIncome:1100, level:0, purchased:false },
+    { id:'grocery', name:'Продуктовый магазин', icon:'🛒', category:'retail', baseCost:2900000, baseIncome:1300, level:0, purchased:false },
+    { id:'vetclinic', name:'Ветеринарная клиника', icon:'🐾', category:'medicine', baseCost:3700000, baseIncome:1600, level:0, purchased:false },
+    { id:'microloan', name:'Пункт микрозаймов', icon:'💳', category:'finance', baseCost:4700000, baseIncome:2000, level:0, purchased:false },
+    { id:'pizzeria', name:'Пиццерия', icon:'🍕', category:'services', baseCost:6000000, baseIncome:2400, level:0, purchased:false },
+    { id:'wash', name:'Автомойка', icon:'🚗', category:'services', baseCost:7700000, baseIncome:2900, level:0, purchased:false },
+    { id:'autoservice', name:'Автосервис', icon:'🔧', category:'services', baseCost:9800000, baseIncome:3600, level:0, purchased:false },
+    { id:'cafe', name:'Кафе', icon:'🍽', category:'services', baseCost:13000000, baseIncome:4300, level:0, purchased:false },
+    { id:'dental', name:'Стоматология', icon:'🦷', category:'medicine', baseCost:16000000, baseIncome:5300, level:0, purchased:false },
+    { id:'confectionery', name:'Кондитерская фабрика', icon:'🎂', category:'manufacturing', baseCost:21000000, baseIncome:6400, level:0, purchased:false },
+    { id:'drivingschool', name:'Автошкола', icon:'🚦', category:'services', baseCost:26000000, baseIncome:7800, level:0, purchased:false },
+    { id:'gym', name:'Фитнес-клуб', icon:'🏋', category:'entertainment', baseCost:34000000, baseIncome:9500, level:0, purchased:false },
+    { id:'electronics', name:'Магазин электроники', icon:'📺', category:'retail', baseCost:43000000, baseIncome:12000, level:0, purchased:false },
+    { id:'bar', name:'Бар', icon:'🍺', category:'entertainment', baseCost:55000000, baseIncome:14000, level:0, purchased:false },
+    { id:'restaurant', name:'Ресторан', icon:'🥩', category:'services', baseCost:70000000, baseIncome:17000, level:0, purchased:false },
+    { id:'beautysalon', name:'Салон красоты премиум', icon:'✨', category:'services', baseCost:90000000, baseIncome:21000, level:0, purchased:false },
+    { id:'greenhouse', name:'Тепличное хозяйство', icon:'🍅', category:'agriculture', baseCost:110000000, baseIncome:25000, level:0, purchased:false },
+    { id:'lawfirm', name:'Юридическая фирма', icon:'⚖', category:'finance', baseCost:150000000, baseIncome:31000, level:0, purchased:false },
+    { id:'office', name:'Бизнес-центр', icon:'🏢', category:'realestate', baseCost:190000000, baseIncome:38000, level:0, purchased:false },
+    { id:'taxifleet', name:'Автопарк такси', icon:'🚕', category:'transport', baseCost:240000000, baseIncome:46000, level:0, purchased:false },
+    { id:'cinema', name:'Кинотеатр', icon:'🎬', category:'entertainment', baseCost:310000000, baseIncome:56000, level:0, purchased:false },
+    { id:'aesthetics', name:'Клиника эстетической медицины', icon:'💉', category:'medicine', baseCost:390000000, baseIncome:68000, level:0, purchased:false },
+    { id:'dairyfarm', name:'Молочная ферма', icon:'🐄', category:'agriculture', baseCost:500000000, baseIncome:83000, level:0, purchased:false },
+    { id:'hotel', name:'Отель', icon:'🏨', category:'realestate', baseCost:640000000, baseIncome:100000, level:0, purchased:false },
+    { id:'autodealer', name:'Автосалон', icon:'🚙', category:'retail', baseCost:820000000, baseIncome:120000, level:0, purchased:false },
+    { id:'insurance', name:'Страховая компания', icon:'🛡', category:'finance', baseCost:1000000000, baseIncome:150000, level:0, purchased:false },
+    { id:'factory', name:'Завод', icon:'⚙', category:'manufacturing', baseCost:1300000000, baseIncome:180000, level:0, purchased:false },
+    { id:'logistics', name:'Логистическая компания', icon:'🚚', category:'transport', baseCost:1700000000, baseIncome:220000, level:0, purchased:false },
+    { id:'poultry', name:'Птицефабрика', icon:'🐔', category:'agriculture', baseCost:2200000000, baseIncome:270000, level:0, purchased:false },
+    { id:'supermarket', name:'Сеть супермаркетов', icon:'🏬', category:'retail', baseCost:2800000000, baseIncome:330000, level:0, purchased:false },
+    { id:'nightclub', name:'Ночной клуб', icon:'🎧', category:'entertainment', baseCost:3600000000, baseIncome:400000, level:0, purchased:false },
+    { id:'privateclinic', name:'Частная клиника', icon:'🏥', category:'medicine', baseCost:4600000000, baseIncome:490000, level:0, purchased:false },
+    { id:'bank', name:'Банк', icon:'🏦', category:'finance', baseCost:5900000000, baseIncome:590000, level:0, purchased:false },
+    { id:'shipping', name:'Судоходная компания', icon:'🚢', category:'transport', baseCost:7500000000, baseIncome:720000, level:0, purchased:false },
+    { id:'furniture', name:'Мебельная фабрика', icon:'🪑', category:'manufacturing', baseCost:9600000000, baseIncome:880000, level:0, purchased:false },
+    { id:'investfund', name:'Инвестиционный фонд', icon:'📈', category:'finance', baseCost:12000000000, baseIncome:1100000, level:0, purchased:false },
+    { id:'tech', name:'IT-корпорация', icon:'💻', category:'it', baseCost:16000000000, baseIncome:1300000, level:0, purchased:false },
+    { id:'privateschool', name:'Сеть частных школ', icon:'🎓', category:'services', baseCost:20000000000, baseIncome:1600000, level:0, purchased:false },
+    { id:'autoplant', name:'Автомобильный завод', icon:'🏭', category:'manufacturing', baseCost:26000000000, baseIncome:1900000, level:0, purchased:false },
+    { id:'developer', name:'Девелоперская компания', icon:'🏗', category:'realestate', baseCost:33000000000, baseIncome:2400000, level:0, purchased:false },
+    { id:'hospital', name:'Сеть госпиталей', icon:'🩺', category:'medicine', baseCost:42000000000, baseIncome:2900000, level:0, purchased:false },
+    { id:'airline', name:'Авиакомпания', icon:'✈', category:'transport', baseCost:54000000000, baseIncome:3500000, level:0, purchased:false },
+    { id:'oilgas', name:'Нефтегазовая компания', icon:'🛢', category:'manufacturing', baseCost:69000000000, baseIncome:4300000, level:0, purchased:false },
+    { id:'telecom', name:'Телеком-оператор', icon:'📡', category:'it', baseCost:88000000000, baseIncome:5200000, level:0, purchased:false },
+    { id:'mining', name:'Горнодобывающая компания', icon:'⛏', category:'manufacturing', baseCost:110000000000, baseIncome:6300000, level:0, purchased:false },
+    { id:'luxhotels', name:'Сеть отелей премиум', icon:'🏝', category:'realestate', baseCost:140000000000, baseIncome:7700000, level:0, purchased:false },
+    { id:'spacecorp', name:'Космическая корпорация', icon:'🚀', category:'it', baseCost:180000000000, baseIncome:9400000, level:0, purchased:false },
+    { id:'megabank', name:'Международный банковский холдинг', icon:'🏛', category:'finance', baseCost:230000000000, baseIncome:11000000, level:0, purchased:false },
+    { id:'conglomerate', name:'Глобальный конгломерат', icon:'🌐', category:'finance', baseCost:300000000000, baseIncome:14000000, level:0, purchased:false },
   ];
 
   // Job system: five professions available from the very start (before any
@@ -1123,14 +1173,27 @@
   // tracked as a "next available at" timestamp (not a boolean) so cooldowns
   // survive a page reload.
   const jobs = [
-    { id:'flyers', name:'Раздача листовок', minPay:500, maxPay:1000, cooldownMs:15000, unlockAt:0 },
-    { id:'courier', name:'Курьер', minPay:1000, maxPay:2000, cooldownMs:30000, unlockAt:15000 },
-    { id:'waiter', name:'Официант', minPay:2500, maxPay:4000, cooldownMs:45000, unlockAt:50000 },
-    { id:'freelancer', name:'Фриланс-программист', minPay:6000, maxPay:12000, cooldownMs:90000, unlockAt:500000 },
-    { id:'consultant', name:'Бизнес-консультант', minPay:20000, maxPay:35000, cooldownMs:180000, unlockAt:5000000 },
+    { id:'flyers', name:'Раздача листовок', minPay:300, maxPay:650, cooldownMs:15000, unlockAt:0 },
+    { id:'cleaner', name:'Уборщик', minPay:400, maxPay:800, cooldownMs:20000, unlockAt:8000 },
+    { id:'courier', name:'Курьер', minPay:650, maxPay:1300, cooldownMs:30000, unlockAt:15000 },
+    { id:'cashier', name:'Кассир', minPay:1000, maxPay:1800, cooldownMs:40000, unlockAt:100000 },
+    { id:'waiter', name:'Официант', minPay:1600, maxPay:2600, cooldownMs:45000, unlockAt:300000 },
+    { id:'mover', name:'Грузчик', minPay:2200, maxPay:3800, cooldownMs:60000, unlockAt:1000000 },
+    { id:'taxidriver', name:'Таксист', minPay:3200, maxPay:5200, cooldownMs:70000, unlockAt:3000000 },
+    { id:'freelancer', name:'Фриланс-программист', minPay:4000, maxPay:7800, cooldownMs:90000, unlockAt:8000000 },
+    { id:'photographer', name:'Фотограф на заказ', minPay:6500, maxPay:11000, cooldownMs:100000, unlockAt:25000000 },
+    { id:'realtor', name:'Агент по недвижимости', minPay:10000, maxPay:18000, cooldownMs:130000, unlockAt:80000000 },
+    { id:'consultant', name:'Бизнес-консультант', minPay:13000, maxPay:22000, cooldownMs:180000, unlockAt:300000000 },
+    { id:'lawyer', name:'Адвокат', minPay:20000, maxPay:34000, cooldownMs:220000, unlockAt:1000000000 },
   ];
   const jobReadyAt = {};
   jobs.forEach(j=>{ jobReadyAt[j.id] = 0; });
+
+  // Ephemeral (not saved) tap progress: working a job now takes a few taps
+  // in a row instead of paying out on the first click.
+  const TAPS_REQUIRED = 3;
+  const TAP_WINDOW_MS = 2500;
+  const jobTaps = {};
 
   // Inheritance assets: sell for one-time cash, or keep for ongoing benefit.
   // status: null (undecided) | 'sold' | 'kept'
@@ -1323,7 +1386,7 @@
       if (!biz.purchased){
         card.className = 'biz-card biz-card-locked';
         card.innerHTML = `
-          <div class="biz-icon biz-icon-locked"><img src="images/${biz.id}.jpg" alt=""><span class="biz-lock">🔒</span></div>
+          <div class="biz-icon biz-icon-locked"><img src="images/${biz.id}.jpg" alt="" onerror="this.outerHTML='${biz.icon}'"><span class="biz-lock">🔒</span></div>
           <div class="biz-info">
             <div class="biz-name">${biz.name}</div>
             <div class="biz-meta">Бизнес закрыт</div>
@@ -1341,7 +1404,7 @@
           ? '⏸ На паузе'
           : `+${fmt(incomePerSec(biz) * GAME_DAY_SECONDS)}/день · <span class="biz-level">ур. ${biz.level}</span>`;
         card.innerHTML = `
-          <div class="biz-icon"><img src="images/${biz.id}.jpg" alt=""></div>
+          <div class="biz-icon"><img src="images/${biz.id}.jpg" alt="" onerror="this.outerHTML='${biz.icon}'"></div>
           <div class="biz-info">
             <div class="biz-name">${biz.name}</div>
             <div class="biz-meta">${metaText}</div>
@@ -1620,7 +1683,7 @@
 
   function openBizModal(biz){
     currentModalBiz = biz;
-    document.getElementById('bizModalIcon').innerHTML = `<img src="images/${biz.id}.jpg" alt="">`;
+    document.getElementById('bizModalIcon').innerHTML = `<img src="images/${biz.id}.jpg" alt="" onerror="this.outerHTML='${biz.icon}'">`;
     document.getElementById('bizModalName').textContent = biz.name;
     drawBizModalBody(biz);
     document.getElementById('bizModalOverlay').style.display = 'flex';
@@ -2064,7 +2127,12 @@
           btnText = secLeft >= 60 ? `${Math.floor(secLeft / 60)}:${String(secLeft % 60).padStart(2, '0')}` : `${secLeft} сек`;
           btnDisabled = true;
         } else {
-          btnText = 'Работать';
+          const tap = jobTaps[job.id];
+          if (tap && now < tap.expiresAt){
+            btnText = `Тап! (${tap.count}/${TAPS_REQUIRED})`;
+          } else {
+            btnText = 'Работать';
+          }
           btnDisabled = false;
         }
         card.className = 'asset-card';
@@ -2091,11 +2159,22 @@
     const now = Date.now();
     const readyAt = jobReadyAt[job.id] || 0;
     if (readyAt && now < readyAt) return;
+
+    if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+
+    const tap = jobTaps[jobId];
+    const count = (tap && now < tap.expiresAt) ? tap.count + 1 : 1;
+    if (count < TAPS_REQUIRED){
+      jobTaps[jobId] = { count, expiresAt: now + TAP_WINDOW_MS };
+      renderJob();
+      return;
+    }
+
+    delete jobTaps[jobId];
     const pay = Math.round(randRange(job.minPay, job.maxPay));
     capital += pay;
     totalEarned += pay;
     jobReadyAt[job.id] = now + job.cooldownMs;
-    if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
     renderAll();
     saveProgress();
   }
@@ -2179,7 +2258,7 @@
     totalEarned = 0;
     lastLoginDate = null;
     loginStreak = 0;
-    jobs.forEach(j=>{ jobReadyAt[j.id] = 0; });
+    jobs.forEach(j=>{ jobReadyAt[j.id] = 0; delete jobTaps[j.id]; });
     businesses.forEach(b=>{
       b.level = 0;
       b.purchased = false;
