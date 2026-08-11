@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -9,7 +8,7 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import { getFirestore, doc, getDoc, setDoc, collection, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
- 
+
   const firebaseConfig = {
     apiKey: "AIzaSyB828C0bapGUHV2HHIWGBOpVA4PdplpJ2Y",
     authDomain: "imperia-game.firebaseapp.com",
@@ -18,7 +17,7 @@
     messagingSenderId: "204004168426",
     appId: "1:204004168426:web:9851446701008e23297d93"
   };
- 
+
   const app = initializeApp(firebaseConfig);
   window.__db = getFirestore(app);
   window.__docRef = doc;
@@ -32,7 +31,7 @@
 </script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap');
- 
+
   :root{
     --bg: #0a0e1a;
     --surface: #12182b;
@@ -49,7 +48,7 @@
     --font-mono: 'JetBrains Mono', monospace;
     --font-body: 'Inter', sans-serif;
   }
- 
+
   [data-theme="sunset"]{
     --bg: #1a0f0a;
     --surface: #2a1810;
@@ -62,7 +61,7 @@
     --gold-dim: rgba(232,160,92,0.25);
     --green: #6ab88a;
   }
- 
+
   [data-theme="neon"]{
     --bg: #0a0a1a;
     --surface: #12122b;
@@ -75,7 +74,7 @@
     --gold-dim: rgba(176,132,255,0.25);
     --green: #5cd4a0;
   }
- 
+
   *{ box-sizing: border-box; margin:0; padding:0; -webkit-tap-highlight-color: transparent; }
   html, body{ height: 100%; }
   body{
@@ -85,7 +84,7 @@
     overflow: hidden;
     -webkit-font-smoothing: antialiased;
   }
- 
+
   .bg-layer{
     position: fixed;
     inset: 0;
@@ -100,7 +99,7 @@
     inset: 0;
     background: linear-gradient(180deg, var(--bg) 0%, transparent 40%, transparent 60%, var(--bg) 100%);
   }
- 
+
   #bootScreen{
     position: fixed; inset:0; z-index:1000;
     background: var(--bg);
@@ -118,14 +117,14 @@
     50%{ opacity: 1; transform: scale(1.02); }
   }
   .boot-sub{ font-size: 12px; color: var(--text-dim); letter-spacing: 2px; }
- 
+
   #app{
     position: relative; z-index: 1;
     max-width: 430px; margin: 0 auto;
     height: 100%; display: flex; flex-direction: column;
     background: transparent;
   }
- 
+
   header{
     padding: 10px 14px 6px;
     display: flex; align-items: center; justify-content: space-between;
@@ -151,7 +150,7 @@
     font-family: var(--font-mono);
     letter-spacing: 0.5px;
   }
- 
+
   @keyframes floatUp{
     0%{ transform: translateY(0) scale(1); opacity: 1; }
     100%{ transform: translateY(-40px) scale(1.2); opacity: 0; }
@@ -166,7 +165,7 @@
     animation: floatUp 1.2s ease-out forwards;
     text-shadow: 0 0 8px rgba(74,157,111,0.4);
   }
- 
+
   .capital-bar{
     margin: 0 14px 8px;
     background: linear-gradient(135deg, var(--surface), rgba(201,168,76,0.03));
@@ -202,7 +201,7 @@
     font-size: 10px; font-weight: 600;
     font-family: var(--font-mono);
   }
- 
+
   .mentor-avatar-btn{
     position: fixed;
     top: 70px; right: 14px;
@@ -226,7 +225,7 @@
     border-radius: 50%;
     border: 2px solid var(--bg);
   }
- 
+
   .quest-badge-btn{
     position: fixed;
     top: 70px; left: 14px;
@@ -250,7 +249,7 @@
     display: flex; align-items: center; justify-content: center;
     border: 2px solid var(--bg);
   }
- 
+
   .news-ticker{
     margin: 0 14px 8px;
     background: var(--surface);
@@ -273,21 +272,21 @@
     0%{ transform: translateX(100%); }
     100%{ transform: translateX(-120%); }
   }
- 
+
   .section-title{
     font-size: 10px; color: var(--text-dim);
     text-transform: uppercase; letter-spacing: 2px;
     padding: 8px 14px 6px;
     display: flex; align-items: center; gap: 6px;
   }
- 
+
   .city-map{
     padding: 0 14px 14px;
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 6px;
   }
- 
+
   .building-slot{
     aspect-ratio: 0.85;
     background: var(--surface);
@@ -305,7 +304,7 @@
     padding: 4px;
   }
   .building-slot:active{ transform: scale(0.95); }
- 
+
   .building-slot.owned{
     border-color: var(--gold-dim);
     background: linear-gradient(180deg, var(--surface) 0%, rgba(201,168,76,0.05) 100%);
@@ -319,7 +318,7 @@
     0%,100%{ box-shadow: 0 0 0 1px var(--gold-dim) inset; }
     50%{ box-shadow: 0 0 8px 1px var(--gold-dim) inset; }
   }
- 
+
   .building-icon{
     width: 32px; height: 32px;
     border-radius: 8px;
@@ -335,7 +334,7 @@
     border-color: var(--gold-dim);
   }
   .building-icon img{ width: 100%; height: 100%; object-fit: cover; }
- 
+
   .biz-icon-locked{ position: relative; }
   .biz-icon-locked::after{
     content: ''; position: absolute; inset: 0;
@@ -348,7 +347,7 @@
     filter: drop-shadow(0 1px 2px rgba(0,0,0,0.6));
     z-index: 2;
   }
- 
+
   .building-name{
     font-size: 8px; font-weight: 500;
     text-align: center; color: var(--text);
@@ -361,7 +360,7 @@
     -webkit-box-orient: vertical;
   }
   .building-slot.locked .building-name{ color: var(--text-dim); }
- 
+
   .building-lvl{
     font-size: 8px; color: var(--gold);
     font-family: var(--font-mono);
@@ -370,7 +369,7 @@
     font-size: 7px; color: var(--green);
     font-family: var(--font-mono);
   }
- 
+
   .building-progress{
     position: absolute; left: 0; right: 0; bottom: 0;
     height: 2px; background: rgba(255,255,255,0.03);
@@ -380,7 +379,7 @@
     background: linear-gradient(90deg, var(--gold-dim), var(--gold-light));
     transition: width 0.4s ease;
   }
- 
+
   @keyframes buildingAppear{
     0%{ transform: scale(0) translateY(20px); opacity: 0; }
     60%{ transform: scale(1.1) translateY(-4px); opacity: 1; }
@@ -389,7 +388,7 @@
   .building-slot.appear{
     animation: buildingAppear 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
   }
- 
+
   @keyframes buildingFlash{
     0%{ box-shadow: 0 0 0 0 rgba(201,168,76,0.5); }
     50%{ box-shadow: 0 0 16px 4px rgba(201,168,76,0.3); }
@@ -398,7 +397,7 @@
   .building-slot.flash{
     animation: buildingFlash 0.5s ease;
   }
- 
+
   .scroll-content{
     flex: 1;
     overflow-y: auto;
@@ -407,7 +406,7 @@
     padding-bottom: 80px;
   }
   .scroll-content::-webkit-scrollbar{ width: 0; }
- 
+
   .overlay{
     position: fixed; inset: 0;
     background: rgba(2,3,7,0.75);
@@ -419,7 +418,7 @@
     transition: opacity 0.2s ease;
   }
   .overlay.show{ opacity: 1; pointer-events: auto; }
- 
+
   .overlay-card{
     background: var(--surface);
     border: 1px solid var(--border);
@@ -458,7 +457,7 @@
     transition: transform 0.12s ease;
   }
   .overlay-btn:active{ transform: scale(0.97); }
- 
+
   .modal-close-btn{
     position: absolute; top: 10px; right: 10px;
     background: none; border: none;
@@ -469,7 +468,7 @@
     transition: background 0.15s ease;
   }
   .modal-close-btn:active{ background: var(--surface-2); }
- 
+
   .biz-modal-card{ max-height: 80vh; overflow-y: auto; text-align: left; }
   .biz-modal-header{
     display: flex; align-items: center; gap: 12px;
@@ -479,7 +478,7 @@
     font-family: var(--font-display);
     font-size: 16px; color: var(--gold-light);
   }
- 
+
   .mechanic-card{
     background: var(--surface-2);
     border: 1px solid var(--border);
@@ -503,7 +502,7 @@
     color: var(--text); border: 1px solid var(--border);
     box-shadow: none;
   }
- 
+
   .item-row{
     display: flex; align-items: center; justify-content: space-between;
     gap: 10px; padding: 5px 0;
@@ -522,7 +521,7 @@
     background: var(--surface-2); color: var(--text-dim);
     cursor: not-allowed;
   }
- 
+
   .asset-card{
     background: var(--surface);
     border: 1px solid var(--border);
@@ -549,7 +548,7 @@
     padding: 5px 8px; font-size: 10px;
     cursor: pointer; flex-shrink: 0;
   }
- 
+
   .job-card{
     background: var(--surface);
     border: 1px solid var(--border);
@@ -589,7 +588,7 @@
     height: 100%; background: var(--gold);
     border-radius: 2px; transition: width 0.1s linear;
   }
- 
+
   .profile-card{
     background: linear-gradient(135deg, var(--surface), rgba(201,168,76,0.03));
     border: 1px solid var(--border);
@@ -612,7 +611,7 @@
   }
   .profile-name{ font-family: var(--font-display); font-size: 18px; color: var(--gold-light); margin-bottom: 2px; }
   .profile-rank{ font-size: 11px; color: var(--text-dim); }
- 
+
   .stats-grid{
     display: grid; grid-template-columns: 1fr 1fr;
     gap: 8px; margin-bottom: 12px;
@@ -624,11 +623,11 @@
   }
   .stat-label{ font-size: 9px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 3px; }
   .stat-value{ font-family: var(--font-mono); font-size: 14px; font-weight: 600; }
- 
+
   .share-btn{
     width: 100%; margin-bottom: 10px;
   }
- 
+
   .rating-item{
     display: flex; align-items: center; gap: 10px;
     padding: 8px 12px;
@@ -653,7 +652,7 @@
     border-color: var(--gold-dim);
     background: linear-gradient(90deg, var(--surface), rgba(201,168,76,0.05));
   }
- 
+
   .achieve-panel{
     margin: 0 14px 12px;
     background: var(--surface);
@@ -697,7 +696,7 @@
     display: flex; align-items: center; justify-content: center;
     border: 2px solid var(--bg);
   }
- 
+
   .stock-game{
     margin: 0 14px 12px;
     background: var(--surface);
@@ -746,7 +745,7 @@
   .stock-btn:active{ transform: scale(0.97); }
   .stock-btn.up{ background: rgba(74,157,111,0.15); color: var(--green); border: 1px solid rgba(74,157,111,0.3); }
   .stock-btn.down{ background: rgba(196,92,92,0.15); color: var(--red); border: 1px solid rgba(196,92,92,0.3); }
- 
+
   .theme-switcher{
     display: flex; gap: 6px; margin-bottom: 12px;
   }
@@ -762,7 +761,7 @@
     border-color: var(--gold);
     color: var(--gold-light);
   }
- 
+
   nav{
     display: flex; justify-content: space-around; align-items: center;
     padding: 6px 0 20px;
@@ -788,10 +787,10 @@
     transition: left 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
     box-shadow: 0 0 8px rgba(212,175,55,0.4);
   }
- 
+
   .view{ display: none; flex-direction: column; }
   .view.active{ display: flex; }
- 
+
   .inheritance-card{
     background: var(--surface);
     border: 1px solid var(--border);
@@ -805,16 +804,16 @@
     border-color: var(--gold-dim);
     box-shadow: 0 0 0 1px var(--gold-dim) inset;
   }
- 
+
   .eco-actions{ display: flex; flex-direction: column; gap: 8px; }
   .biz-level{ font-size: 11px; color: var(--gold); }
- 
+
   @keyframes slideInUp{
     from{ transform: translateY(20px); opacity: 0; }
     to{ transform: translateY(0); opacity: 1; }
   }
   .slide-in{ animation: slideInUp 0.3s ease; }
- 
+
   @keyframes pulseGlow{
     0%,100%{ box-shadow: 0 0 0 0 rgba(201,168,76,0.3); }
     50%{ box-shadow: 0 0 12px 2px rgba(201,168,76,0.2); }
@@ -824,9 +823,9 @@
 <base target="_blank">
 </head>
 <body>
- 
+
   <div class="boot-screen" id="bootScreen">Загрузка...</div>
- 
+
   <div class="view" id="view-inheritance">
     <div class="inheritance-intro">
       <span class="brand">Наследство</span>
@@ -835,7 +834,7 @@
     <div class="inheritance-list" id="inheritanceList"></div>
     <button class="inheritance-continue" id="inheritanceContinue" disabled>Начать</button>
   </div>
- 
+
   <div id="app" style="display:none">
     <header>
       <div>
@@ -844,10 +843,10 @@
       </div>
       <div class="level-pill" id="rankLabel">Новичок</div>
     </header>
- 
+
         <div class="view active" id="view-business">
       <div class="bg-layer"></div>
- 
+
       <div class="capital-bar">
         <div class="capital-main">
           <div class="capital-label-small">Капитал</div>
@@ -855,20 +854,20 @@
         </div>
         <div class="income-pill" id="incomeRate">+₽0/день</div>
       </div>
- 
+
       <button class="quest-badge-btn" id="questBadgeBtn" title="Задания">
         📋<span class="badge-count" id="questBadgeCount" style="display:none">0</span>
       </button>
       <button class="mentor-avatar-btn" id="mentorBtn" title="Советник">🎩</button>
       <button class="sound-btn" id="soundBtn" title="Звук">🔇</button>
- 
+
       <div class="news-ticker" id="newsTicker">
         <div class="news-icon">📰</div>
         <div class="news-scroll">
           <div class="news-item-text" id="newsText">Добро пожаловать в Империю...</div>
         </div>
       </div>
- 
+
       <div id="mentorBubble" class="mentor-bubble" style="display:none; margin:0 14px 8px;">
         <div class="mentor-avatar">🎩</div>
         <div>
@@ -876,7 +875,7 @@
           <div class="mentor-text" id="mentorText"></div>
         </div>
       </div>
- 
+
       <div id="questPanel" class="quest-panel" style="display:none; margin:0 14px 8px;">
         <div class="quest-header">
           <div class="quest-title">📋 Активные задания</div>
@@ -884,7 +883,7 @@
         </div>
         <div id="questList"></div>
       </div>
- 
+
       <div class="stock-game" id="stockGame">
         <div class="stock-header">
           <div class="stock-title">📈 Биржа</div>
@@ -899,12 +898,12 @@
           <button class="stock-btn down" id="stockDown">📉 Вниз</button>
         </div>
       </div>
- 
+
       <div class="section-title">🏙 Город</div>
       <div class="city-map" id="cityMap"></div>
- 
+
       <div style="height:20px; flex-shrink:0;"></div>
- 
+
       <div id="offlineOverlay" class="overlay" style="display:none">
         <div class="overlay-card">
           <div class="overlay-icon">💰</div>
@@ -914,7 +913,7 @@
           <button class="overlay-btn" id="offlineClaim">Забрать</button>
         </div>
       </div>
- 
+
       <div id="dailyRewardOverlay" class="overlay" style="display:none">
         <div class="overlay-card">
           <div class="overlay-icon">🎁</div>
@@ -925,7 +924,7 @@
           <button class="overlay-btn" id="dailyRewardClaim">Забрать</button>
         </div>
       </div>
- 
+
       <div class="overlay" id="bizModalOverlay" style="display:none">
         <div class="overlay-card biz-modal-card">
           <button class="modal-close-btn" id="bizModalClose">✕</button>
@@ -936,7 +935,7 @@
           <div id="bizModalBody"></div>
         </div>
       </div>
- 
+
       <div class="overlay" id="ecoOverlay" style="display:none">
         <div class="overlay-card">
           <div class="overlay-icon">🌱</div>
@@ -948,7 +947,7 @@
           </div>
         </div>
       </div>
- 
+
       <div class="overlay" id="kioskBreakOverlay" style="display:none">
         <div class="overlay-card">
           <div class="overlay-icon">☕💥</div>
@@ -960,7 +959,7 @@
           </div>
         </div>
       </div>
- 
+
       <div class="overlay" id="cafeReviewOverlay" style="display:none">
         <div class="overlay-card">
           <div class="overlay-icon">📉</div>
@@ -972,7 +971,7 @@
           </div>
         </div>
       </div>
- 
+
       <div class="overlay" id="genericEventOverlay" style="display:none">
         <div class="overlay-card">
           <div class="overlay-icon" id="genericEventIcon">⚠</div>
@@ -984,7 +983,7 @@
           </div>
         </div>
       </div>
- 
+
       <div class="overlay" id="stockResultOverlay" style="display:none">
         <div class="overlay-card">
           <div class="overlay-icon" id="stockResultIcon">📈</div>
@@ -998,7 +997,7 @@
 <div class="view" id="view-assets">
       <div class="section-title">Активы</div>
       <div class="biz-list" id="assetList"></div>
- 
+
       <div class="overlay" id="assetModalOverlay" style="display:none">
         <div class="overlay-card biz-modal-card">
           <button class="modal-close-btn" id="assetModalClose">✕</button>
@@ -1010,23 +1009,23 @@
         </div>
       </div>
     </div>
- 
+
     <div class="view" id="view-work">
       <div class="section-title">Подработка</div>
       <div class="biz-list" id="jobList"></div>
     </div>
- 
+
         <div class="view" id="view-profile">
       <div class="bg-layer"></div>
- 
+
       <div class="profile-card">
         <div class="profile-avatar" id="profileAvatar">●</div>
         <div class="profile-name" id="profileName">Игрок</div>
         <div class="profile-rank" id="profileRank">Новичок</div>
       </div>
- 
+
       <button class="mechanic-btn secondary share-btn" id="customizeBtn" style="margin:0 14px 10px;">⚙ Настроить профиль</button>
- 
+
       <div class="stats-grid" style="margin:0 14px 12px;">
         <div class="stat-card">
           <div class="stat-label">Капитал</div>
@@ -1045,14 +1044,14 @@
           <div class="stat-value" id="statBizCount">0</div>
         </div>
       </div>
- 
+
       <div class="section-title">🎨 Тема оформления</div>
       <div class="theme-switcher" style="margin:0 14px 12px;">
         <div class="theme-option active" data-theme="default">🌃 Ночь</div>
         <div class="theme-option" data-theme="sunset">🌅 Закат</div>
         <div class="theme-option" data-theme="neon">💜 Неон</div>
       </div>
- 
+
       <div class="section-title">🏆 Достижения</div>
       <div class="achieve-panel" id="achievePanel">
         <div class="achieve-header">
@@ -1061,21 +1060,21 @@
         </div>
         <div class="achieve-grid" id="achieveGrid"></div>
       </div>
- 
+
       <div class="section-title">👥 Пригласить друзей</div>
       <div style="margin:0 14px 12px; background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:12px;">
         <div style="font-size:10px; color:var(--text-dim); font-family:var(--font-mono); word-break:break-all; margin-bottom:8px;" id="refLink">https://t.me/ImperiaBusinessBot/play?startapp=REF_0</div>
         <button class="overlay-btn" id="copyRefBtn" style="box-shadow:none;">Скопировать ссылку</button>
         <div style="font-size:11px; color:var(--green); margin-top:6px; text-align:center;" id="refCount">Приглашено друзей: 0</div>
       </div>
- 
+
       <div class="section-title">🏅 Рейтинг магнатов</div>
       <div id="ratingList" style="margin:0 14px 12px;"></div>
- 
+
       <div style="height:20px;"></div>
     </div>
     </div>
- 
+
     <nav>
       <div class="nav-indicator" id="navIndicator" data-index="0"></div>
       <button class="nav-item active" data-view="business">
@@ -1096,13 +1095,13 @@
       </button>
     </nav>
   </div>
- 
+
 <script type="module">
   const tg = window.Telegram?.WebApp;
   if (tg) { tg.ready(); tg.expand(); }
- 
+
   const userId = tg?.initDataUnsafe?.user?.id || 'guest_' + (localStorage.getItem('guestId') || (()=>{ const id=Math.random().toString(36).slice(2); localStorage.setItem('guestId', id); return id; })());
- 
+
   const businesses = [
     { id:'vending', name:'Точка вендинга', icon:'🥤', category:'retail', baseCost:150000, baseIncome:120, level:0, purchased:false },
     { id:'shoerepair', name:'Мастерская по ремонту обуви', icon:'👞', category:'services', baseCost:190000, baseIncome:150, level:0, purchased:false },
@@ -1165,7 +1164,7 @@
     { id:'megabank', name:'Международный банковский холдинг', icon:'🏛', category:'finance', baseCost:230000000000, baseIncome:11000000, level:0, purchased:false },
     { id:'conglomerate', name:'Глобальный конгломерат', icon:'🌐', category:'finance', baseCost:300000000000, baseIncome:14000000, level:0, purchased:false },
   ];
- 
+
   const jobs = [
     { id:'flyers', name:'Раздача листовок', minPay:300, maxPay:650, cooldownMs:15000, unlockAt:0 },
     { id:'cleaner', name:'Уборщик', minPay:400, maxPay:800, cooldownMs:20000, unlockAt:8000 },
@@ -1182,11 +1181,11 @@
   ];
   const jobReadyAt = {};
   jobs.forEach(j=>{ jobReadyAt[j.id] = 0; });
- 
+
   const TAPS_REQUIRED = 3;
   const TAP_WINDOW_MS = 2500;
   const jobTaps = {};
- 
+
   const assets = [
     {
       id: 'apartment', name: 'Квартира', icon: '🏠',
@@ -1207,7 +1206,7 @@
       keptMeta: (a) => `+${fmt(assetIncome(a) * GAME_DAY_SECONDS)}/день · такси${a.brokenUntil && Date.now() < a.brokenUntil ? ' · 🔧 в ремонте' : ''}`,
     },
   ];
- 
+
   function assetIncome(asset){
     const now = Date.now();
     if (asset.id === 'apartment'){
@@ -1220,7 +1219,7 @@
     }
     return asset.rentIncome;
   }
- 
+
   function assetModalContent(asset){
     if (asset.id === 'apartment'){
       return {
@@ -1245,18 +1244,18 @@
       eventGapMin: 300000, eventGapMax: 420000,
     };
   }
- 
+
   const GAME_DAY_SECONDS = 1800;
- 
+
   let capital = 15000;
   let totalEarned = 0;
- 
+
   let lastLoginDate = null;
   let loginStreak = 0;
- 
+
   let referredBy = null;
   let referralCount = 0;
- 
+
   const EXTRA_BIZ_KEYS = [
     'purchased', 'paused',
     'hasDryClean', 'boostUntil', 'boostReadyAt', 'ecoCheckAt',
@@ -1265,16 +1264,16 @@
     'hasUpgrade', 'eventUntil', 'eventCheckAt',
     'items',
   ];
- 
+
   const EXTRA_ASSET_KEYS = [
     'hasRenovation', 'floodUntil', 'floodCheckAt',
     'hasMaintenance', 'brokenUntil', 'breakCheckAt',
   ];
- 
+
   let companyName = 'Империя';
   let emblem = '👑';
   const EMBLEMS = ['👑','🏛','🗽','🌉','🏰','🏯','🗼','⛩','🕍','🕌','🏭','🌆','🌇','🌃','🌁','🏙','🌌','🌠','⭐','🔥','💎','⚡','🦁','🦅','🐉','🐺','🦈','🦏','🦍','🐻','🌲','🌵','🌴','🌹','🌻','🍁','🍂','🍄','🌊','🌋','🗿','⚔','🛡','🧭','🗺','🔱','⚓','🚀','🛸','🛰','🪐','🌍','🌎','🌏','🌕','☀','🌟','💫','✨','🌈'];
- 
+
   const quests = [
     { id:'q_first_biz', icon:'🏪', name:'Первые шаги', desc:'Купите любой бизнес', condition:()=>businesses.some(b=>b.purchased), reward:500, completed:false, claimed:false },
     { id:'q_three_biz', icon:'🏘', name:'Малый бизнес', desc:'Откройте 3 бизнеса', condition:()=>businesses.filter(b=>b.purchased).length>=3, reward:2000, completed:false, claimed:false },
@@ -1287,7 +1286,7 @@
     { id:'q_all_items', icon:'🧰', name:'Оборудование', desc:'Купите любой предмет для бизнеса', condition:()=>businesses.some(b=>b.items&&b.items.length>0), reward:2000, completed:false, claimed:false },
     { id:'q_prestige', icon:'♻', name:'Новый старт', desc:'Совершите престиж (сброс)', condition:()=>false, reward:0, completed:false, claimed:false },
   ];
- 
+
   const NEWS_HEADLINES = [
     'ЦБ снизил ключевую ставку — кредиты подешевели',
     'Новый торговый центр открылся в центре города',
@@ -1315,10 +1314,10 @@
     'В город пришёл международный инвестор с $100 млн',
     'Эко-тренд: покупатели выбирают зелёные бренды',
   ];
- 
+
   let soundEnabled = false;
   const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
- 
+
   function playTone(freq, type, duration, vol=0.05){
     if (!soundEnabled || !audioCtx) return;
     try{
@@ -1334,14 +1333,14 @@
       osc.stop(audioCtx.currentTime + duration);
     }catch(e){}
   }
- 
+
   function sfxBuy(){ playTone(523, 'sine', 0.15, 0.06); setTimeout(()=>playTone(659, 'sine', 0.15, 0.06), 80); setTimeout(()=>playTone(784, 'sine', 0.2, 0.06), 160); }
   function sfxCoin(){ playTone(1200, 'sine', 0.08, 0.04); }
   function sfxLevelUp(){ playTone(440, 'triangle', 0.3, 0.05); setTimeout(()=>playTone(554, 'triangle', 0.3, 0.05), 150); setTimeout(()=>playTone(659, 'triangle', 0.4, 0.05), 300); }
   function sfxQuest(){ playTone(880, 'sine', 0.2, 0.05); setTimeout(()=>playTone(1100, 'sine', 0.3, 0.05), 120); }
   function sfxClick(){ playTone(800, 'sine', 0.05, 0.03); }
   function sfxError(){ playTone(200, 'sawtooth', 0.2, 0.04); }
- 
+
   let tutorialStep = 0;
   let tutorialActive = false;
   const TUTORIAL_STEPS = [
@@ -1351,7 +1350,7 @@
     { title:'Подработка', text:'На вкладке «Работа» можно заработать на старте. Каждая профессия имеет кулдаун — планируйте время.' },
     { title:'Рост и престиж', text:'Открывайте бизнесы, прокачивайте оборудование, следите за новостями. Ваша империя начинается прямо сейчас!' },
   ];
- 
+
   let currentNewsIndex = 0;
   function rotateNews(){
     currentNewsIndex = (currentNewsIndex + 1) % NEWS_HEADLINES.length;
@@ -1363,7 +1362,7 @@
       el.style.animation = '';
     }
   }
- 
+
   const MENTOR_LINES = [
     'Отличное начало! Помните: диверсификация — ключ к успеху.',
     'Рынок растёт. Самое время инвестировать в новые направления.',
@@ -1374,7 +1373,7 @@
     'Новости говорят о росте туризма. Рестораны и отели — в тренде.',
     'Вы на верном пути. Ещё несколько бизнесов — и город будет ваш.',
   ];
- 
+
   function showMentor(text){
     const bubble = document.getElementById('mentorBubble');
     const txt = document.getElementById('mentorText');
@@ -1382,12 +1381,12 @@
     txt.textContent = text || MENTOR_LINES[Math.floor(Math.random() * MENTOR_LINES.length)];
     bubble.style.display = 'flex';
   }
- 
+
   function hideMentor(){
     const bubble = document.getElementById('mentorBubble');
     if (bubble) bubble.style.display = 'none';
   }
- 
+
   function checkQuests(){
     let changed = false;
     quests.forEach(q=>{
@@ -1401,7 +1400,7 @@
       saveProgress();
     }
   }
- 
+
   function claimQuest(qid){
     const q = quests.find(x=>x.id === qid);
     if (!q || !q.completed || q.claimed) return;
@@ -1414,13 +1413,13 @@
     renderCapital(true);
     saveProgress();
   }
- 
+
   function renderQuests(){
     const panel = document.getElementById('questPanel');
     const list = document.getElementById('questList');
     const count = document.getElementById('questCount');
     if (!panel || !list) return;
- 
+
     const active = quests.filter(q=>!q.claimed);
     if (active.length === 0){
       panel.style.display = 'none';
@@ -1428,7 +1427,7 @@
     }
     panel.style.display = 'block';
     count.textContent = `${quests.filter(q=>q.claimed).length}/${quests.length}`;
- 
+
     list.innerHTML = '';
     active.slice(0,3).forEach(q=>{
       const div = document.createElement('div');
@@ -1454,18 +1453,18 @@
       }
       list.appendChild(div);
     });
- 
+
     list.querySelectorAll('.quest-reward-btn').forEach(btn=>{
       btn.addEventListener('click', ()=> claimQuest(btn.dataset.qid));
     });
   }
- 
+
   function startTutorial(){
     tutorialActive = true;
     tutorialStep = 0;
     showTutorialStep();
   }
- 
+
   function showTutorialStep(){
     const overlay = document.getElementById('tutorialOverlay');
     const stepEl = document.getElementById('tutorialStep');
@@ -1473,7 +1472,7 @@
     const textEl = document.getElementById('tutorialText');
     const btn = document.getElementById('tutorialNext');
     if (!overlay) return;
- 
+
     const s = TUTORIAL_STEPS[tutorialStep];
     stepEl.textContent = `Шаг ${tutorialStep + 1} / ${TUTORIAL_STEPS.length}`;
     titleEl.textContent = s.title;
@@ -1481,7 +1480,7 @@
     btn.textContent = tutorialStep < TUTORIAL_STEPS.length - 1 ? 'Далее' : 'Начать игру';
     overlay.style.display = 'flex';
   }
- 
+
   function nextTutorialStep(){
     tutorialStep++;
     if (tutorialStep >= TUTORIAL_STEPS.length){
@@ -1493,7 +1492,7 @@
     }
     showTutorialStep();
   }
- 
+
   function openCustomize(){
     const overlay = document.getElementById('customizeOverlay');
     const input = document.getElementById('companyNameInput');
@@ -1514,11 +1513,11 @@
     });
     overlay.style.display = 'flex';
   }
- 
+
   function closeCustomize(){
     document.getElementById('customizeOverlay').style.display = 'none';
   }
- 
+
   function saveCustomize(){
     const input = document.getElementById('companyNameInput');
     if (input && input.value.trim()) companyName = input.value.trim().slice(0,20);
@@ -1527,7 +1526,7 @@
     saveProgress();
     sfxClick();
   }
- 
+
   function renderAssets(){
     const list = document.getElementById('assetList');
     if (!list) return;
@@ -1555,7 +1554,7 @@
       });
       list.appendChild(card);
     });
- 
+
     list.querySelectorAll('.asset-sell-btn').forEach(btn=>{
       btn.addEventListener('click', (e)=>{
         e.stopPropagation();
@@ -1568,9 +1567,9 @@
       });
     });
   }
- 
+
   let currentModalAsset = null;
- 
+
   function drawAssetModalBody(asset){
     const body = document.getElementById('assetModalBody');
     const cfg = assetModalContent(asset);
@@ -1602,7 +1601,7 @@
       });
     }
   }
- 
+
   function openAssetModal(asset){
     currentModalAsset = asset;
     document.getElementById('assetModalIcon').innerHTML = `<img src="images/${asset.id}.jpg" alt="">`;
@@ -1610,21 +1609,21 @@
     drawAssetModalBody(asset);
     document.getElementById('assetModalOverlay').style.display = 'flex';
   }
- 
+
   function closeAssetModal(){
     document.getElementById('assetModalOverlay').style.display = 'none';
     currentModalAsset = null;
   }
- 
+
   document.getElementById('assetModalClose').addEventListener('click', closeAssetModal);
   document.getElementById('assetModalOverlay').addEventListener('click', (e)=>{
     if (e.target.id === 'assetModalOverlay') closeAssetModal();
   });
- 
+
   function randRange(min, max){
     return min + Math.random() * (max - min);
   }
- 
+
   function setupOneTimeUpgrade(container, selector, biz, flagKey, cost, statusText, buyLabel){
     const area = container.querySelector(selector);
     if (biz[flagKey]){
@@ -1644,7 +1643,7 @@
       });
     }
   }
- 
+
   function setupBoostButton(btn, biz, durationMs, cooldownMs, activeLabel){
     const now = Date.now();
     if (biz.boostUntil && now < biz.boostUntil){
@@ -1671,7 +1670,7 @@
       refreshBizModal();
     };
   }
- 
+
   const CATEGORY_MECHANICS = {
     retail: {
       upgradeIcon:'🏗', upgradeName:'Расширение торгового зала',
@@ -1734,10 +1733,10 @@
       eventFastLabel:'Нанять безопасников',
     },
   };
- 
+
   const ITEM_COST_RAMP = [0.03, 0.05, 0.08, 0.12, 0.18, 0.26, 0.36, 0.5, 0.68, 0.9];
   const ITEM_BONUS_RAMP = [2, 3, 4, 5, 6, 8, 10, 12, 15, 18];
- 
+
   const ITEM_NAMES = {
     retail: ['Новая вывеска','Кассовый терминал','Вторая касса','Расширение ассортимента','Система видеонаблюдения','Ремонт торгового зала','Программа лояльности','Автоматизация склада','Франшизная лицензия','Флагманский ремонт'],
     services: ['Новое рабочее место','CRM-система записи','Обучение сотрудников','Расширение зала ожидания','Брендированная форма','Дополнительный специалист','Сертификация качества','Программа лояльности','Второй филиал в здании','Премиум-ремонт интерьера'],
@@ -1750,23 +1749,23 @@
     transport: ['Новая машина в парк','GPS-трекинг','Второй водитель','Логистический софт','Реклама на бортах','Расширение маршрутов','Топливные карты','Страхование парка','Второй гараж','Флагманский автопарк'],
     it: ['Новый сервер','Мониторинг 24/7','Дополнительный разработчик','CI/CD пайплайн','Маркетинг продукта','Масштабирование инфраструктуры','Сертификация безопасности','R&D отдел','Экспансия на новый рынок','Флагманский релиз'],
   };
- 
+
   const ITEM_TEMPLATES = {};
   Object.keys(ITEM_NAMES).forEach(cat=>{
     ITEM_TEMPLATES[cat] = ITEM_NAMES[cat].map((name, i)=>({
       name, costMult: ITEM_COST_RAMP[i], bonusPct: ITEM_BONUS_RAMP[i],
     }));
   });
- 
+
   function itemsFor(biz){
     return ITEM_TEMPLATES[biz.category] || ITEM_TEMPLATES.services;
   }
- 
+
   function itemsBonusPct(biz){
     const list = itemsFor(biz);
     return (biz.items || []).reduce((sum, idx)=> sum + (list[idx]?.bonusPct || 0), 0);
   }
- 
+
   const BUSINESS_MECHANICS = {
     wash: {
       render(biz, container){
@@ -1841,7 +1840,7 @@
       }
     }
   };
- 
+
   function totalSpentOn(biz){
     let spent = 0;
     for (let lvl = 0; lvl < biz.level; lvl++){
@@ -1849,7 +1848,7 @@
     }
     return spent;
   }
- 
+
   function renderBizActions(biz, container){
     const refund = Math.floor(totalSpentOn(biz) * 0.4);
     const wrap = document.createElement('div');
@@ -1860,7 +1859,7 @@
       <button class="mechanic-btn danger" id="sellBizBtn">Продать бизнес за ${fmt(refund)}</button>
     `;
     container.appendChild(wrap);
- 
+
     wrap.querySelector('#pauseBizBtn').addEventListener('click', ()=>{
       biz.paused = !biz.paused;
       if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
@@ -1868,7 +1867,7 @@
       saveProgress();
       refreshBizModal();
     });
- 
+
     wrap.querySelector('#sellBizBtn').addEventListener('click', ()=>{
       if (!confirm(`Продать «${biz.name}»? Вы получите ${fmt(refund)} (40% от вложенного), уровень и апгрейды бизнеса будут сброшены.`)) return;
       capital += refund;
@@ -1881,7 +1880,7 @@
       closeBizModal();
     });
   }
- 
+
   function renderGenericMechanics(biz, container){
     const cm = CATEGORY_MECHANICS[biz.category] || CATEGORY_MECHANICS.services;
     const upgradeCost = Math.round(biz.baseCost * 0.5);
@@ -1907,7 +1906,7 @@
     setupBoostButton(container.querySelector('#genBoostBtn'), biz, 60 * 1000, 5 * 60 * 1000,
       `Запустить: ${cm.boostName} (x2 на 60 сек)`);
   }
- 
+
   function renderItemsSection(biz, container){
     const list = itemsFor(biz);
     const owned = biz.items || [];
@@ -1929,7 +1928,7 @@
     }).join('');
     wrap.innerHTML = `<div class="mechanic-title">🧰 Оборудование</div>${rows}`;
     container.appendChild(wrap);
- 
+
     wrap.querySelectorAll('.item-buy-btn').forEach(btn=>{
       btn.addEventListener('click', ()=>{
         const idx = Number(btn.dataset.idx);
@@ -1945,7 +1944,7 @@
       });
     });
   }
- 
+
   function drawBizModalBody(biz){
     const body = document.getElementById('bizModalBody');
     if (BUSINESS_MECHANICS[biz.id]){
@@ -1956,15 +1955,15 @@
     renderItemsSection(biz, body);
     if (biz.purchased) renderBizActions(biz, body);
   }
- 
+
   let bizModalInterval = null;
   let currentModalBiz = null;
- 
+
   function refreshBizModal(){
     if (!currentModalBiz) return;
     drawBizModalBody(currentModalBiz);
   }
- 
+
   function openBizModal(biz){
     currentModalBiz = biz;
     document.getElementById('bizModalIcon').innerHTML = `<img src="images/${biz.id}.jpg" alt="" onerror="this.outerHTML='${biz.icon}'">`;
@@ -1974,30 +1973,30 @@
     clearInterval(bizModalInterval);
     bizModalInterval = setInterval(refreshBizModal, 1000);
   }
- 
+
   function closeBizModal(){
     document.getElementById('bizModalOverlay').style.display = 'none';
     clearInterval(bizModalInterval);
     bizModalInterval = null;
     currentModalBiz = null;
   }
- 
+
   document.getElementById('bizModalClose').addEventListener('click', closeBizModal);
   document.getElementById('bizModalOverlay').addEventListener('click', (e)=>{
     if (e.target.id === 'bizModalOverlay') closeBizModal();
   });
- 
+
   let eventOverlayOpen = false;
- 
+
   function scheduleEvent(biz, field, minMs, maxMs){
     biz[field] = Date.now() + randRange(minMs, maxMs);
   }
- 
+
   function hideOverlay(id){
     eventOverlayOpen = false;
     document.getElementById(id).style.display = 'none';
   }
- 
+
   function showEcoOverlay(biz){
     eventOverlayOpen = true;
     document.getElementById('ecoOverlay').style.display = 'flex';
@@ -2005,7 +2004,7 @@
     const bribeBtn = document.getElementById('ecoBribe');
     payBtn.disabled = capital < 300;
     bribeBtn.disabled = capital < 150;
- 
+
     payBtn.onclick = ()=>{
       if (capital < 300) return;
       capital -= 300;
@@ -2027,13 +2026,13 @@
       saveProgress();
     };
   }
- 
+
   function showKioskBreakOverlay(biz){
     eventOverlayOpen = true;
     document.getElementById('kioskBreakOverlay').style.display = 'flex';
     const fixBtn = document.getElementById('kioskFixBtn');
     fixBtn.disabled = capital < 80;
- 
+
     fixBtn.onclick = ()=>{
       if (capital < 80) return;
       capital -= 80;
@@ -2051,13 +2050,13 @@
       saveProgress();
     };
   }
- 
+
   function showCafeReviewOverlay(biz){
     eventOverlayOpen = true;
     document.getElementById('cafeReviewOverlay').style.display = 'flex';
     const fixBtn = document.getElementById('cafeFixBtn');
     fixBtn.disabled = capital < 200;
- 
+
     fixBtn.onclick = ()=>{
       if (capital < 200) return;
       capital -= 200;
@@ -2075,13 +2074,13 @@
       saveProgress();
     };
   }
- 
+
   const RANDOM_EVENTS = [
     { bizId:'wash', field:'ecoCheckAt', minGap:120000, maxGap:180000, show:showEcoOverlay },
     { bizId:'kiosk', field:'breakCheckAt', minGap:120000, maxGap:180000, show:showKioskBreakOverlay },
     { bizId:'cafe', field:'reviewCheckAt', minGap:180000, maxGap:240000, show:showCafeReviewOverlay },
   ];
- 
+
   function showGenericEventOverlay(biz){
     const cm = CATEGORY_MECHANICS[biz.category] || CATEGORY_MECHANICS.services;
     const fastCost = Math.round(biz.baseCost * 0.02);
@@ -2095,7 +2094,7 @@
     fastBtn.disabled = capital < fastCost;
     slowBtn.textContent = 'Подождать (простой 3 минуты)';
     document.getElementById('genericEventOverlay').style.display = 'flex';
- 
+
     fastBtn.onclick = ()=>{
       if (capital < fastCost) return;
       capital -= fastCost;
@@ -2113,12 +2112,12 @@
       saveProgress();
     };
   }
- 
+
   function scheduleAssetEvent(asset, cfg){
     const mult = asset[cfg.upgradeFlag] ? 2 : 1;
     asset[cfg.eventCheckField] = Date.now() + randRange(cfg.eventGapMin * mult, cfg.eventGapMax * mult);
   }
- 
+
   function showAssetEventOverlay(asset){
     const cfg = assetModalContent(asset);
     eventOverlayOpen = true;
@@ -2131,7 +2130,7 @@
     fastBtn.disabled = capital < cfg.eventFastCost;
     slowBtn.textContent = cfg.eventSlowLabel;
     document.getElementById('genericEventOverlay').style.display = 'flex';
- 
+
     fastBtn.onclick = ()=>{
       if (capital < cfg.eventFastCost) return;
       capital -= cfg.eventFastCost;
@@ -2149,7 +2148,7 @@
       saveProgress();
     };
   }
- 
+
   function checkRandomEvents(){
     if (eventOverlayOpen || document.getElementById('bizModalOverlay').style.display === 'flex') return;
     for (const cfg of RANDOM_EVENTS){
@@ -2189,7 +2188,7 @@
       }
     }
   }
- 
+
   function renderCapital(pulse=false){
     const el = document.getElementById('capitalValue');
     el.textContent = fmt(capital);
@@ -2199,34 +2198,34 @@
       setTimeout(()=> el.classList.remove('pulse'), 380);
     }
   }
- 
+
   function tgUser(){
     return tg?.initDataUnsafe?.user || null;
   }
- 
+
   function renderProfile(){
     const user = tgUser();
     const name = user ? [user.first_name, user.last_name].filter(Boolean).join(' ') || user.username || 'Игрок' : 'Игрок';
- 
+
     document.getElementById('profileName').textContent = companyName || name;
     document.getElementById('profileAvatar').textContent = emblem || '●';
     document.getElementById('profileRank').textContent = rankFor(totalIncome());
- 
+
     document.getElementById('statCapital').textContent = fmt(capital);
     document.getElementById('statIncome').textContent = fmt(totalIncome() * GAME_DAY_SECONDS);
     document.getElementById('statEarned').textContent = fmt(totalEarned);
     document.getElementById('statBizCount').textContent = businesses.filter(b=>b.purchased).length;
- 
+
     const refLink = document.getElementById('refLink');
     const refCount = document.getElementById('refCount');
     if (refLink) refLink.textContent = referralLink();
     if (refCount) refCount.textContent = `Приглашено друзей: ${referralCount}`;
   }
- 
+
   function referralLink(){
     return `https://t.me/ImperiaBusinessBot/play?startapp=REF_${userId}`;
   }
- 
+
   async function copyReferral(){
     const btn = document.getElementById('copyRefBtn');
     try{
@@ -2239,7 +2238,7 @@
       }
     } catch(e){}
   }
- 
+
   document.getElementById('shareBtn').addEventListener('click', ()=>{
     const text = `Я построил бизнес-империю на ${fmt(capital)} в игре Империя! 🏆`;
     const url = referralLink();
@@ -2251,20 +2250,20 @@
       navigator.clipboard?.writeText(`${text} ${url}`);
     }
   });
- 
+
   async function checkReferral(){
     if (referredBy) return;
     const startParam = tg?.initDataUnsafe?.start_param;
     if (!startParam || !startParam.startsWith('REF_')) return;
     const referrerId = startParam.slice(4);
     if (!referrerId || referrerId === String(userId)) return;
- 
+
     referredBy = referrerId;
     capital += 300;
     totalEarned += 300;
     renderAll();
     saveProgress();
- 
+
     try{
       const refRef = window.__docRef(window.__db, 'players', referrerId);
       const refSnap = await window.__getDoc(refRef);
@@ -2277,7 +2276,7 @@
       }
     } catch(e){}
   }
- 
+
   async function renderRating(){
     const list = document.getElementById('ratingList');
     list.innerHTML = `<div class="rating-note">Загрузка рейтинга...</div>`;
@@ -2297,7 +2296,7 @@
           isMe: docSnap.id === String(userId),
         });
       });
- 
+
       list.innerHTML = '';
       if (rows.length === 0){
         list.innerHTML = `<div class="rating-note">Пока никто не сыграл — стань первым в рейтинге!</div>`;
@@ -2320,9 +2319,9 @@
       list.innerHTML = `<div class="rating-note">Не удалось загрузить рейтинг.</div>`;
     }
   }
- 
+
   const NAV_ORDER = ['business', 'assets', 'work', 'profile'];
- 
+
   function switchView(name){
     document.querySelectorAll('#app .view').forEach(v=>{
       v.classList.toggle('active', v.id === 'view-' + name);
@@ -2336,15 +2335,15 @@
     if (name === 'work') renderJob();
     if (name === 'profile'){ renderProfile(); renderRating(); }
   }
- 
+
   document.querySelectorAll('.nav-item').forEach(btn=>{
     btn.addEventListener('click', ()=> switchView(btn.dataset.view));
   });
- 
+
   function inheritanceDone(){
     return assets.every(a => a.status === 'sold' || a.status === 'kept');
   }
- 
+
   function renderInheritance(){
     const list = document.getElementById('inheritanceList');
     list.innerHTML = '';
@@ -2370,7 +2369,7 @@
       `;
       list.appendChild(card);
     });
- 
+
     list.querySelectorAll('.choice-btn').forEach(btn=>{
       btn.addEventListener('click', ()=>{
         const asset = assets.find(a=>a.id === btn.dataset.id);
@@ -2380,10 +2379,10 @@
         document.getElementById('inheritanceContinue').disabled = !inheritanceDone();
       });
     });
- 
+
     document.getElementById('inheritanceContinue').disabled = !inheritanceDone();
   }
- 
+
   document.getElementById('inheritanceContinue').addEventListener('click', ()=>{
     assets.forEach(asset=>{
       if (asset.status === 'sold') capital += asset.sellValue;
@@ -2393,7 +2392,7 @@
     checkReferral();
     checkDailyReward();
   });
- 
+
   function enterApp(){
     document.getElementById('bootScreen').style.display = 'none';
     document.getElementById('view-inheritance').classList.remove('active');
@@ -2404,7 +2403,7 @@
     if (tutorialActive) startTutorial();
     else if (Math.random() < 0.3) showMentor();
   }
- 
+
   function showInheritance(){
     document.getElementById('bootScreen').style.display = 'none';
     document.getElementById('app').style.display = 'none';
@@ -2412,11 +2411,11 @@
     document.getElementById('view-inheritance').classList.add('active');
     renderInheritance();
   }
- 
+
   function checkOfflineIncome(lastSeen){
     if (!lastSeen) return false;
     const secondsAway = Math.min((Date.now() - lastSeen) / 1000, 6 * 3600);
- 
+
     let ratePerSec = 0;
     businesses.forEach(b=>{
       const mult = (b.id === 'cafe' && b.hasChef) ? 1 : 0.3;
@@ -2426,7 +2425,7 @@
     if (apartment.status === 'kept') ratePerSec += assetIncome(apartment) * 0.3;
     const car = assets.find(a=>a.id === 'car');
     if (car.status === 'kept') ratePerSec += assetIncome(car) * 0.3;
- 
+
     const earned = Math.floor(ratePerSec * secondsAway);
     if (earned > 10){
       capital += earned;
@@ -2440,20 +2439,20 @@
     }
     return false;
   }
- 
+
   document.getElementById('offlineClaim').addEventListener('click', ()=>{
     document.getElementById('offlineOverlay').style.display = 'none';
     saveProgress();
     checkDailyReward();
   });
- 
+
   function formatDuration(ms){
     const s = Math.round(ms / 1000);
     if (s < 60) return `${s} сек`;
     if (s % 60 === 0) return `${s / 60} мин`;
     return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')} мин`;
   }
- 
+
   const JOB_RISKS = {
     cleaner: { bonusChance:0.15, bonusMult:1.5, bonusLabel:'🍀 Нашли забытые чаевые!' },
     courier: { bonusChance:0.2, bonusMult:2, bonusLabel:'💰 Щедрые чаевые x2!' },
@@ -2467,26 +2466,26 @@
     consultant: { penaltyChance:0.12, penaltyMult:0.3, penaltyLabel:'📉 Клиент передумал в последний момент' },
     lawyer: { penaltyChance:0.15, penaltyMult:0.4, penaltyLabel:'⚖ Дело проиграно', bonusChance:0.15, bonusMult:2, bonusLabel:'⚖ Дело выиграно — бонус!' },
   };
- 
+
   function riskHintText(risk){
     const parts = [];
     if (risk.bonusChance) parts.push(`${Math.round(risk.bonusChance * 100)}% шанс x${risk.bonusMult}`);
     if (risk.penaltyChance) parts.push(`${Math.round(risk.penaltyChance * 100)}% шанс потерь`);
     return parts.join(' · ');
   }
- 
+
   let jobOutcome = null;
- 
+
   function renderJob(){
     const list = document.getElementById('jobList');
     if (!list) return;
     list.innerHTML = '';
     const now = Date.now();
- 
+
     jobs.forEach(job=>{
       const unlocked = capital >= job.unlockAt;
       const card = document.createElement('div');
- 
+
       if (!unlocked){
         card.className = 'asset-card biz-card-locked';
         card.innerHTML = `
@@ -2530,21 +2529,21 @@
       }
       list.appendChild(card);
     });
- 
+
     list.querySelectorAll('.job-go-btn').forEach(btn=>{
       btn.addEventListener('click', ()=> goToWork(btn.dataset.id));
     });
   }
- 
+
   function goToWork(jobId){
     const job = jobs.find(j=>j.id === jobId);
     if (!job || capital < job.unlockAt) return;
     const now = Date.now();
     const readyAt = jobReadyAt[job.id] || 0;
     if (readyAt && now < readyAt) return;
- 
+
     if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
- 
+
     const tap = jobTaps[jobId];
     const count = (tap && now < tap.expiresAt) ? tap.count + 1 : 1;
     if (count < TAPS_REQUIRED){
@@ -2552,7 +2551,7 @@
       renderJob();
       return;
     }
- 
+
     delete jobTaps[jobId];
     let pay = Math.round(randRange(job.minPay, job.maxPay));
     const risk = JOB_RISKS[jobId];
@@ -2571,40 +2570,40 @@
     renderAll();
     saveProgress();
   }
- 
+
   const DAILY_REWARDS = [50, 75, 120, 180, 260, 380, 600];
- 
+
   function todayStr(){
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   }
- 
+
   function daysBetween(a, b){
     return Math.round((new Date(b + 'T00:00:00') - new Date(a + 'T00:00:00')) / 86400000);
   }
- 
+
   function rewardForStreak(streak){
     const cycle = Math.floor((streak - 1) / 7);
     const dayInCycle = (streak - 1) % 7;
     return Math.round(DAILY_REWARDS[dayInCycle] * Math.pow(1.5, cycle));
   }
- 
+
   function checkDailyReward(){
     const today = todayStr();
     if (lastLoginDate === today) return;
- 
+
     loginStreak = (lastLoginDate && daysBetween(lastLoginDate, today) === 1) ? loginStreak + 1 : 1;
     lastLoginDate = today;
- 
+
     const reward = rewardForStreak(loginStreak);
     const dayInCycle = ((loginStreak - 1) % 7) + 1;
     const cycle = Math.floor((loginStreak - 1) / 7) + 1;
- 
+
     document.getElementById('dailyRewardDay').textContent = cycle > 1 ? `День ${dayInCycle} (круг ${cycle})` : `День ${dayInCycle}`;
     document.getElementById('dailyRewardStreak').textContent = `Серия входов: ${loginStreak}`;
     document.getElementById('dailyRewardAmount').textContent = `+${fmt(reward)}`;
     document.getElementById('dailyRewardOverlay').style.display = 'flex';
- 
+
     document.getElementById('dailyRewardClaim').onclick = ()=>{
       capital += reward;
       totalEarned += reward;
@@ -2613,7 +2612,7 @@
       saveProgress();
     };
   }
- 
+
   function renderClock(){
     const el = document.getElementById('headerClock');
     if (!el) return;
@@ -2624,7 +2623,7 @@
   }
   renderClock();
   setInterval(renderClock, 1000);
- 
+
   document.getElementById('resetBtn').addEventListener('click', ()=>{
     if (!confirm('Точно сбросить весь прогресс?')) return;
     capital = 15000;
@@ -2641,7 +2640,7 @@
     saveProgress();
     showInheritance();
   });
- 
+
   const soundBtn = document.getElementById('soundBtn');
   if (soundBtn){
     soundBtn.addEventListener('click', ()=>{
@@ -2651,19 +2650,19 @@
       if (soundEnabled) sfxClick();
     });
   }
- 
+
   const tutorialNext = document.getElementById('tutorialNext');
   if (tutorialNext) tutorialNext.addEventListener('click', nextTutorialStep);
- 
+
   const customizeBtn = document.getElementById('customizeBtn');
   if (customizeBtn) customizeBtn.addEventListener('click', openCustomize);
- 
+
   const customizeClose = document.getElementById('customizeClose');
   if (customizeClose) customizeClose.addEventListener('click', closeCustomize);
- 
+
   const saveCustomizeBtn = document.getElementById('saveCustomize');
   if (saveCustomizeBtn) saveCustomizeBtn.addEventListener('click', saveCustomize);
- 
+
   const achievements = [
     { id:'a_first_biz', icon:'🏪', name:'Первый бизнес', desc:'Купите любой бизнес', condition:()=>businesses.some(b=>b.purchased), reward:500, unlocked:false, claimed:false },
     { id:'a_three_biz', icon:'🏘', name:'Малый бизнес', desc:'Откройте 3 бизнеса', condition:()=>businesses.filter(b=>b.purchased).length>=3, reward:2000, unlocked:false, claimed:false },
@@ -2687,7 +2686,7 @@
     { id:'a_custom', icon:'🎨', name:'Индивидуальность', desc:'Настройте профиль', condition:()=>companyName!=='Империя'||emblem!=='👑', reward:100, unlocked:false, claimed:false },
   ];
   let stockWins = 0;
- 
+
   function checkAchievements(){
     let changed = false;
     achievements.forEach(a=>{
@@ -2704,7 +2703,7 @@
       saveProgress();
     }
   }
- 
+
   function claimAchievement(aid){
     const a = achievements.find(x=>x.id===aid);
     if (!a || !a.unlocked || a.claimed) return;
@@ -2717,7 +2716,7 @@
     renderCapital(true);
     saveProgress();
   }
- 
+
   function renderAchievements(){
     const grid = document.getElementById('achieveGrid');
     const count = document.getElementById('achieveCount');
@@ -2725,7 +2724,7 @@
     grid.innerHTML = '';
     const unlocked = achievements.filter(a=>a.unlocked).length;
     if (count) count.textContent = `${unlocked}/${achievements.length}`;
- 
+
     achievements.forEach(a=>{
       const cell = document.createElement('div');
       cell.className = 'achieve-cell' + (a.unlocked ? ' unlocked' : '');
@@ -2741,7 +2740,7 @@
       grid.appendChild(cell);
     });
   }
- 
+
   function showFloatNum(targetEl, text, color){
     if (!targetEl) return;
     const rect = targetEl.getBoundingClientRect();
@@ -2754,21 +2753,21 @@
     document.body.appendChild(el);
     setTimeout(()=>el.remove(), 1200);
   }
- 
+
   let stockPrice = 100;
   let stockBet = 0;
   let stockCooldown = 0;
   let stockHistory = [];
- 
+
   function renderStock(){
     const priceEl = document.getElementById('stockPrice');
     const timerEl = document.getElementById('stockTimer');
     const upBtn = document.getElementById('stockUp');
     const downBtn = document.getElementById('stockDown');
     if (!priceEl) return;
- 
+
     priceEl.textContent = '₽' + stockPrice.toFixed(2);
- 
+
     if (stockCooldown > 0){
       timerEl.textContent = 'Кулдаун: ' + Math.ceil(stockCooldown/60) + 'м';
       upBtn.disabled = true;
@@ -2783,21 +2782,21 @@
       downBtn.style.opacity = capital < 1000 ? '0.5' : '1';
     }
   }
- 
+
   function playStock(direction){
     if (stockCooldown > 0 || capital < 1000) return;
     const bet = Math.min(Math.floor(capital * 0.1), 100000);
     stockBet = bet;
     capital -= bet;
- 
+
     const oldPrice = stockPrice;
     const change = (Math.random() - 0.5) * 20;
     stockPrice = Math.max(50, stockPrice + change);
- 
+
     const won = (direction === 'up' && change > 0) || (direction === 'down' && change < 0);
     const multiplier = won ? 1.8 : 0;
     const reward = Math.floor(bet * multiplier);
- 
+
     setTimeout(()=>{
       if (won){
         capital += reward;
@@ -2815,11 +2814,11 @@
       saveProgress();
       checkAchievements();
     }, 800);
- 
+
     renderCapital(true);
     renderStock();
   }
- 
+
   function showStockResult(won, amount){
     const overlay = document.getElementById('stockResultOverlay');
     const icon = document.getElementById('stockResultIcon');
@@ -2827,7 +2826,7 @@
     const desc = document.getElementById('stockResultDesc');
     const amt = document.getElementById('stockResultAmount');
     if (!overlay) return;
- 
+
     icon.textContent = won ? '📈' : '📉';
     title.textContent = won ? 'Прогноз сбылся!' : 'Прогноз не сбылся';
     desc.textContent = won ? 'Вы успешно предсказали движение рынка' : 'Рынок пошёл против вас';
@@ -2836,7 +2835,7 @@
     overlay.style.display = 'flex';
     overlay.classList.add('show');
   }
- 
+
   function setTheme(theme){
     document.documentElement.setAttribute('data-theme', theme === 'default' ? '' : theme);
     document.querySelectorAll('.theme-option').forEach(el=>{
@@ -2844,7 +2843,7 @@
     });
     saveProgress();
   }
- 
+
   function updateQuestBadge(){
     const btn = document.getElementById('questBadgeBtn');
     const count = document.getElementById('questBadgeCount');
@@ -2854,11 +2853,11 @@
     count.style.display = ready > 0 ? 'flex' : 'none';
     btn.classList.toggle('has-tip', ready > 0);
   }
- 
+
   function renderCityMap(){
     const map = document.getElementById('cityMap');
     if (!map) return;
- 
+
     if (map.children.length === businesses.length){
       businesses.forEach((biz, i)=>{
         const slot = map.children[i];
@@ -2874,14 +2873,14 @@
       });
       return;
     }
- 
+
     map.innerHTML = '';
     businesses.forEach((biz, idx)=>{
       const cost = costFor(biz);
       const affordable = capital >= cost;
       const progressPct = Math.max(0, Math.min(100, (capital / cost) * 100));
       const slot = document.createElement('div');
- 
+
       if (!biz.purchased){
         slot.className = 'building-slot locked' + (affordable ? ' affordable' : '');
         slot.innerHTML = `
@@ -2900,12 +2899,12 @@
           <div class="building-progress"><div class="building-progress-fill" style="width:${progressPct}%"></div></div>
         `;
       }
- 
+
       if (biz.id === flashBizId){
         slot.classList.add('flash');
         setTimeout(()=>slot.classList.remove('flash'), 500);
       }
- 
+
       slot.addEventListener('click', (e)=>{
         if (!biz.purchased){
           const c = costFor(biz);
@@ -2929,15 +2928,15 @@
           openBizModal(biz);
         }
       });
- 
+
       map.appendChild(slot);
     });
   }
- 
+
   function costFor(biz){
     return Math.round(biz.baseCost * Math.pow(1.2, biz.level));
   }
- 
+
   function incomePerSec(biz){
     if (biz.paused) return 0;
     let income = biz.baseIncome * biz.level;
@@ -2960,7 +2959,7 @@
     income *= (1 + itemsBonusPct(biz) / 100);
     return income;
   }
- 
+
   function totalIncome(){
     let sum = businesses.reduce((s,b)=> s + incomePerSec(b), 0);
     const apartment = assets.find(a=>a.id === 'apartment');
@@ -2969,9 +2968,9 @@
     if (car.status === 'kept') sum += assetIncome(car);
     return sum;
   }
- 
+
   const FMT_UNITS = [[1e9, 'B'], [1e6, 'M'], [1e3, 'K']];
- 
+
   function fmt(n){
     const sign = n < 0 ? '-' : '';
     const abs = Math.floor(Math.abs(n));
@@ -2984,20 +2983,20 @@
       }
     }
   }
- 
+
   function rankFor(inc){
     if (inc >= 500) return 'Магнат';
     if (inc >= 100) return 'Инвестор';
     if (inc >= 20) return 'Предприниматель';
     return 'Новичок';
   }
- 
+
   function renderRank(){
     document.getElementById('rankLabel').textContent = rankFor(totalIncome());
   }
- 
+
   let flashBizId = null;
- 
+
   async function loadProgress(){
     try{
       const ref = window.__docRef(window.__db, 'players', String(userId));
@@ -3049,12 +3048,12 @@
     } catch(e){}
     return null;
   }
- 
+
   function currentPlayerName(){
     const user = tgUser();
     return user?.first_name || ('Игрок' + String(userId).slice(-4));
   }
- 
+
   async function saveProgress(){
     try{
       const ref = window.__docRef(window.__db, 'players', String(userId));
@@ -3091,7 +3090,7 @@
       });
     } catch(e){}
   }
- 
+
   function renderAll(){
     renderCapital();
     renderAssets();
@@ -3105,11 +3104,11 @@
     const activeView = document.querySelector('#app .view.active')?.id?.replace('view-', '');
     if (activeView === 'profile'){ renderProfile(); renderRating(); }
   }
- 
+
   setInterval(saveProgress, 10000);
   document.addEventListener('visibilitychange', ()=>{ if (document.hidden) saveProgress(); });
   window.addEventListener('beforeunload', saveProgress);
- 
+
   setInterval(()=>{
     if (!inheritanceDone()) return;
     const gain = totalIncome();
@@ -3136,11 +3135,11 @@
     checkQuests();
     checkAchievements();
   }, 1000);
- 
+
   document.querySelectorAll('.theme-option').forEach(btn=>{
     btn.addEventListener('click', ()=>setTheme(btn.dataset.theme));
   });
- 
+
   const questBadgeBtn = document.getElementById('questBadgeBtn');
   if (questBadgeBtn){
     questBadgeBtn.addEventListener('click', ()=>{
@@ -3149,7 +3148,7 @@
       sfxClick();
     });
   }
- 
+
   const mentorBtnEl = document.getElementById('mentorBtn');
   if (mentorBtnEl){
     mentorBtnEl.addEventListener('click', ()=>{
@@ -3161,12 +3160,12 @@
       sfxClick();
     });
   }
- 
+
   const stockUp = document.getElementById('stockUp');
   const stockDown = document.getElementById('stockDown');
   if (stockUp) stockUp.addEventListener('click', ()=>{ sfxClick(); playStock('up'); });
   if (stockDown) stockDown.addEventListener('click', ()=>{ sfxClick(); playStock('down'); });
- 
+
   const stockResultClose = document.getElementById('stockResultClose');
   if (stockResultClose){
     stockResultClose.addEventListener('click', ()=>{
@@ -3174,11 +3173,11 @@
       if (overlay){ overlay.style.display = 'none'; overlay.classList.remove('show'); }
     });
   }
- 
+
   setInterval(()=>{
     if (stockCooldown > 0){ stockCooldown--; renderStock(); }
   }, 1000);
- 
+
   let lastFloatIncome = 0;
   setInterval(()=>{
     const inc = totalIncome();
@@ -3190,10 +3189,10 @@
       }
     }
   }, 1000);
- 
+
   const copyRefBtn = document.getElementById('copyRefBtn');
   if (copyRefBtn) copyRefBtn.addEventListener('click', copyReferral);
- 
+
   loadProgress().then(lastSeen=>{
     if (inheritanceDone()){
       enterApp();
@@ -3205,7 +3204,6 @@
     }
   });
 </script>
- 
+
 </body>
 </html>
- 
