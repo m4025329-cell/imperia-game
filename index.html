@@ -819,7 +819,124 @@
     50%{ box-shadow: 0 0 12px 2px rgba(201,168,76,0.2); }
   }
   .pulse-glow{ animation: pulseGlow 2s ease-in-out infinite; }
+
+  .brand { font-family: var(--font-display); font-size: 20px; color: var(--gold-light); letter-spacing: 0.5px; }
+
+  .inheritance-intro { text-align: center; padding: 60px 20px 24px; }
+  .inheritance-lead { font-size: 13px; color: var(--text-dim); line-height: 1.6; max-width: 320px; margin: 0 auto; }
+  .inheritance-list { padding: 0 14px; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; max-height: calc(100vh - 220px); }
+  .inheritance-continue { 
+    margin: 20px 14px 40px; 
+    width: calc(100% - 28px);
+    background: linear-gradient(145deg, var(--gold-light), var(--gold));
+    color: #1a1300; border: none; border-radius: 12px;
+    padding: 14px; font-size: 14px; font-weight: 700;
+    cursor: pointer; transition: opacity 0.2s;
+    font-family: var(--font-body);
+  }
+  .inheritance-continue:disabled { opacity: 0.35; cursor: not-allowed; }
+
+  .choice-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 14px; }
+  .choice-head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+  .choice-icon { width: 48px; height: 48px; border-radius: 10px; overflow: hidden; background: var(--surface-2); border: 1px solid var(--border); flex-shrink: 0; }
+  .choice-icon img { width: 100%; height: 100%; object-fit: cover; }
+  .choice-name { font-size: 14px; font-weight: 600; color: var(--text); }
+  .choice-value { font-size: 11px; color: var(--gold); font-family: var(--font-mono); margin-top: 2px; }
+  .choice-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .choice-btn { 
+    background: var(--surface-2); border: 1px solid var(--border); color: var(--text);
+    border-radius: 10px; padding: 10px; font-size: 12px; cursor: pointer;
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    transition: all 0.15s ease; font-family: inherit;
+  }
+  .choice-btn:active { transform: scale(0.97); }
+  .choice-btn.selected { border-color: var(--gold); background: linear-gradient(145deg, rgba(201,168,76,0.12), rgba(201,168,76,0.02)); color: var(--gold-light); }
+  .choice-btn small { font-size: 10px; color: var(--text-dim); font-weight: 400; }
+  .choice-btn.selected small { color: var(--gold); }
+
+  .header-clock { font-size: 10px; color: var(--text-dim); font-family: var(--font-mono); margin-top: 2px; }
+  .level-pill { background: linear-gradient(145deg, var(--gold-dim), rgba(201,168,76,0.08)); border: 1px solid var(--gold-dim); color: var(--gold-light); border-radius: 20px; padding: 4px 12px; font-size: 10px; font-weight: 600; font-family: var(--font-mono); letter-spacing: 0.5px; }
+
+  .sound-btn { position: fixed; top: 70px; right: 56px; width: 36px; height: 36px; border-radius: 50%; background: var(--surface); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 16px; cursor: pointer; z-index: 50; box-shadow: 0 2px 12px rgba(0,0,0,0.3); transition: transform 0.15s ease; }
+  .sound-btn:active { transform: scale(0.92); }
+  .sound-btn.active { border-color: var(--gold-dim); }
+
+  .mentor-bubble { display: flex; align-items: flex-start; gap: 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; animation: slideInUp 0.3s ease; }
+  .mentor-bubble .mentor-avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--surface-2); display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; border: 1px solid var(--gold-dim); }
+  .mentor-name { font-size: 11px; font-weight: 600; color: var(--gold-light); margin-bottom: 2px; }
+  .mentor-text { font-size: 11px; color: var(--text-dim); line-height: 1.4; }
+
+  .quest-panel { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; animation: slideInUp 0.3s ease; }
+  .quest-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .quest-title { font-size: 12px; font-weight: 600; color: var(--gold-light); }
+  .quest-count { font-size: 10px; color: var(--text-dim); font-family: var(--font-mono); }
+  .quest-item { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-top: 1px solid var(--border); }
+  .quest-item:first-child { border-top: none; padding-top: 0; }
+  .quest-item:last-child { padding-bottom: 0; }
+  .quest-icon { font-size: 18px; flex-shrink: 0; width: 28px; text-align: center; }
+  .quest-info { flex: 1; min-width: 0; }
+  .quest-name { font-size: 11px; font-weight: 500; margin-bottom: 4px; color: var(--text); }
+  .quest-track { height: 3px; background: var(--surface-2); border-radius: 2px; overflow: hidden; }
+  .quest-fill { height: 100%; background: linear-gradient(90deg, var(--gold-dim), var(--gold-light)); border-radius: 2px; transition: width 0.3s ease; }
+  .quest-reward-btn { background: linear-gradient(145deg, var(--gold-light), var(--gold)); color: #1a1300; border: none; border-radius: 8px; padding: 5px 10px; font-size: 10px; font-weight: 700; cursor: pointer; flex-shrink: 0; transition: transform 0.12s ease; }
+  .quest-reward-btn:active { transform: scale(0.95); }
+
+  .biz-list { padding: 0 14px; display: flex; flex-direction: column; }
+  .biz-card-paused { opacity: 0.55; filter: grayscale(0.6); }
+  .biz-card-locked { opacity: 0.6; }
+
+  .mechanic-status { font-size: 11px; color: var(--green); font-weight: 600; padding: 6px 0; }
+  .mechanic-btn.danger { background: rgba(196,92,92,0.12); color: var(--red); border: 1px solid rgba(196,92,92,0.25); margin-top: 6px; }
+  .mechanic-btn.affordable { box-shadow: 0 0 0 1px var(--gold-dim) inset; }
+  .item-buy-btn.affordable { box-shadow: 0 0 0 1px var(--gold-dim); }
+
+  .job-risk-hint { font-size: 9px; color: var(--gold); margin-top: 3px; font-family: var(--font-mono); }
+  .job-outcome { font-size: 10px; color: var(--green); margin-top: 4px; font-weight: 600; animation: slideInUp 0.3s ease; }
+
+  .rating-note { font-size: 12px; color: var(--text-dim); text-align: center; padding: 20px; font-style: italic; }
+  .rating-row { display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 6px; }
+  .rating-row.me { border-color: var(--gold-dim); background: linear-gradient(90deg, var(--surface), rgba(201,168,76,0.05)); }
+  .rating-place { width: 24px; text-align: center; font-family: var(--font-mono); font-size: 12px; font-weight: 600; color: var(--gold); }
+  .rating-info { flex: 1; min-width: 0; }
+  .rating-name { font-size: 12px; font-weight: 500; color: var(--text); }
+
+  #tutorialOverlay { position: fixed; inset: 0; background: rgba(2,3,7,0.85); backdrop-filter: blur(6px); z-index: 200; display: none; align-items: center; justify-content: center; padding: 16px; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
+  #tutorialOverlay.show { opacity: 1; pointer-events: auto; }
+  .tutorial-step { font-size: 10px; color: var(--text-dim); margin-bottom: 6px; font-family: var(--font-mono); letter-spacing: 1px; }
+  .tutorial-title { font-family: var(--font-display); font-size: 20px; color: var(--gold-light); margin-bottom: 10px; line-height: 1.2; }
+  .tutorial-text { font-size: 13px; color: var(--text); line-height: 1.6; margin-bottom: 20px; }
+
+  #customizeOverlay { position: fixed; inset: 0; background: rgba(2,3,7,0.85); backdrop-filter: blur(6px); z-index: 200; display: none; align-items: center; justify-content: center; padding: 16px; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
+  #customizeOverlay.show { opacity: 1; pointer-events: auto; }
+  .emblem-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; margin: 12px 0; max-height: 220px; overflow-y: auto; padding-right: 4px; }
+  .emblem-option { aspect-ratio: 1; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 22px; cursor: pointer; transition: all 0.15s ease; }
+  .emblem-option:active { transform: scale(0.92); }
+  .emblem-option.selected { border-color: var(--gold); background: rgba(201,168,76,0.12); box-shadow: 0 0 12px rgba(201,168,76,0.15); }
+  .customize-input { width: 100%; background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; color: var(--text); font-family: inherit; font-size: 14px; margin-bottom: 14px; }
+  .customize-input:focus { outline: none; border-color: var(--gold-dim); }
+  .customize-label { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; display: block; }
+
+  #capitalValue.pulse { animation: bootPulse 0.4s ease; }
+
+  #resetBtn { 
+    margin: 0 14px 12px;
+    width: calc(100% - 28px);
+    background: rgba(196,92,92,0.08);
+    color: var(--red);
+    border: 1px solid rgba(196,92,92,0.2);
+    border-radius: 10px;
+    padding: 10px;
+    font-size: 12px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.15s ease;
+  }
+  #resetBtn:active { background: rgba(196,92,92,0.15); transform: scale(0.98); }
+
+  #shareBtn { width: 100%; margin-bottom: 10px; }
+
 </style>
+<base target="_blank">
 <base target="_blank">
 </head>
 <body>
@@ -1045,6 +1162,8 @@
         </div>
       </div>
 
+      <button class="mechanic-btn secondary share-btn" id="shareBtn" style="margin:0 14px 10px;">📤 Поделиться</button>
+      <button id="resetBtn">🗑 Сбросить прогресс</button>
       <div class="section-title">🎨 Тема оформления</div>
       <div class="theme-switcher" style="margin:0 14px 12px;">
         <div class="theme-option active" data-theme="default">🌃 Ночь</div>
@@ -3204,6 +3323,28 @@
     }
   });
 </script>
+
+
+  <div class="overlay" id="tutorialOverlay">
+    <div class="overlay-card">
+      <div class="tutorial-step" id="tutorialStep">Шаг 1 / 5</div>
+      <div class="tutorial-title" id="tutorialTitle">Добро пожаловать в Империю</div>
+      <div class="tutorial-text" id="tutorialText">Вы унаследовали квартиру и машину. Продайте их ради стартового капитала — или оставьте себе и получайте с них выгоду.</div>
+      <button class="overlay-btn" id="tutorialNext">Далее</button>
+    </div>
+  </div>
+
+  <div class="overlay" id="customizeOverlay">
+    <div class="overlay-card biz-modal-card">
+      <button class="modal-close-btn" id="customizeClose">✕</button>
+      <div class="overlay-title" style="text-align:left; margin-bottom:12px;">⚙ Настройка профиля</div>
+      <label class="customize-label">Название компании</label>
+      <input type="text" class="customize-input" id="companyNameInput" placeholder="Империя" maxlength="20">
+      <label class="customize-label">Эмблема</label>
+      <div class="emblem-grid" id="emblemGrid"></div>
+      <button class="overlay-btn" id="saveCustomize">Сохранить</button>
+    </div>
+  </div>
 
 </body>
 </html>
