@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -9,7 +8,7 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import { getFirestore, doc, getDoc, setDoc, collection, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
- 
+
   const firebaseConfig = {
     apiKey: "AIzaSyB828C0bapGUHV2HHIWGBOpVA4PdplpJ2Y",
     authDomain: "imperia-game.firebaseapp.com",
@@ -18,7 +17,7 @@
     messagingSenderId: "204004168426",
     appId: "1:204004168426:web:9851446701008e23297d93"
   };
- 
+
   const app = initializeApp(firebaseConfig);
   window.__db = getFirestore(app);
   window.__docRef = doc;
@@ -32,7 +31,7 @@
 </script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap');
- 
+
   :root{
     --bg: #05070d;
     --surface: #0e1424;
@@ -45,9 +44,9 @@
     --text-dim: #7c8499;
     --green: #4a9d6f;
   }
- 
+
   *{ box-sizing: border-box; margin:0; padding:0; }
- 
+
   body{
     background:
       radial-gradient(circle at 50% 0%, #101a30 0%, var(--bg) 60%),
@@ -59,11 +58,11 @@
     min-height: 100vh;
     padding-bottom: 90px;
   }
- 
+
   .brand, .overlay-title, .biz-modal-name, .profile-name{
     text-shadow: 0 0 16px rgba(212,175,55,0.25);
   }
- 
+
   header{
     padding: 20px 18px 14px;
     display:flex;
@@ -71,7 +70,7 @@
     justify-content:space-between;
     border-bottom: 1px solid var(--border);
   }
- 
+
   .brand{
     font-family: 'Playfair Display', serif;
     font-weight: 700;
@@ -79,7 +78,7 @@
     letter-spacing: 0.5px;
     color: var(--gold-light);
   }
- 
+
   .level-pill{
     font-size: 11px;
     color: var(--gold);
@@ -88,12 +87,12 @@
     padding: 3px 10px;
     font-weight: 500;
   }
- 
+
   .capital-block{
     padding: 22px 18px 18px;
     text-align: center;
   }
- 
+
   .capital-label{
     font-size: 12px;
     color: var(--text-dim);
@@ -101,7 +100,7 @@
     letter-spacing: 1.5px;
     margin-bottom: 6px;
   }
- 
+
   .capital-value{
     font-family: 'JetBrains Mono', monospace;
     font-weight: 700;
@@ -111,19 +110,19 @@
     text-shadow: 0 0 14px rgba(212,175,55,0.4), 0 0 32px rgba(212,175,55,0.15);
     transition: transform 0.2s ease, text-shadow 0.2s ease;
   }
- 
+
   .capital-value.pulse{
     transform: scale(1.07);
     text-shadow: 0 0 22px rgba(251,229,138,0.8), 0 0 48px rgba(212,175,55,0.45);
   }
- 
+
   .income-rate{
     margin-top: 6px;
     font-family: 'JetBrains Mono', monospace;
     font-size: 13px;
     color: var(--green);
   }
- 
+
   .section-title{
     padding: 18px 18px 10px;
     font-size: 13px;
@@ -131,7 +130,7 @@
     text-transform: uppercase;
     letter-spacing: 1.2px;
   }
- 
+
     /* ===== CITY MAP ===== */
   .city-map{
     padding: 0 14px 14px;
@@ -139,7 +138,7 @@
     grid-template-columns: repeat(3, 1fr);
     gap: 8px;
   }
- 
+
   .district-label{
     grid-column: 1 / -1;
     font-size: 10px;
@@ -150,13 +149,13 @@
     border-top: 1px solid var(--border);
     margin-top: 4px;
   }
- 
+
   .district-label:first-of-type{
     border-top: none;
     margin-top: 0;
     padding-top: 4px;
   }
- 
+
   .building-slot{
     aspect-ratio: 1;
     background: var(--surface);
@@ -173,24 +172,24 @@
     transition: transform 0.15s ease, box-shadow 0.15s ease;
     padding: 6px;
   }
- 
+
   .building-slot:active{
     transform: scale(0.96);
   }
- 
+
   .building-slot.owned{
     border-color: var(--gold-dim);
     background: linear-gradient(180deg, var(--surface) 0%, rgba(212,175,55,0.04) 100%);
   }
- 
+
   .building-slot.affordable{
     box-shadow: 0 0 0 1px var(--gold-dim) inset;
   }
- 
+
   .building-slot.affordable.owned{
     box-shadow: 0 0 12px rgba(212,175,55,0.15), 0 0 0 1px var(--gold-dim) inset;
   }
- 
+
   .building-icon{
     width: 36px;
     height: 36px;
@@ -204,18 +203,18 @@
     overflow: hidden;
     flex-shrink: 0;
   }
- 
+
   .building-slot.owned .building-icon{
     background: linear-gradient(145deg, rgba(212,175,55,0.15), rgba(212,175,55,0.05));
     border-color: var(--gold-dim);
   }
- 
+
   .building-icon img{
     width: 100%;
     height: 100%;
     object-fit: cover;
   }
- 
+
   .building-name{
     font-size: 9px;
     font-weight: 500;
@@ -229,51 +228,51 @@
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
   }
- 
+
   .building-slot.locked .building-name{
     color: var(--text-dim);
   }
- 
+
   .building-lvl{
     font-size: 9px;
     color: var(--gold);
     font-family: 'JetBrains Mono', monospace;
   }
- 
+
   .building-income{
     font-size: 8px;
     color: var(--green);
     font-family: 'JetBrains Mono', monospace;
   }
- 
+
   .building-lock{
     font-size: 20px;
     opacity: 0.4;
   }
- 
+
   .building-progress{
     position: absolute;
     left: 0; right: 0; bottom: 0;
     height: 2px;
     background: rgba(255,255,255,0.03);
   }
- 
+
   .building-progress-fill{
     height: 100%;
     background: linear-gradient(90deg, var(--gold-dim), var(--gold-light));
     transition: width 0.4s ease;
   }
- 
+
   @keyframes buildingFlash{
     0%{ box-shadow: 0 0 0 0 rgba(212,175,55,0.5); }
     50%{ box-shadow: 0 0 16px 4px rgba(212,175,55,0.3); }
     100%{ box-shadow: 0 0 0 0 rgba(212,175,55,0); }
   }
- 
+
   .building-slot.flash{
     animation: buildingFlash 0.5s ease;
   }
- 
+
   /* ===== QUESTS ===== */
   .quest-panel{
     margin: 0 14px 12px;
@@ -282,26 +281,26 @@
     border-radius: 14px;
     padding: 12px;
   }
- 
+
   .quest-header{
     display: flex;
     align-items: center;
     justify-content: space-between;
     margin-bottom: 10px;
   }
- 
+
   .quest-title{
     font-size: 12px;
     font-weight: 600;
     color: var(--gold-light);
   }
- 
+
   .quest-count{
     font-size: 10px;
     color: var(--text-dim);
     font-family: 'JetBrains Mono', monospace;
   }
- 
+
   .quest-item{
     display: flex;
     align-items: center;
@@ -309,12 +308,12 @@
     padding: 8px 0;
     border-top: 1px solid rgba(255,255,255,0.04);
   }
- 
+
   .quest-item:first-of-type{
     border-top: none;
     padding-top: 0;
   }
- 
+
   .quest-icon{
     width: 28px;
     height: 28px;
@@ -326,32 +325,32 @@
     font-size: 13px;
     flex-shrink: 0;
   }
- 
+
   .quest-info{
     flex: 1;
     min-width: 0;
   }
- 
+
   .quest-name{
     font-size: 11px;
     font-weight: 500;
     margin-bottom: 2px;
   }
- 
+
   .quest-track{
     height: 4px;
     background: var(--surface-2);
     border-radius: 2px;
     overflow: hidden;
   }
- 
+
   .quest-fill{
     height: 100%;
     background: linear-gradient(90deg, var(--gold-dim), var(--gold-light));
     border-radius: 2px;
     transition: width 0.3s ease;
   }
- 
+
   .quest-reward-btn{
     background: linear-gradient(145deg, var(--gold-light), var(--gold));
     color: #1a1300;
@@ -364,12 +363,12 @@
     flex-shrink: 0;
     animation: pulseReward 2s infinite;
   }
- 
+
   @keyframes pulseReward{
     0%, 100%{ box-shadow: 0 0 0 0 rgba(212,175,55,0.4); }
     50%{ box-shadow: 0 0 8px 2px rgba(212,175,55,0.3); }
   }
- 
+
   /* ===== NEWS TICKER ===== */
   .news-ticker{
     margin: 0 14px 12px;
@@ -382,19 +381,19 @@
     gap: 8px;
     overflow: hidden;
   }
- 
+
   .news-icon{
     font-size: 14px;
     flex-shrink: 0;
   }
- 
+
   .news-scroll{
     flex: 1;
     overflow: hidden;
     position: relative;
     height: 18px;
   }
- 
+
   .news-item-text{
     font-size: 11px;
     color: var(--text-dim);
@@ -403,12 +402,12 @@
     animation: newsScroll 12s linear infinite;
     line-height: 18px;
   }
- 
+
   @keyframes newsScroll{
     0%{ transform: translateX(100%); }
     100%{ transform: translateX(-100%); }
   }
- 
+
   /* ===== TUTORIAL ===== */
   .tutorial-overlay{
     position: fixed;
@@ -420,7 +419,7 @@
     justify-content: center;
     padding: 20px;
   }
- 
+
   .tutorial-card{
     background: var(--surface);
     border: 1px solid var(--gold-dim);
@@ -431,28 +430,28 @@
     text-align: center;
     position: relative;
   }
- 
+
   .tutorial-step-num{
     font-size: 11px;
     color: var(--gold);
     font-family: 'JetBrains Mono', monospace;
     margin-bottom: 8px;
   }
- 
+
   .tutorial-title{
     font-family: 'Playfair Display', serif;
     font-size: 16px;
     color: var(--gold-light);
     margin-bottom: 8px;
   }
- 
+
   .tutorial-text{
     font-size: 12px;
     color: var(--text-dim);
     line-height: 1.5;
     margin-bottom: 16px;
   }
- 
+
   .tutorial-highlight{
     position: absolute;
     border: 2px solid var(--gold-light);
@@ -462,7 +461,7 @@
     z-index: 201;
     transition: all 0.4s ease;
   }
- 
+
   .tutorial-btn{
     background: linear-gradient(145deg, var(--gold-light), var(--gold));
     color: #1a1300;
@@ -474,7 +473,7 @@
     cursor: pointer;
     width: 100%;
   }
- 
+
   /* ===== CUSTOMIZATION ===== */
   .emblem-grid{
     display: grid;
@@ -482,7 +481,7 @@
     gap: 8px;
     padding: 8px 0;
   }
- 
+
   .emblem-option{
     aspect-ratio: 1;
     border-radius: 10px;
@@ -495,12 +494,12 @@
     cursor: pointer;
     transition: border-color 0.15s ease;
   }
- 
+
   .emblem-option.selected{
     border-color: var(--gold);
     background: rgba(212,175,55,0.1);
   }
- 
+
   .company-name-input{
     width: 100%;
     background: var(--surface-2);
@@ -512,12 +511,12 @@
     font-size: 14px;
     margin-top: 8px;
   }
- 
+
   .company-name-input:focus{
     outline: none;
     border-color: var(--gold-dim);
   }
- 
+
   /* ===== SOUND TOGGLE ===== */
   .sound-btn{
     position: fixed;
@@ -536,12 +535,12 @@
     cursor: pointer;
     z-index: 50;
   }
- 
+
   .sound-btn.active{
     color: var(--gold);
     border-color: var(--gold-dim);
   }
- 
+
   /* ===== MENTOR BUBBLE ===== */
   .mentor-bubble{
     margin: 0 14px 12px;
@@ -553,7 +552,7 @@
     align-items: flex-start;
     gap: 10px;
   }
- 
+
   .mentor-avatar{
     width: 36px;
     height: 36px;
@@ -566,20 +565,20 @@
     flex-shrink: 0;
     border: 1px solid rgba(74,157,111,0.3);
   }
- 
+
   .mentor-text{
     font-size: 11px;
     color: var(--text);
     line-height: 1.5;
   }
- 
+
   .mentor-name{
     font-size: 10px;
     color: var(--green);
     font-weight: 600;
     margin-bottom: 2px;
   }
- 
+
   /* Keep old styles for modals */
   .biz-card{
     background: var(--surface);
@@ -593,31 +592,31 @@
     position: relative;
     overflow: hidden;
   }
- 
+
   .biz-progress{
     position: absolute;
     left: 0; right: 0; bottom: 0;
     height: 2px;
     background: rgba(255,255,255,0.04);
   }
- 
+
   .biz-progress-fill{
     height: 100%;
     width: 0%;
     background: linear-gradient(90deg, var(--gold-dim), var(--gold-light));
     transition: width 0.4s ease;
   }
- 
+
   @keyframes cardBoughtFlash{
     0%{ box-shadow: 0 0 0 0 rgba(212,175,55,0.55); transform: scale(1); }
     35%{ box-shadow: 0 0 20px 4px rgba(212,175,55,0.45); transform: scale(1.015); }
     100%{ box-shadow: 0 0 0 0 rgba(212,175,55,0); transform: scale(1); }
   }
- 
+
   .biz-card.bought-flash{
     animation: cardBoughtFlash 0.5s ease;
   }
- 
+
   .biz-icon{
     width: 52px;
     height: 52px;
@@ -631,24 +630,24 @@
     border: 1px solid var(--border);
     overflow: hidden;
   }
- 
+
   .biz-icon img, .asset-icon img, .choice-icon img{
     width: 100%;
     height: 100%;
     object-fit: cover;
   }
- 
+
   .biz-icon-locked{
     position: relative;
   }
- 
+
   .biz-icon-locked::after{
     content: '';
     position: absolute;
     inset: 0;
     background: rgba(5,7,13,0.55);
   }
- 
+
   .biz-lock{
     position: absolute;
     inset: 0;
@@ -658,13 +657,13 @@
     font-size: 20px;
     filter: drop-shadow(0 1px 2px rgba(0,0,0,0.6));
   }
- 
+
   .biz-info{
     flex: 1;
     min-width: 0;
     margin-right: 4px;
   }
- 
+
   .biz-name{
     font-size: 13px;
     font-weight: 600;
@@ -674,7 +673,7 @@
     text-overflow: ellipsis;
     line-height: 1.3;
   }
- 
+
   .biz-meta{
     font-size: 11px;
     color: var(--text-dim);
@@ -683,7 +682,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
   }
- 
+
   .biz-action{
     display:flex;
     flex-direction:column;
@@ -691,7 +690,7 @@
     gap: 2px;
     flex-shrink:0;
   }
- 
+
   .buy-btn{
     background: linear-gradient(145deg, var(--gold-light), var(--gold));
     color: #1a1300;
@@ -708,22 +707,22 @@
     box-shadow: 0 3px 10px rgba(212,175,55,0.3), inset 0 1px 0 rgba(255,255,255,0.35);
     transition: transform 0.12s ease, box-shadow 0.12s ease;
   }
- 
+
   .buy-btn:active{
     transform: scale(0.96);
     box-shadow: 0 1px 4px rgba(212,175,55,0.3);
   }
- 
+
   .buy-btn:disabled{
     background: var(--surface-2);
     color: var(--text-dim);
     box-shadow: none;
   }
- 
+
   .buy-btn.affordable{
     box-shadow: 0 3px 12px rgba(212,175,55,0.45), 0 0 0 1px var(--gold-light) inset;
   }
- 
+
   .biz-level{
     font-size: 11px;
     color: var(--gold);
@@ -736,7 +735,7 @@
     display:flex;
     padding: 10px 8px calc(10px + env(safe-area-inset-bottom));
   }
- 
+
   .nav-indicator{
     position: absolute;
     top: 4px;
@@ -750,11 +749,11 @@
     transform: translateX(0%);
     pointer-events: none;
   }
- 
+
   .nav-indicator[data-index="1"]{ transform: translateX(100%); }
   .nav-indicator[data-index="2"]{ transform: translateX(200%); }
   .nav-indicator[data-index="3"]{ transform: translateX(300%); }
- 
+
   .nav-item{
     flex:1;
     text-align:center;
@@ -770,26 +769,26 @@
     font-family: inherit;
     padding: 4px 0;
   }
- 
+
   .nav-item.active{
     color: var(--gold-light);
   }
- 
+
   .nav-icon{ font-size: 18px; }
- 
+
   .view{ display:none; }
   .view.active{ display:block; }
- 
+
   @keyframes overlayBackdropIn{
     from{ opacity: 0; }
     to{ opacity: 1; }
   }
- 
+
   @keyframes overlayCardIn{
     from{ opacity: 0; transform: scale(0.9) translateY(10px); }
     to{ opacity: 1; transform: scale(1) translateY(0); }
   }
- 
+
   .overlay{
     position: fixed;
     inset: 0;
@@ -801,7 +800,7 @@
     padding: 20px;
     animation: overlayBackdropIn 0.25s ease;
   }
- 
+
   .overlay-card{
     background: var(--surface);
     border: 1px solid var(--gold-dim);
@@ -812,22 +811,22 @@
     width: 100%;
     animation: overlayCardIn 0.3s cubic-bezier(.16,1,.3,1);
   }
- 
+
   .overlay-icon{ font-size: 32px; margin-bottom: 10px; }
- 
+
   .overlay-title{
     font-family: 'Playfair Display', serif;
     font-size: 18px;
     color: var(--gold-light);
     margin-bottom: 8px;
   }
- 
+
   .overlay-desc{
     font-size: 13px;
     color: var(--text-dim);
     margin-bottom: 16px;
   }
- 
+
   .overlay-amount{
     font-family: 'JetBrains Mono', monospace;
     font-size: 30px;
@@ -835,7 +834,7 @@
     color: var(--green);
     margin-bottom: 20px;
   }
- 
+
   .overlay-btn{
     background: linear-gradient(145deg, var(--gold-light), var(--gold));
     color: #1a1300;
@@ -849,11 +848,11 @@
     box-shadow: 0 4px 14px rgba(212,175,55,0.35), inset 0 1px 0 rgba(255,255,255,0.35);
     transition: transform 0.12s ease;
   }
- 
+
   .overlay-btn:active{
     transform: scale(0.97);
   }
- 
+
   /* Rating view */
   .rating-list{
     display:flex;
@@ -861,7 +860,7 @@
     gap: 8px;
     padding: 0 18px;
   }
- 
+
   .rating-row{
     background: var(--surface);
     border: 1px solid var(--border);
@@ -871,12 +870,12 @@
     align-items:center;
     gap: 12px;
   }
- 
+
   .rating-row.me{
     border-color: var(--gold-dim);
     box-shadow: 0 0 0 1px var(--gold-dim) inset;
   }
- 
+
   .rating-place{
     width: 26px;
     text-align:center;
@@ -885,11 +884,11 @@
     color: var(--text-dim);
     flex-shrink:0;
   }
- 
+
   .rating-row:nth-child(1) .rating-place{ color:#fbe58a; }
   .rating-row:nth-child(2) .rating-place{ color:#c9cbd6; }
   .rating-row:nth-child(3) .rating-place{ color:#c98a4b; }
- 
+
   .rating-avatar{
     width: 36px;
     height: 36px;
@@ -902,12 +901,12 @@
     font-size: 15px;
     flex-shrink:0;
   }
- 
+
   .rating-info{
     flex:1;
     min-width:0;
   }
- 
+
   .rating-name{
     font-size: 13px;
     font-weight: 600;
@@ -915,26 +914,26 @@
     overflow:hidden;
     text-overflow:ellipsis;
   }
- 
+
   .rating-sub{
     font-size: 11px;
     color: var(--text-dim);
     font-family: 'JetBrains Mono', monospace;
   }
- 
+
   .rating-income{
     font-family: 'JetBrains Mono', monospace;
     font-size: 12px;
     color: var(--green);
     flex-shrink:0;
   }
- 
+
   .rating-note{
     padding: 4px 18px 4px;
     font-size: 11px;
     color: var(--text-dim);
   }
- 
+
   /* Profile view */
   .profile-card{
     margin: 4px 18px 20px;
@@ -948,7 +947,7 @@
     text-align:center;
     gap: 4px;
   }
- 
+
   .profile-avatar{
     width: 64px;
     height: 64px;
@@ -961,33 +960,33 @@
     font-size: 26px;
     margin-bottom: 8px;
   }
- 
+
   .profile-name{
     font-family: 'Playfair Display', serif;
     font-weight: 700;
     font-size: 18px;
     color: var(--gold-light);
   }
- 
+
   .profile-rank{
     font-size: 12px;
     color: var(--gold);
   }
- 
+
   .stat-grid{
     padding: 0 18px;
     display:grid;
     grid-template-columns: 1fr 1fr;
     gap: 10px;
   }
- 
+
   .stat-card{
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 12px;
     padding: 12px;
   }
- 
+
   .stat-label{
     font-size: 11px;
     color: var(--text-dim);
@@ -995,14 +994,14 @@
     letter-spacing: 0.8px;
     margin-bottom: 4px;
   }
- 
+
   .stat-value{
     font-family: 'JetBrains Mono', monospace;
     font-weight: 700;
     font-size: 16px;
     color: var(--text);
   }
- 
+
   .reset-btn{
     margin: 20px 18px 0;
     background: none;
@@ -1014,7 +1013,7 @@
     font-family: inherit;
     cursor: pointer;
   }
- 
+
   /* Assets (inheritance) section on business view */
   .asset-card{
     background: var(--surface);
@@ -1025,7 +1024,7 @@
     align-items:center;
     gap: 12px;
   }
- 
+
   .asset-icon{
     width: 52px;
     height: 52px;
@@ -1039,12 +1038,12 @@
     border: 1px solid var(--border);
     overflow: hidden;
   }
- 
+
   .asset-info{
     flex: 1;
     min-width: 0;
   }
- 
+
   .asset-name{
     font-size: 13px;
     font-weight: 600;
@@ -1054,7 +1053,7 @@
     text-overflow: ellipsis;
     line-height: 1.3;
   }
- 
+
   .asset-meta{
     font-size: 10px;
     color: var(--text-dim);
@@ -1064,7 +1063,7 @@
     text-overflow: ellipsis;
     line-height: 1.3;
   }
- 
+
   .asset-sell-btn{
     background: none;
     border: 1px solid var(--gold-dim);
@@ -1079,49 +1078,49 @@
     cursor: pointer;
     flex-shrink:0;
   }
- 
+
   /* Inheritance start screen */
   #view-inheritance{
     padding: 0 0 30px;
   }
- 
+
   .inheritance-intro{
     padding: 32px 22px 6px;
     text-align: center;
   }
- 
+
   .inheritance-intro .brand{
     display:block;
     margin-bottom: 10px;
   }
- 
+
   .inheritance-lead{
     font-size: 14px;
     color: var(--text-dim);
     line-height: 1.5;
   }
- 
+
   .inheritance-list{
     display:flex;
     flex-direction:column;
     gap: 14px;
     padding: 22px 18px 0;
   }
- 
+
   .choice-card{
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 16px;
     padding: 16px;
   }
- 
+
   .choice-head{
     display:flex;
     align-items:center;
     gap: 12px;
     margin-bottom: 12px;
   }
- 
+
   .choice-icon{
     width: 48px;
     height: 48px;
@@ -1135,23 +1134,23 @@
     flex-shrink:0;
     overflow: hidden;
   }
- 
+
   .choice-name{
     font-size: 15px;
     font-weight: 600;
   }
- 
+
   .choice-value{
     font-size: 11px;
     color: var(--text-dim);
     font-family: 'JetBrains Mono', monospace;
   }
- 
+
   .choice-actions{
     display:flex;
     gap: 8px;
   }
- 
+
   .choice-btn{
     flex: 1;
     border-radius: 10px;
@@ -1166,7 +1165,7 @@
     text-align: center;
     line-height: 1.4;
   }
- 
+
   .choice-btn small{
     display:block;
     font-weight: 500;
@@ -1174,17 +1173,17 @@
     font-size: 10px;
     margin-top: 2px;
   }
- 
+
   .choice-btn.selected{
     background: var(--gold);
     color: #1a1300;
     border-color: var(--gold);
   }
- 
+
   .choice-btn.selected small{
     color: #1a1300cc;
   }
- 
+
   .inheritance-continue{
     margin: 24px 18px 0;
     width: calc(100% - 36px);
@@ -1200,17 +1199,17 @@
     box-shadow: 0 4px 14px rgba(212,175,55,0.35), inset 0 1px 0 rgba(255,255,255,0.35);
     transition: transform 0.12s ease;
   }
- 
+
   .inheritance-continue:active{
     transform: scale(0.98);
   }
- 
+
   .inheritance-continue:disabled{
     background: var(--surface-2);
     color: var(--text-dim);
     cursor: not-allowed;
   }
- 
+
   .boot-screen{
     min-height: 100vh;
     display:flex;
@@ -1219,14 +1218,14 @@
     color: var(--text-dim);
     font-size: 13px;
   }
- 
+
   /* Business detail modal */
   .biz-modal-card{
     text-align: left;
     position: relative;
     max-width: 340px;
   }
- 
+
   .modal-close-btn{
     position: absolute;
     top: 10px;
@@ -1239,21 +1238,21 @@
     padding: 4px 8px;
     line-height: 1;
   }
- 
+
   .biz-modal-header{
     display:flex;
     align-items:center;
     gap: 10px;
     margin-bottom: 16px;
   }
- 
+
   .biz-modal-name{
     font-family: 'Playfair Display', serif;
     font-size: 17px;
     font-weight: 700;
     color: var(--gold-light);
   }
- 
+
   .mechanic-card{
     background: var(--surface-2);
     border: 1px solid var(--border);
@@ -1262,20 +1261,20 @@
     margin-bottom: 10px;
     text-align: left;
   }
- 
+
   .mechanic-title{
     font-size: 12px;
     font-weight: 600;
     margin-bottom: 4px;
   }
- 
+
   .mechanic-desc{
     font-size: 11px;
     color: var(--text-dim);
     margin-bottom: 8px;
     line-height: 1.4;
   }
- 
+
   .mechanic-btn{
     width: 100%;
     background: linear-gradient(145deg, var(--gold-light), var(--gold));
@@ -1290,11 +1289,11 @@
     box-shadow: 0 3px 10px rgba(212,175,55,0.3), inset 0 1px 0 rgba(255,255,255,0.35);
     transition: transform 0.12s ease;
   }
- 
+
   .mechanic-btn:active{
     transform: scale(0.97);
   }
- 
+
   .mechanic-btn:disabled{
     background: var(--border);
     color: var(--text-dim);
@@ -1302,30 +1301,30 @@
     box-shadow: none;
     transform: none;
   }
- 
+
   .mechanic-btn.affordable{
     box-shadow: 0 0 0 1px var(--gold-light) inset;
   }
- 
+
   .mechanic-status{
     font-size: 12px;
     color: var(--green);
     font-family: 'JetBrains Mono', monospace;
   }
- 
+
   .mechanic-placeholder{
     padding: 30px 10px;
     text-align: center;
     color: var(--text-dim);
     font-size: 13px;
   }
- 
+
   .eco-actions{
     display:flex;
     flex-direction:column;
     gap: 8px;
   }
- 
+
   .item-row{
     display:flex;
     align-items:center;
@@ -1334,17 +1333,17 @@
     padding: 6px 0;
     border-top: 1px solid var(--border);
   }
- 
+
   .item-row:first-of-type{ border-top: none; margin-top: 4px; }
- 
+
   .item-name{ font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
- 
+
   .item-bonus{
     font-size: 11px;
     color: var(--gold);
     font-family: 'JetBrains Mono', monospace;
   }
- 
+
   .item-buy-btn{
     background: linear-gradient(145deg, var(--gold-light), var(--gold));
     color: #1a1300;
@@ -1357,26 +1356,26 @@
     cursor: pointer;
     flex-shrink:0;
   }
- 
+
   .item-buy-btn:disabled{
     background: var(--surface-2);
     color: var(--text-dim);
     cursor: not-allowed;
   }
- 
+
   .job-risk-hint{
     font-size: 10px;
     color: var(--gold-dim);
     margin-top: 2px;
   }
- 
+
   .job-outcome{
     font-size: 11px;
     color: var(--green);
     margin-top: 2px;
     font-weight: 600;
   }
- 
+
   /* Locked (not yet purchased) business card */
   .asset-sell-btn:disabled{
     opacity: 0.5;
@@ -1384,7 +1383,7 @@
     border-color: var(--border);
     color: var(--text-dim);
   }
- 
+
   /* Live clock in header */
   .header-clock{
     font-size: 11px;
@@ -1392,7 +1391,7 @@
     font-family: 'JetBrains Mono', monospace;
     margin-top: 2px;
   }
- 
+
   /* Business sell/pause controls */
   .mechanic-btn.secondary{
     background: var(--surface-2);
@@ -1400,12 +1399,12 @@
     border: 1px solid var(--border);
     margin-bottom: 8px;
   }
- 
+
   .mechanic-btn.danger{
     background: #6b2f2f;
     color: #f5d5d5;
   }
- 
+
   /* Referral & share */
   .referral-card{
     margin: 0 18px 16px;
@@ -1415,7 +1414,7 @@
     padding: 14px;
     text-align: left;
   }
- 
+
   .referral-link{
     font-family: 'JetBrains Mono', monospace;
     font-size: 11px;
@@ -1423,7 +1422,7 @@
     word-break: break-all;
     margin-bottom: 10px;
   }
- 
+
   .share-btn{
     margin: 0 18px 8px;
     width: calc(100% - 36px);
@@ -1432,9 +1431,9 @@
 <base target="_blank">
 </head>
 <body>
- 
+
   <div class="boot-screen" id="bootScreen">Загрузка...</div>
- 
+
   <div class="view" id="view-inheritance">
     <div class="inheritance-intro">
       <span class="brand">Наследство</span>
@@ -1443,7 +1442,7 @@
     <div class="inheritance-list" id="inheritanceList"></div>
     <button class="inheritance-continue" id="inheritanceContinue" disabled>Начать</button>
   </div>
- 
+
   <div id="app" style="display:none">
     <header>
       <div>
@@ -1452,16 +1451,16 @@
       </div>
       <div class="level-pill" id="rankLabel">Новичок</div>
     </header>
- 
+
     <div class="view active" id="view-business">
       <button class="sound-btn" id="soundBtn" title="Звук">🔇</button>
- 
+
       <div class="capital-block">
         <div class="capital-label">Капитал</div>
         <div class="capital-value" id="capitalValue">₽0</div>
         <div class="income-rate" id="incomeRate">+₽0 / день</div>
       </div>
- 
+
       <div id="mentorBubble" class="mentor-bubble" style="display:none">
         <div class="mentor-avatar">🎩</div>
         <div>
@@ -1469,7 +1468,7 @@
           <div class="mentor-text" id="mentorText"></div>
         </div>
       </div>
- 
+
       <div id="questPanel" class="quest-panel" style="display:none">
         <div class="quest-header">
           <div class="quest-title">📋 Активные задания</div>
@@ -1477,17 +1476,17 @@
         </div>
         <div id="questList"></div>
       </div>
- 
+
       <div class="news-ticker" id="newsTicker">
         <div class="news-icon">📰</div>
         <div class="news-scroll">
           <div class="news-item-text" id="newsText">Добро пожаловать в Империю...</div>
         </div>
       </div>
- 
+
       <div class="section-title">🏙 Город</div>
       <div class="city-map" id="cityMap"></div>
- 
+
       <div id="offlineOverlay" class="overlay" style="display:none">
         <div class="overlay-card">
           <div class="overlay-icon">💰</div>
@@ -1497,7 +1496,7 @@
           <button class="overlay-btn" id="offlineClaim">Забрать</button>
         </div>
       </div>
- 
+
       <div id="dailyRewardOverlay" class="overlay" style="display:none">
         <div class="overlay-card">
           <div class="overlay-icon">🎁</div>
@@ -1508,7 +1507,7 @@
           <button class="overlay-btn" id="dailyRewardClaim">Забрать</button>
         </div>
       </div>
- 
+
       <div class="overlay" id="bizModalOverlay" style="display:none">
         <div class="overlay-card biz-modal-card">
           <button class="modal-close-btn" id="bizModalClose">✕</button>
@@ -1519,7 +1518,7 @@
           <div id="bizModalBody"></div>
         </div>
       </div>
- 
+
       <div class="overlay" id="ecoOverlay" style="display:none">
         <div class="overlay-card">
           <div class="overlay-icon">🌱</div>
@@ -1531,7 +1530,7 @@
           </div>
         </div>
       </div>
- 
+
       <div class="overlay" id="kioskBreakOverlay" style="display:none">
         <div class="overlay-card">
           <div class="overlay-icon">☕💥</div>
@@ -1543,7 +1542,7 @@
           </div>
         </div>
       </div>
- 
+
       <div class="overlay" id="cafeReviewOverlay" style="display:none">
         <div class="overlay-card">
           <div class="overlay-icon">📉</div>
@@ -1555,7 +1554,7 @@
           </div>
         </div>
       </div>
- 
+
       <div class="overlay" id="genericEventOverlay" style="display:none">
         <div class="overlay-card">
           <div class="overlay-icon" id="genericEventIcon">⚠</div>
@@ -1568,11 +1567,11 @@
         </div>
       </div>
     </div>
- 
+
     <div class="view" id="view-assets">
       <div class="section-title">Активы</div>
       <div class="biz-list" id="assetList"></div>
- 
+
       <div class="overlay" id="assetModalOverlay" style="display:none">
         <div class="overlay-card biz-modal-card">
           <button class="modal-close-btn" id="assetModalClose">✕</button>
@@ -1584,12 +1583,12 @@
         </div>
       </div>
     </div>
- 
+
     <div class="view" id="view-work">
       <div class="section-title">Подработка</div>
       <div class="biz-list" id="jobList"></div>
     </div>
- 
+
     <div class="view" id="view-profile">
       <div class="section-title">Профиль</div>
       <div class="profile-card">
@@ -1622,15 +1621,15 @@
         <button class="mechanic-btn" id="copyReferralBtn">Скопировать ссылку</button>
         <div class="mechanic-status" id="referralCountText" style="margin-top:10px;"></div>
       </div>
- 
+
       <button class="mechanic-btn secondary share-btn" id="shareBtn">Поделиться достижением</button>
- 
+
       <div class="section-title">Рейтинг магнатов</div>
       <div class="rating-list" id="ratingList"></div>
- 
+
       <button class="reset-btn" id="resetBtn">Сбросить прогресс</button>
     </div>
- 
+
     <div class="overlay" id="tutorialOverlay" style="display:none">
       <div class="tutorial-card" id="tutorialCard">
         <div class="tutorial-step-num" id="tutorialStep">Шаг 1 / 5</div>
@@ -1639,7 +1638,7 @@
         <button class="tutorial-btn" id="tutorialNext">Далее</button>
       </div>
     </div>
- 
+
     <div class="overlay" id="customizeOverlay" style="display:none">
       <div class="overlay-card" style="max-width:340px;">
         <button class="modal-close-btn" id="customizeClose">✕</button>
@@ -1656,7 +1655,7 @@
         <button class="overlay-btn" id="saveCustomize">Сохранить</button>
       </div>
     </div>
- 
+
     <nav>
       <div class="nav-indicator" id="navIndicator" data-index="0"></div>
       <button class="nav-item active" data-view="business">
@@ -1677,13 +1676,13 @@
       </button>
     </nav>
   </div>
- 
+
 <script type="module">
   const tg = window.Telegram?.WebApp;
   if (tg) { tg.ready(); tg.expand(); }
- 
+
   const userId = tg?.initDataUnsafe?.user?.id || 'guest_' + (localStorage.getItem('guestId') || (()=>{ const id=Math.random().toString(36).slice(2); localStorage.setItem('guestId', id); return id; })());
- 
+
   // baseIncome is the internal per-second accrual rate (money still ticks
   // every second). The player only ever sees it multiplied by GAME_DAY_SECONDS ("/день").
   const businesses = [
@@ -1748,7 +1747,11 @@
     { id:'megabank', name:'Международный банковский холдинг', icon:'🏛', category:'finance', baseCost:230000000000, baseIncome:11000000, level:0, purchased:false },
     { id:'conglomerate', name:'Глобальный конгломерат', icon:'🌐', category:'finance', baseCost:300000000000, baseIncome:14000000, level:0, purchased:false },
   ];
- 
+
+  // Job system: five professions available from the very start (before any
+  // business purchase), unlocking as capital grows. Each has its own cooldown
+  // tracked as a "next available at" timestamp (not a boolean) so cooldowns
+  // survive a page reload.
   const jobs = [
     { id:'flyers', name:'Раздача листовок', minPay:300, maxPay:650, cooldownMs:15000, unlockAt:0 },
     { id:'cleaner', name:'Уборщик', minPay:400, maxPay:800, cooldownMs:20000, unlockAt:8000 },
@@ -1765,11 +1768,15 @@
   ];
   const jobReadyAt = {};
   jobs.forEach(j=>{ jobReadyAt[j.id] = 0; });
- 
+
+  // Ephemeral (not saved) tap progress: working a job now takes a few taps
+  // in a row instead of paying out on the first click.
   const TAPS_REQUIRED = 3;
   const TAP_WINDOW_MS = 2500;
   const jobTaps = {};
- 
+
+  // Inheritance assets: sell for one-time cash, or keep for ongoing benefit.
+  // status: null (undecided) | 'sold' | 'kept'
   const assets = [
     {
       id: 'apartment', name: 'Квартира', icon: '🏠',
@@ -1790,7 +1797,9 @@
       keptMeta: (a) => `+${fmt(assetIncome(a) * GAME_DAY_SECONDS)}/день · такси${a.brokenUntil && Date.now() < a.brokenUntil ? ' · 🔧 в ремонте' : ''}`,
     },
   ];
- 
+
+  // Renovation/maintenance boost apartment rent / car taxi income; a flood or
+  // accident zeroes it out until fixed (or the free-but-slow wait finishes).
   function assetIncome(asset){
     const now = Date.now();
     if (asset.id === 'apartment'){
@@ -1803,7 +1812,8 @@
     }
     return asset.rentIncome;
   }
- 
+
+  // Config driving the asset detail modal + its random event, per asset id.
   function assetModalContent(asset){
     if (asset.id === 'apartment'){
       return {
@@ -1828,36 +1838,48 @@
       eventGapMin: 300000, eventGapMax: 420000,
     };
   }
- 
+
+  // A "game day" is a compact 60-second cycle used only for the "/день"
+  // income display — real-time capital accrual (every 1s) is unaffected.
   const GAME_DAY_SECONDS = 1800;
- 
+
   let capital = 15000;
   let totalEarned = 0;
- 
+
+  // Daily login rewards
   let lastLoginDate = null;
   let loginStreak = 0;
- 
+
+  // Referral system
   let referredBy = null;
   let referralCount = 0;
- 
+
+  // Extra per-business state used by business-specific mechanics. Listed
+  // explicitly so the save/load code stays generic as more mechanics are
+  // added per business — just add the field name here.
   const EXTRA_BIZ_KEYS = [
     'purchased', 'paused',
     'hasDryClean', 'boostUntil', 'boostReadyAt', 'ecoCheckAt',
     'hasBarista', 'brokenUntil', 'breakCheckAt',
     'hasNewMenu', 'hasChef', 'reviewPenaltyUntil', 'reviewCheckAt',
+    // Generic per-category mechanics (all businesses without bespoke ones above)
     'hasUpgrade', 'eventUntil', 'eventCheckAt',
+    // Purchasable equipment items (all 60 businesses)
     'items',
   ];
- 
+
+  // Same idea as EXTRA_BIZ_KEYS but for the two inheritance assets.
   const EXTRA_ASSET_KEYS = [
     'hasRenovation', 'floodUntil', 'floodCheckAt',
     'hasMaintenance', 'brokenUntil', 'breakCheckAt',
   ];
- 
+
+    // ===== CUSTOMIZATION =====
   let companyName = 'Империя';
   let emblem = '👑';
   const EMBLEMS = ['👑','🏛','🗽','🌉','🏰','🏯','🗼','⛩','🕍','🕌','🏭','🌆','🌇','🌃','🌁','🏙','🌌','🌠','⭐','🔥','💎','⚡','🦁','🦅','🐉','🐺','🦈','🦏','🦍','🐻','🌲','🌵','🌴','🌹','🌻','🍁','🍂','🍄','🌊','🌋','🗿','⚔','🛡','🧭','🗺','🔱','⚓','🚀','🛸','🛰','🪐','🌍','🌎','🌏','🌕','☀','🌟','💫','✨','🌈'];
- 
+
+  // ===== QUESTS =====
   const quests = [
     { id:'q_first_biz', icon:'🏪', name:'Первые шаги', desc:'Купите любой бизнес', condition:()=>businesses.some(b=>b.purchased), reward:500, completed:false, claimed:false },
     { id:'q_three_biz', icon:'🏘', name:'Малый бизнес', desc:'Откройте 3 бизнеса', condition:()=>businesses.filter(b=>b.purchased).length>=3, reward:2000, completed:false, claimed:false },
@@ -1870,7 +1892,8 @@
     { id:'q_all_items', icon:'🧰', name:'Оборудование', desc:'Купите любой предмет для бизнеса', condition:()=>businesses.some(b=>b.items&&b.items.length>0), reward:2000, completed:false, claimed:false },
     { id:'q_prestige', icon:'♻', name:'Новый старт', desc:'Совершите престиж (сброс)', condition:()=>false, reward:0, completed:false, claimed:false },
   ];
- 
+
+  // ===== NEWS =====
   const NEWS_HEADLINES = [
     'ЦБ снизил ключевую ставку — кредиты подешевели',
     'Новый торговый центр открылся в центре города',
@@ -1898,10 +1921,11 @@
     'В город пришёл международный инвестор с $100 млн',
     'Эко-тренд: покупатели выбирают зелёные бренды',
   ];
- 
+
+  // ===== SOUND ENGINE =====
   let soundEnabled = false;
   const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
- 
+
   function playTone(freq, type, duration, vol=0.05){
     if (!soundEnabled || !audioCtx) return;
     try{
@@ -1917,14 +1941,15 @@
       osc.stop(audioCtx.currentTime + duration);
     }catch(e){}
   }
- 
+
   function sfxBuy(){ playTone(523, 'sine', 0.15, 0.06); setTimeout(()=>playTone(659, 'sine', 0.15, 0.06), 80); setTimeout(()=>playTone(784, 'sine', 0.2, 0.06), 160); }
   function sfxCoin(){ playTone(1200, 'sine', 0.08, 0.04); }
   function sfxLevelUp(){ playTone(440, 'triangle', 0.3, 0.05); setTimeout(()=>playTone(554, 'triangle', 0.3, 0.05), 150); setTimeout(()=>playTone(659, 'triangle', 0.4, 0.05), 300); }
   function sfxQuest(){ playTone(880, 'sine', 0.2, 0.05); setTimeout(()=>playTone(1100, 'sine', 0.3, 0.05), 120); }
   function sfxClick(){ playTone(800, 'sine', 0.05, 0.03); }
   function sfxError(){ playTone(200, 'sawtooth', 0.2, 0.04); }
- 
+
+  // ===== TUTORIAL =====
   let tutorialStep = 0;
   let tutorialActive = false;
   const TUTORIAL_STEPS = [
@@ -1934,19 +1959,21 @@
     { title:'Подработка', text:'На вкладке «Работа» можно заработать на старте. Каждая профессия имеет кулдаун — планируйте время.' },
     { title:'Рост и престиж', text:'Открывайте бизнесы, прокачивайте оборудование, следите за новостями. Ваша империя начинается прямо сейчас!' },
   ];
- 
+
+  // ===== NEWS SYSTEM =====
   let currentNewsIndex = 0;
   function rotateNews(){
     currentNewsIndex = (currentNewsIndex + 1) % NEWS_HEADLINES.length;
     const el = document.getElementById('newsText');
     if (el){
       el.style.animation = 'none';
-      el.offsetHeight;
+      el.offsetHeight; // reflow
       el.textContent = NEWS_HEADLINES[currentNewsIndex];
       el.style.animation = '';
     }
   }
- 
+
+  // ===== MENTOR SYSTEM =====
   const MENTOR_LINES = [
     'Отличное начало! Помните: диверсификация — ключ к успеху.',
     'Рынок растёт. Самое время инвестировать в новые направления.',
@@ -1957,7 +1984,7 @@
     'Новости говорят о росте туризма. Рестораны и отели — в тренде.',
     'Вы на верном пути. Ещё несколько бизнесов — и город будет ваш.',
   ];
- 
+
   function showMentor(text){
     const bubble = document.getElementById('mentorBubble');
     const txt = document.getElementById('mentorText');
@@ -1965,12 +1992,13 @@
     txt.textContent = text || MENTOR_LINES[Math.floor(Math.random() * MENTOR_LINES.length)];
     bubble.style.display = 'flex';
   }
- 
+
   function hideMentor(){
     const bubble = document.getElementById('mentorBubble');
     if (bubble) bubble.style.display = 'none';
   }
- 
+
+  // ===== QUEST SYSTEM =====
   function checkQuests(){
     let changed = false;
     quests.forEach(q=>{
@@ -1984,7 +2012,7 @@
       saveProgress();
     }
   }
- 
+
   function claimQuest(qid){
     const q = quests.find(x=>x.id === qid);
     if (!q || !q.completed || q.claimed) return;
@@ -1997,13 +2025,13 @@
     renderCapital(true);
     saveProgress();
   }
- 
+
   function renderQuests(){
     const panel = document.getElementById('questPanel');
     const list = document.getElementById('questList');
     const count = document.getElementById('questCount');
     if (!panel || !list) return;
- 
+
     const active = quests.filter(q=>!q.claimed);
     if (active.length === 0){
       panel.style.display = 'none';
@@ -2011,7 +2039,7 @@
     }
     panel.style.display = 'block';
     count.textContent = `${quests.filter(q=>q.claimed).length}/${quests.length}`;
- 
+
     list.innerHTML = '';
     active.slice(0,3).forEach(q=>{
       const div = document.createElement('div');
@@ -2037,18 +2065,19 @@
       }
       list.appendChild(div);
     });
- 
+
     list.querySelectorAll('.quest-reward-btn').forEach(btn=>{
       btn.addEventListener('click', ()=> claimQuest(btn.dataset.qid));
     });
   }
- 
+
+  // ===== TUTORIAL FUNCTIONS =====
   function startTutorial(){
     tutorialActive = true;
     tutorialStep = 0;
     showTutorialStep();
   }
- 
+
   function showTutorialStep(){
     const overlay = document.getElementById('tutorialOverlay');
     const stepEl = document.getElementById('tutorialStep');
@@ -2056,7 +2085,7 @@
     const textEl = document.getElementById('tutorialText');
     const btn = document.getElementById('tutorialNext');
     if (!overlay) return;
- 
+
     const s = TUTORIAL_STEPS[tutorialStep];
     stepEl.textContent = `Шаг ${tutorialStep + 1} / ${TUTORIAL_STEPS.length}`;
     titleEl.textContent = s.title;
@@ -2064,7 +2093,7 @@
     btn.textContent = tutorialStep < TUTORIAL_STEPS.length - 1 ? 'Далее' : 'Начать игру';
     overlay.style.display = 'flex';
   }
- 
+
   function nextTutorialStep(){
     tutorialStep++;
     if (tutorialStep >= TUTORIAL_STEPS.length){
@@ -2076,7 +2105,8 @@
     }
     showTutorialStep();
   }
- 
+
+  // ===== CUSTOMIZATION FUNCTIONS =====
   function openCustomize(){
     const overlay = document.getElementById('customizeOverlay');
     const input = document.getElementById('companyNameInput');
@@ -2097,11 +2127,11 @@
     });
     overlay.style.display = 'flex';
   }
- 
+
   function closeCustomize(){
     document.getElementById('customizeOverlay').style.display = 'none';
   }
- 
+
   function saveCustomize(){
     const input = document.getElementById('companyNameInput');
     if (input && input.value.trim()) companyName = input.value.trim().slice(0,20);
@@ -2110,18 +2140,19 @@
     saveProgress();
     sfxClick();
   }
- 
+
+  // ===== CITY MAP RENDER =====
   function renderCityMap(){
     const map = document.getElementById('cityMap');
     if (!map) return;
     map.innerHTML = '';
- 
+
     businesses.forEach((biz, idx)=>{
       const cost = costFor(biz);
       const affordable = capital >= cost;
       const progressPct = Math.max(0, Math.min(100, (capital / cost) * 100));
       const slot = document.createElement('div');
- 
+
       if (!biz.purchased){
         slot.className = 'building-slot locked' + (affordable ? ' affordable' : '');
         slot.innerHTML = `
@@ -2141,9 +2172,9 @@
           <div class="building-progress"><div class="building-progress-fill" style="width:${progressPct}%"></div></div>
         `;
       }
- 
+
       if (biz.id === flashBizId) slot.classList.add('flash');
- 
+
       slot.addEventListener('click', (e)=>{
         if (!biz.purchased){
           const c = costFor(biz);
@@ -2165,17 +2196,24 @@
           openBizModal(biz);
         }
       });
- 
+
       map.appendChild(slot);
     });
   }
- 
+
+  // ---------- Save / Load (Firebase Firestore) ----------
+// ---------- Save / Load (Firebase Firestore) ----------
+
   async function loadProgress(){
     try{
       const ref = window.__docRef(window.__db, 'players', String(userId));
       const snap = await window.__getDoc(ref);
       if (snap.exists()){
         const data = snap.data();
+        if (data.companyName) companyName = data.companyName;
+        if (data.emblem) emblem = data.emblem;
+        if (data.soundEnabled !== undefined) soundEnabled = data.soundEnabled;
+        if (data.tutorialSeen === false) tutorialActive = true;
         capital = data.capital ?? capital;
         totalEarned = data.totalEarned ?? totalEarned;
         lastLoginDate = data.lastLoginDate ?? lastLoginDate;
@@ -2192,6 +2230,9 @@
             EXTRA_BIZ_KEYS.forEach(k=>{ if (saved[k] !== undefined) b[k] = saved[k]; });
           }
         });
+        // Back-compat: saves made before the purchased-lock feature existed
+        // only have `level`. Any business with a level already earned income,
+        // so treat it as purchased instead of relocking it.
         businesses.forEach(b=>{ if (b.level > 0) b.purchased = true; });
         (data.assets || []).forEach(saved=>{
           const a = assets.find(x=>x.id === saved.id);
@@ -2202,20 +2243,24 @@
         });
         return data.lastSeen;
       }
-    } catch(e){ console.error('Load failed', e); }
+    } catch(e){ ; }
     return null;
   }
- 
+
   function currentPlayerName(){
     const user = tgUser();
     return user?.first_name || ('Игрок' + String(userId).slice(-4));
   }
- 
+
   async function saveProgress(){
     try{
       const ref = window.__docRef(window.__db, 'players', String(userId));
       await window.__setDoc(ref, {
         playerName: currentPlayerName(),
+        companyName,
+        emblem,
+        soundEnabled,
+        tutorialSeen: !tutorialActive,
         capital,
         totalEarned,
         lastLoginDate,
@@ -2235,13 +2280,15 @@
         }),
         lastSeen: Date.now()
       });
-    } catch(e){ console.error('Save failed', e); }
+    } catch(e){}
   }
- 
+
+  // ---------- Game logic ----------
+
   function costFor(biz){
     return Math.round(biz.baseCost * Math.pow(1.2, biz.level));
   }
- 
+
   function incomePerSec(biz){
     if (biz.paused) return 0;
     let income = biz.baseIncome * biz.level;
@@ -2264,7 +2311,7 @@
     income *= (1 + itemsBonusPct(biz) / 100);
     return income;
   }
- 
+
   function totalIncome(){
     let sum = businesses.reduce((s,b)=> s + incomePerSec(b), 0);
     const apartment = assets.find(a=>a.id === 'apartment');
@@ -2273,9 +2320,12 @@
     if (car.status === 'kept') sum += assetIncome(car);
     return sum;
   }
- 
+
+  // K/M/B abbreviation kicks in above ₽1,000 — needed because day-scaled
+  // income (rate * GAME_DAY_SECONDS) routinely lands in the millions/billions once
+  // businesses are earning realistic sums.
   const FMT_UNITS = [[1e9, 'B'], [1e6, 'M'], [1e3, 'K']];
- 
+
   function fmt(n){
     const sign = n < 0 ? '-' : '';
     const abs = Math.floor(Math.abs(n));
@@ -2288,20 +2338,22 @@
       }
     }
   }
- 
+
   function rankFor(inc){
     if (inc >= 500) return 'Магнат';
     if (inc >= 100) return 'Инвестор';
     if (inc >= 20) return 'Предприниматель';
     return 'Новичок';
   }
- 
+
   function renderRank(){
     document.getElementById('rankLabel').textContent = rankFor(totalIncome());
   }
- 
+
+  // Set right before a renderAll() triggered by a purchase/upgrade so the
+  // freshly-rebuilt card for that business gets a one-shot "bought" flash.
   let flashBizId = null;
- 
+
   function renderList(){
     const list = document.getElementById('bizList');
     list.innerHTML = '';
@@ -2311,7 +2363,7 @@
       const progressPct = Math.max(0, Math.min(100, (capital / cost) * 100));
       const card = document.createElement('div');
       const progressBar = `<div class="biz-progress"><div class="biz-progress-fill" style="width:${progressPct}%"></div></div>`;
- 
+
       if (!biz.purchased){
         card.className = 'biz-card biz-card-locked';
         card.innerHTML = `
@@ -2342,18 +2394,18 @@
           ${progressBar}
         `;
       }
- 
+
       if (biz.id === flashBizId) card.classList.add('bought-flash');
- 
+
       card.addEventListener('click', (e)=>{
         if (e.target.closest('.buy-btn')) return;
         if (!biz.purchased) return;
         openBizModal(biz);
       });
- 
+
       list.appendChild(card);
     });
- 
+
     list.querySelectorAll('.buy-btn').forEach(btn=>{
       btn.addEventListener('click', (e)=>{
         e.stopPropagation();
@@ -2376,7 +2428,7 @@
       });
     });
   }
- 
+
   function renderAssets(){
     const list = document.getElementById('assetList');
     if (!list) return;
@@ -2404,7 +2456,7 @@
       });
       list.appendChild(card);
     });
- 
+
     list.querySelectorAll('.asset-sell-btn').forEach(btn=>{
       btn.addEventListener('click', (e)=>{
         e.stopPropagation();
@@ -2417,9 +2469,11 @@
       });
     });
   }
- 
+
+  // ---------- Asset detail modal (apartment renovation, car maintenance) ----------
+
   let currentModalAsset = null;
- 
+
   function drawAssetModalBody(asset){
     const body = document.getElementById('assetModalBody');
     const cfg = assetModalContent(asset);
@@ -2451,7 +2505,7 @@
       });
     }
   }
- 
+
   function openAssetModal(asset){
     currentModalAsset = asset;
     document.getElementById('assetModalIcon').innerHTML = `<img src="images/${asset.id}.jpg" alt="">`;
@@ -2459,21 +2513,25 @@
     drawAssetModalBody(asset);
     document.getElementById('assetModalOverlay').style.display = 'flex';
   }
- 
+
   function closeAssetModal(){
     document.getElementById('assetModalOverlay').style.display = 'none';
     currentModalAsset = null;
   }
- 
+
   document.getElementById('assetModalClose').addEventListener('click', closeAssetModal);
   document.getElementById('assetModalOverlay').addEventListener('click', (e)=>{
     if (e.target.id === 'assetModalOverlay') closeAssetModal();
   });
- 
+
+  // ---------- Business detail modal & per-business mechanics ----------
+
   function randRange(min, max){
     return min + Math.random() * (max - min);
   }
- 
+
+  // Shared by any business' one-time permanent upgrade (dry-clean, barista,
+  // new menu, chef, ...): shows a buy button until purchased, then a status line.
   function setupOneTimeUpgrade(container, selector, biz, flagKey, cost, statusText, buyLabel){
     const area = container.querySelector(selector);
     if (biz[flagKey]){
@@ -2493,7 +2551,10 @@
       });
     }
   }
- 
+
+  // Shared by any business' temporary x2 income boost (rainy day, morning
+  // rush, ...): all boosts reuse the biz.boostUntil/boostReadyAt fields since
+  // each business object has its own copy of those properties.
   function setupBoostButton(btn, biz, durationMs, cooldownMs, activeLabel){
     const now = Date.now();
     if (biz.boostUntil && now < biz.boostUntil){
@@ -2520,7 +2581,11 @@
       refreshBizModal();
     };
   }
- 
+
+  // Generic mechanics (permanent upgrade + timed boost + random event) applied
+  // to every business whose id isn't in BUSINESS_MECHANICS below, keyed by
+  // the business' `category`. Numbers scale off that business' own
+  // baseCost/baseIncome so they stay proportional at any price tier.
   const CATEGORY_MECHANICS = {
     retail: {
       upgradeIcon:'🏗', upgradeName:'Расширение торгового зала',
@@ -2583,10 +2648,13 @@
       eventFastLabel:'Нанять безопасников',
     },
   };
- 
+
+  // Shared numeric ramp for every business' 10-item equipment list (fraction
+  // of baseCost per item, cumulative % income bonus per item). Only the
+  // flavor names differ per category.
   const ITEM_COST_RAMP = [0.03, 0.05, 0.08, 0.12, 0.18, 0.26, 0.36, 0.5, 0.68, 0.9];
   const ITEM_BONUS_RAMP = [2, 3, 4, 5, 6, 8, 10, 12, 15, 18];
- 
+
   const ITEM_NAMES = {
     retail: ['Новая вывеска','Кассовый терминал','Вторая касса','Расширение ассортимента','Система видеонаблюдения','Ремонт торгового зала','Программа лояльности','Автоматизация склада','Франшизная лицензия','Флагманский ремонт'],
     services: ['Новое рабочее место','CRM-система записи','Обучение сотрудников','Расширение зала ожидания','Брендированная форма','Дополнительный специалист','Сертификация качества','Программа лояльности','Второй филиал в здании','Премиум-ремонт интерьера'],
@@ -2599,23 +2667,23 @@
     transport: ['Новая машина в парк','GPS-трекинг','Второй водитель','Логистический софт','Реклама на бортах','Расширение маршрутов','Топливные карты','Страхование парка','Второй гараж','Флагманский автопарк'],
     it: ['Новый сервер','Мониторинг 24/7','Дополнительный разработчик','CI/CD пайплайн','Маркетинг продукта','Масштабирование инфраструктуры','Сертификация безопасности','R&D отдел','Экспансия на новый рынок','Флагманский релиз'],
   };
- 
+
   const ITEM_TEMPLATES = {};
   Object.keys(ITEM_NAMES).forEach(cat=>{
     ITEM_TEMPLATES[cat] = ITEM_NAMES[cat].map((name, i)=>({
       name, costMult: ITEM_COST_RAMP[i], bonusPct: ITEM_BONUS_RAMP[i],
     }));
   });
- 
+
   function itemsFor(biz){
     return ITEM_TEMPLATES[biz.category] || ITEM_TEMPLATES.services;
   }
- 
+
   function itemsBonusPct(biz){
     const list = itemsFor(biz);
     return (biz.items || []).reduce((sum, idx)=> sum + (list[idx]?.bonusPct || 0), 0);
   }
- 
+
   const BUSINESS_MECHANICS = {
     wash: {
       render(biz, container){
@@ -2690,7 +2758,9 @@
       }
     }
   };
- 
+
+  // Sum of every level-up cost paid so far (levels 0..level-1), used to
+  // compute the 40% sell refund.
   function totalSpentOn(biz){
     let spent = 0;
     for (let lvl = 0; lvl < biz.level; lvl++){
@@ -2698,7 +2768,9 @@
     }
     return spent;
   }
- 
+
+  // Sell/pause controls, appended below whatever mechanics content a business
+  // has (or the placeholder). Available for any purchased business.
   function renderBizActions(biz, container){
     const refund = Math.floor(totalSpentOn(biz) * 0.4);
     const wrap = document.createElement('div');
@@ -2709,7 +2781,7 @@
       <button class="mechanic-btn danger" id="sellBizBtn">Продать бизнес за ${fmt(refund)}</button>
     `;
     container.appendChild(wrap);
- 
+
     wrap.querySelector('#pauseBizBtn').addEventListener('click', ()=>{
       biz.paused = !biz.paused;
       if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
@@ -2717,7 +2789,7 @@
       saveProgress();
       refreshBizModal();
     });
- 
+
     wrap.querySelector('#sellBizBtn').addEventListener('click', ()=>{
       if (!confirm(`Продать «${biz.name}»? Вы получите ${fmt(refund)} (40% от вложенного), уровень и апгрейды бизнеса будут сброшены.`)) return;
       capital += refund;
@@ -2730,7 +2802,9 @@
       closeBizModal();
     });
   }
- 
+
+  // Generic upgrade + boost + event mechanics for the 57 businesses without a
+  // bespoke BUSINESS_MECHANICS entry, flavored by CATEGORY_MECHANICS[biz.category].
   function renderGenericMechanics(biz, container){
     const cm = CATEGORY_MECHANICS[biz.category] || CATEGORY_MECHANICS.services;
     const upgradeCost = Math.round(biz.baseCost * 0.5);
@@ -2756,7 +2830,9 @@
     setupBoostButton(container.querySelector('#genBoostBtn'), biz, 60 * 1000, 5 * 60 * 1000,
       `Запустить: ${cm.boostName} (x2 на 60 сек)`);
   }
- 
+
+  // Equipment list shown for every business (all 60) — a purchasable-item
+  // layer on top of level/upgrade/boost, applying flat cumulative % bonuses.
   function renderItemsSection(biz, container){
     const list = itemsFor(biz);
     const owned = biz.items || [];
@@ -2778,7 +2854,7 @@
     }).join('');
     wrap.innerHTML = `<div class="mechanic-title">🧰 Оборудование</div>${rows}`;
     container.appendChild(wrap);
- 
+
     wrap.querySelectorAll('.item-buy-btn').forEach(btn=>{
       btn.addEventListener('click', ()=>{
         const idx = Number(btn.dataset.idx);
@@ -2794,7 +2870,7 @@
       });
     });
   }
- 
+
   function drawBizModalBody(biz){
     const body = document.getElementById('bizModalBody');
     if (BUSINESS_MECHANICS[biz.id]){
@@ -2805,15 +2881,15 @@
     renderItemsSection(biz, body);
     if (biz.purchased) renderBizActions(biz, body);
   }
- 
+
   let bizModalInterval = null;
   let currentModalBiz = null;
- 
+
   function refreshBizModal(){
     if (!currentModalBiz) return;
     drawBizModalBody(currentModalBiz);
   }
- 
+
   function openBizModal(biz){
     currentModalBiz = biz;
     document.getElementById('bizModalIcon').innerHTML = `<img src="images/${biz.id}.jpg" alt="" onerror="this.outerHTML='${biz.icon}'">`;
@@ -2823,30 +2899,35 @@
     clearInterval(bizModalInterval);
     bizModalInterval = setInterval(refreshBizModal, 1000);
   }
- 
+
   function closeBizModal(){
     document.getElementById('bizModalOverlay').style.display = 'none';
     clearInterval(bizModalInterval);
     bizModalInterval = null;
     currentModalBiz = null;
   }
- 
+
   document.getElementById('bizModalClose').addEventListener('click', closeBizModal);
   document.getElementById('bizModalOverlay').addEventListener('click', (e)=>{
     if (e.target.id === 'bizModalOverlay') closeBizModal();
   });
- 
+
+  // ---------- Per-business random events ----------
+  // Generic scheduler: each business owns a timestamp field (e.g. ecoCheckAt)
+  // for when its next random event may trigger. Only one event overlay shows
+  // at a time; new checks are skipped while one (or the detail modal) is open.
+
   let eventOverlayOpen = false;
- 
+
   function scheduleEvent(biz, field, minMs, maxMs){
     biz[field] = Date.now() + randRange(minMs, maxMs);
   }
- 
+
   function hideOverlay(id){
     eventOverlayOpen = false;
     document.getElementById(id).style.display = 'none';
   }
- 
+
   function showEcoOverlay(biz){
     eventOverlayOpen = true;
     document.getElementById('ecoOverlay').style.display = 'flex';
@@ -2854,7 +2935,7 @@
     const bribeBtn = document.getElementById('ecoBribe');
     payBtn.disabled = capital < 300;
     bribeBtn.disabled = capital < 150;
- 
+
     payBtn.onclick = ()=>{
       if (capital < 300) return;
       capital -= 300;
@@ -2876,13 +2957,13 @@
       saveProgress();
     };
   }
- 
+
   function showKioskBreakOverlay(biz){
     eventOverlayOpen = true;
     document.getElementById('kioskBreakOverlay').style.display = 'flex';
     const fixBtn = document.getElementById('kioskFixBtn');
     fixBtn.disabled = capital < 80;
- 
+
     fixBtn.onclick = ()=>{
       if (capital < 80) return;
       capital -= 80;
@@ -2900,13 +2981,13 @@
       saveProgress();
     };
   }
- 
+
   function showCafeReviewOverlay(biz){
     eventOverlayOpen = true;
     document.getElementById('cafeReviewOverlay').style.display = 'flex';
     const fixBtn = document.getElementById('cafeFixBtn');
     fixBtn.disabled = capital < 200;
- 
+
     fixBtn.onclick = ()=>{
       if (capital < 200) return;
       capital -= 200;
@@ -2924,13 +3005,15 @@
       saveProgress();
     };
   }
- 
+
   const RANDOM_EVENTS = [
     { bizId:'wash', field:'ecoCheckAt', minGap:120000, maxGap:180000, show:showEcoOverlay },
     { bizId:'kiosk', field:'breakCheckAt', minGap:120000, maxGap:180000, show:showKioskBreakOverlay },
     { bizId:'cafe', field:'reviewCheckAt', minGap:180000, maxGap:240000, show:showCafeReviewOverlay },
   ];
- 
+
+  // Shared overlay for every business event NOT covered by the three bespoke
+  // ones above, flavored by CATEGORY_MECHANICS[biz.category].
   function showGenericEventOverlay(biz){
     const cm = CATEGORY_MECHANICS[biz.category] || CATEGORY_MECHANICS.services;
     const fastCost = Math.round(biz.baseCost * 0.02);
@@ -2944,7 +3027,7 @@
     fastBtn.disabled = capital < fastCost;
     slowBtn.textContent = 'Подождать (простой 3 минуты)';
     document.getElementById('genericEventOverlay').style.display = 'flex';
- 
+
     fastBtn.onclick = ()=>{
       if (capital < fastCost) return;
       capital -= fastCost;
@@ -2962,12 +3045,13 @@
       saveProgress();
     };
   }
- 
+
+  // Same shared overlay, reused for the apartment flood / car accident events.
   function scheduleAssetEvent(asset, cfg){
     const mult = asset[cfg.upgradeFlag] ? 2 : 1;
     asset[cfg.eventCheckField] = Date.now() + randRange(cfg.eventGapMin * mult, cfg.eventGapMax * mult);
   }
- 
+
   function showAssetEventOverlay(asset){
     const cfg = assetModalContent(asset);
     eventOverlayOpen = true;
@@ -2980,7 +3064,7 @@
     fastBtn.disabled = capital < cfg.eventFastCost;
     slowBtn.textContent = cfg.eventSlowLabel;
     document.getElementById('genericEventOverlay').style.display = 'flex';
- 
+
     fastBtn.onclick = ()=>{
       if (capital < cfg.eventFastCost) return;
       capital -= cfg.eventFastCost;
@@ -2998,7 +3082,7 @@
       saveProgress();
     };
   }
- 
+
   function checkRandomEvents(){
     if (eventOverlayOpen || document.getElementById('bizModalOverlay').style.display === 'flex') return;
     for (const cfg of RANDOM_EVENTS){
@@ -3013,6 +3097,7 @@
         return;
       }
     }
+    // Generic per-category events for the other 57 businesses.
     for (const biz of businesses){
       if (BUSINESS_MECHANICS[biz.id]) continue;
       if (!biz.purchased || biz.level <= 0 || biz.paused) continue;
@@ -3025,6 +3110,7 @@
         return;
       }
     }
+    // Apartment flood / car accident.
     for (const asset of assets){
       if (asset.status !== 'kept') continue;
       const cfg = assetModalContent(asset);
@@ -3038,7 +3124,7 @@
       }
     }
   }
- 
+
   function renderCapital(pulse=false){
     const el = document.getElementById('capitalValue');
     el.textContent = fmt(capital);
@@ -3048,33 +3134,36 @@
       setTimeout(()=> el.classList.remove('pulse'), 380);
     }
   }
- 
+
+  // ---------- Profile ----------
+
   function tgUser(){
     return tg?.initDataUnsafe?.user || null;
   }
- 
+
   function renderProfile(){
     const user = tgUser();
     const name = user ? [user.first_name, user.last_name].filter(Boolean).join(' ') || user.username || 'Игрок' : 'Игрок';
-    const initial = name.trim().charAt(0).toUpperCase() || '●';
- 
-    document.getElementById('profileName').textContent = name;
-    document.getElementById('profileAvatar').textContent = initial;
+
+    document.getElementById('profileName').textContent = companyName || name;
+    document.getElementById('profileAvatar').textContent = emblem || '●';
     document.getElementById('profileRank').textContent = rankFor(totalIncome());
- 
+
     document.getElementById('statCapital').textContent = fmt(capital);
     document.getElementById('statIncome').textContent = fmt(totalIncome() * GAME_DAY_SECONDS);
     document.getElementById('statEarned').textContent = fmt(totalEarned);
     document.getElementById('statBizCount').textContent = businesses.filter(b=>b.purchased).length;
- 
+
     document.getElementById('referralLinkText').textContent = referralLink();
     document.getElementById('referralCountText').textContent = `Приглашено друзей: ${referralCount}`;
   }
- 
+
+  // ---------- Referrals & sharing ----------
+
   function referralLink(){
     return `https://t.me/ImperiaBusinessBot/play?startapp=REF_${userId}`;
   }
- 
+
   document.getElementById('copyReferralBtn').addEventListener('click', async ()=>{
     const btn = document.getElementById('copyReferralBtn');
     try{
@@ -3084,10 +3173,10 @@
       btn.textContent = 'Скопировано!';
       setTimeout(()=>{ btn.textContent = old; }, 1500);
     } catch(e){
-      console.error('Copy failed', e);
+      
     }
   });
- 
+
   document.getElementById('shareBtn').addEventListener('click', ()=>{
     const text = `Я построил бизнес-империю на ${fmt(capital)} в игре Империя! 🏆`;
     const url = referralLink();
@@ -3099,20 +3188,22 @@
       navigator.clipboard?.writeText(`${text} ${url}`);
     }
   });
- 
+
+  // Credits the referral bonus once, the first time a new player opens the
+  // game through another player's link (tg start_param = REF_<referrerId>).
   async function checkReferral(){
     if (referredBy) return;
     const startParam = tg?.initDataUnsafe?.start_param;
     if (!startParam || !startParam.startsWith('REF_')) return;
     const referrerId = startParam.slice(4);
     if (!referrerId || referrerId === String(userId)) return;
- 
+
     referredBy = referrerId;
     capital += 300;
     totalEarned += 300;
     renderAll();
     saveProgress();
- 
+
     try{
       const refRef = window.__docRef(window.__db, 'players', referrerId);
       const refSnap = await window.__getDoc(refRef);
@@ -3123,9 +3214,11 @@
           referralCount: (refData.referralCount || 0) + 1,
         }, { merge: true });
       }
-    } catch(e){ console.error('Referral credit failed', e); }
+    } catch(e){  }
   }
- 
+
+  // ---------- Rating (real Firestore leaderboard, top 20 by capital) ----------
+
   async function renderRating(){
     const list = document.getElementById('ratingList');
     list.innerHTML = `<div class="rating-note">Загрузка рейтинга...</div>`;
@@ -3145,7 +3238,7 @@
           isMe: docSnap.id === String(userId),
         });
       });
- 
+
       list.innerHTML = '';
       if (rows.length === 0){
         list.innerHTML = `<div class="rating-note">Пока никто не сыграл — стань первым в рейтинге!</div>`;
@@ -3165,13 +3258,15 @@
         list.appendChild(el);
       });
     } catch(e){
-      console.error('Rating load failed', e);
+      ;
       list.innerHTML = `<div class="rating-note">Не удалось загрузить рейтинг.</div>`;
     }
   }
- 
+
+  // ---------- Views ----------
+
   const NAV_ORDER = ['business', 'assets', 'work', 'profile'];
- 
+
   function switchView(name){
     document.querySelectorAll('#app .view').forEach(v=>{
       v.classList.toggle('active', v.id === 'view-' + name);
@@ -3185,15 +3280,17 @@
     if (name === 'work') renderJob();
     if (name === 'profile'){ renderProfile(); renderRating(); }
   }
- 
+
   document.querySelectorAll('.nav-item').forEach(btn=>{
     btn.addEventListener('click', ()=> switchView(btn.dataset.view));
   });
- 
+
+  // ---------- Inheritance screen ----------
+
   function inheritanceDone(){
     return assets.every(a => a.status === 'sold' || a.status === 'kept');
   }
- 
+
   function renderInheritance(){
     const list = document.getElementById('inheritanceList');
     list.innerHTML = '';
@@ -3219,7 +3316,7 @@
       `;
       list.appendChild(card);
     });
- 
+
     list.querySelectorAll('.choice-btn').forEach(btn=>{
       btn.addEventListener('click', ()=>{
         const asset = assets.find(a=>a.id === btn.dataset.id);
@@ -3229,10 +3326,10 @@
         document.getElementById('inheritanceContinue').disabled = !inheritanceDone();
       });
     });
- 
+
     document.getElementById('inheritanceContinue').disabled = !inheritanceDone();
   }
- 
+
   document.getElementById('inheritanceContinue').addEventListener('click', ()=>{
     assets.forEach(asset=>{
       if (asset.status === 'sold') capital += asset.sellValue;
@@ -3242,15 +3339,17 @@
     checkReferral();
     checkDailyReward();
   });
- 
+
   function enterApp(){
     document.getElementById('bootScreen').style.display = 'none';
     document.getElementById('view-inheritance').classList.remove('active');
     document.getElementById('view-inheritance').style.display = 'none';
     document.getElementById('app').style.display = '';
     renderAll();
+    if (tutorialActive) startTutorial();
+    else if (Math.random() < 0.3) showMentor();
   }
- 
+
   function showInheritance(){
     document.getElementById('bootScreen').style.display = 'none';
     document.getElementById('app').style.display = 'none';
@@ -3258,11 +3357,15 @@
     document.getElementById('view-inheritance').classList.add('active');
     renderInheritance();
   }
- 
+
+  // ---------- Offline income ----------
+  // Normally offline income is paid at 30%. Cafe's "hire a chef" upgrade lifts
+  // that penalty to 100% for cafe's own share of the income.
+
   function checkOfflineIncome(lastSeen){
     if (!lastSeen) return false;
     const secondsAway = Math.min((Date.now() - lastSeen) / 1000, 6 * 3600);
- 
+
     let ratePerSec = 0;
     businesses.forEach(b=>{
       const mult = (b.id === 'cafe' && b.hasChef) ? 1 : 0.3;
@@ -3272,7 +3375,7 @@
     if (apartment.status === 'kept') ratePerSec += assetIncome(apartment) * 0.3;
     const car = assets.find(a=>a.id === 'car');
     if (car.status === 'kept') ratePerSec += assetIncome(car) * 0.3;
- 
+
     const earned = Math.floor(ratePerSec * secondsAway);
     if (earned > 10){
       capital += earned;
@@ -3286,20 +3389,27 @@
     }
     return false;
   }
- 
+
   document.getElementById('offlineClaim').addEventListener('click', ()=>{
     document.getElementById('offlineOverlay').style.display = 'none';
     saveProgress();
     checkDailyReward();
   });
- 
+
+  // ---------- Jobs ("go to work") ----------
+  // Five professions, unlocked as capital grows. Each has its own cooldown
+  // stored as a "ready at" timestamp in jobReadyAt so it survives a reload.
+
   function formatDuration(ms){
     const s = Math.round(ms / 1000);
     if (s < 60) return `${s} сек`;
     if (s % 60 === 0) return `${s / 60} мин`;
     return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')} мин`;
   }
- 
+
+  // Per-profession risk/bonus mini-mechanic applied on payout in goToWork().
+  // Each is optional: a chance of a bonus multiplier and/or a chance of a
+  // penalty multiplier (independent rolls, penalty checked first).
   const JOB_RISKS = {
     cleaner: { bonusChance:0.15, bonusMult:1.5, bonusLabel:'🍀 Нашли забытые чаевые!' },
     courier: { bonusChance:0.2, bonusMult:2, bonusLabel:'💰 Щедрые чаевые x2!' },
@@ -3313,26 +3423,28 @@
     consultant: { penaltyChance:0.12, penaltyMult:0.3, penaltyLabel:'📉 Клиент передумал в последний момент' },
     lawyer: { penaltyChance:0.15, penaltyMult:0.4, penaltyLabel:'⚖ Дело проиграно', bonusChance:0.15, bonusMult:2, bonusLabel:'⚖ Дело выиграно — бонус!' },
   };
- 
+
   function riskHintText(risk){
     const parts = [];
     if (risk.bonusChance) parts.push(`${Math.round(risk.bonusChance * 100)}% шанс x${risk.bonusMult}`);
     if (risk.penaltyChance) parts.push(`${Math.round(risk.penaltyChance * 100)}% шанс потерь`);
     return parts.join(' · ');
   }
- 
+
+  // Transient result of the last goToWork() payout, shown under the job card
+  // for a couple seconds (cleared automatically once `until` passes).
   let jobOutcome = null;
- 
+
   function renderJob(){
     const list = document.getElementById('jobList');
     if (!list) return;
     list.innerHTML = '';
     const now = Date.now();
- 
+
     jobs.forEach(job=>{
       const unlocked = capital >= job.unlockAt;
       const card = document.createElement('div');
- 
+
       if (!unlocked){
         card.className = 'asset-card biz-card-locked';
         card.innerHTML = `
@@ -3376,21 +3488,21 @@
       }
       list.appendChild(card);
     });
- 
+
     list.querySelectorAll('.job-go-btn').forEach(btn=>{
       btn.addEventListener('click', ()=> goToWork(btn.dataset.id));
     });
   }
- 
+
   function goToWork(jobId){
     const job = jobs.find(j=>j.id === jobId);
     if (!job || capital < job.unlockAt) return;
     const now = Date.now();
     const readyAt = jobReadyAt[job.id] || 0;
     if (readyAt && now < readyAt) return;
- 
+
     if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
- 
+
     const tap = jobTaps[jobId];
     const count = (tap && now < tap.expiresAt) ? tap.count + 1 : 1;
     if (count < TAPS_REQUIRED){
@@ -3398,7 +3510,7 @@
       renderJob();
       return;
     }
- 
+
     delete jobTaps[jobId];
     let pay = Math.round(randRange(job.minPay, job.maxPay));
     const risk = JOB_RISKS[jobId];
@@ -3417,40 +3529,44 @@
     renderAll();
     saveProgress();
   }
- 
+
+  // ---------- Daily login rewards ----------
+  // Streak resets unless the player returns on the very next calendar day.
+  // Every completed 7-day cycle multiplies the whole reward table by x1.5.
+
   const DAILY_REWARDS = [50, 75, 120, 180, 260, 380, 600];
- 
+
   function todayStr(){
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   }
- 
+
   function daysBetween(a, b){
     return Math.round((new Date(b + 'T00:00:00') - new Date(a + 'T00:00:00')) / 86400000);
   }
- 
+
   function rewardForStreak(streak){
     const cycle = Math.floor((streak - 1) / 7);
     const dayInCycle = (streak - 1) % 7;
     return Math.round(DAILY_REWARDS[dayInCycle] * Math.pow(1.5, cycle));
   }
- 
+
   function checkDailyReward(){
     const today = todayStr();
     if (lastLoginDate === today) return;
- 
+
     loginStreak = (lastLoginDate && daysBetween(lastLoginDate, today) === 1) ? loginStreak + 1 : 1;
     lastLoginDate = today;
- 
+
     const reward = rewardForStreak(loginStreak);
     const dayInCycle = ((loginStreak - 1) % 7) + 1;
     const cycle = Math.floor((loginStreak - 1) / 7) + 1;
- 
+
     document.getElementById('dailyRewardDay').textContent = cycle > 1 ? `День ${dayInCycle} (круг ${cycle})` : `День ${dayInCycle}`;
     document.getElementById('dailyRewardStreak').textContent = `Серия входов: ${loginStreak}`;
     document.getElementById('dailyRewardAmount').textContent = `+${fmt(reward)}`;
     document.getElementById('dailyRewardOverlay').style.display = 'flex';
- 
+
     document.getElementById('dailyRewardClaim').onclick = ()=>{
       capital += reward;
       totalEarned += reward;
@@ -3459,7 +3575,11 @@
       saveProgress();
     };
   }
- 
+
+  // ---------- Live clock ----------
+  // Just a live time/date readout for now (no gameplay effect) — a basis for
+  // a future day/night visual cycle.
+
   function renderClock(){
     const el = document.getElementById('headerClock');
     if (!el) return;
@@ -3470,17 +3590,20 @@
   }
   renderClock();
   setInterval(renderClock, 1000);
- 
+
+  // ---------- Main render / loop ----------
+
   function renderAll(){
     renderCapital();
     renderAssets();
     renderCityMap();
     renderRank();
     renderJob();
+    renderQuests();
     const activeView = document.querySelector('#app .view.active')?.id?.replace('view-', '');
     if (activeView === 'profile'){ renderProfile(); renderRating(); }
   }
- 
+
   document.getElementById('resetBtn').addEventListener('click', ()=>{
     if (!confirm('Точно сбросить весь прогресс?')) return;
     capital = 15000;
@@ -3497,11 +3620,34 @@
     saveProgress();
     showInheritance();
   });
- 
+
+  // New UI event listeners
+  const soundBtn = document.getElementById('soundBtn');
+  if (soundBtn){
+    soundBtn.addEventListener('click', ()=>{
+      soundEnabled = !soundEnabled;
+      soundBtn.textContent = soundEnabled ? '🔊' : '🔇';
+      soundBtn.classList.toggle('active', soundEnabled);
+      if (soundEnabled) sfxClick();
+    });
+  }
+
+  const tutorialNext = document.getElementById('tutorialNext');
+  if (tutorialNext) tutorialNext.addEventListener('click', nextTutorialStep);
+
+  const customizeBtn = document.getElementById('customizeBtn');
+  if (customizeBtn) customizeBtn.addEventListener('click', openCustomize);
+
+  const customizeClose = document.getElementById('customizeClose');
+  if (customizeClose) customizeClose.addEventListener('click', closeCustomize);
+
+  const saveCustomizeBtn = document.getElementById('saveCustomize');
+  if (saveCustomizeBtn) saveCustomizeBtn.addEventListener('click', saveCustomize);
+
   setInterval(saveProgress, 10000);
   document.addEventListener('visibilitychange', ()=>{ if (document.hidden) saveProgress(); });
   window.addEventListener('beforeunload', saveProgress);
- 
+
   setInterval(()=>{
     if (!inheritanceDone()) return;
     const gain = totalIncome();
@@ -3509,16 +3655,25 @@
       capital += gain;
       totalEarned += gain;
       renderCapital(true);
-      renderCityMap();
+      // Lightweight: update only progress bars, not full map rebuild
+      const slots = document.querySelectorAll('.building-slot');
+      slots.forEach((slot, i)=>{
+        const biz = businesses[i];
+        if (!biz || biz.purchased) return;
+        const bar = slot.querySelector('.building-progress-fill');
+        if (bar){
+          const cost = costFor(biz);
+          bar.style.width = Math.max(0, Math.min(100, (capital / cost) * 100)) + '%';
+        }
+      });
       renderRank();
       const activeView = document.querySelector('#app .view.active')?.id?.replace('view-', '');
       if (activeView === 'profile') renderProfile();
     }
     renderJob();
     checkRandomEvents();
-    checkQuests();
   }, 1000);
- 
+
   loadProgress().then(lastSeen=>{
     if (inheritanceDone()){
       enterApp();
@@ -3530,7 +3685,6 @@
     }
   });
 </script>
- 
+
 </body>
 </html>
- 
