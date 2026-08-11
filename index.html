@@ -4,757 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Империя</title>
-<script src="https://telegram.org/js/telegram-web-app.js">
-  // ===================== NEW FEATURE DATA =====================
-  let deposits = [];
-  let loans = [];
-  let offshoreUnlocked = false;
-  let hiredManagers = [];
-  let transactionHistory = [];
-  let capitalHistory = [];
-  let clanData = null;
-  let activeAuction = null;
-  let activeBattle = null;
-  let coopBusinesses = [];
-
-  const MANAGERS = [
-    { id: 'm1', name: 'Иван Петров', rarity: 'common', emoji: '👨‍💼', effect: 'Автосбор +5%', cost: 50000 },
-    { id: 'm2', name: 'Анна Смирнова', rarity: 'common', emoji: '👩‍💼', effect: 'Автосбор +5%', cost: 50000 },
-    { id: 'm3', name: 'Сергей Волков', rarity: 'rare', emoji: '🕴️', effect: 'Автосбор +15%', cost: 250000 },
-    { id: 'm4', name: 'Елена Орлова', rarity: 'rare', emoji: '👩‍💻', effect: 'Скорость +20%', cost: 300000 },
-    { id: 'm5', name: 'Дмитрий Медведев', rarity: 'epic', emoji: '🧑‍💼', effect: 'Автосбор +30%', cost: 1500000 },
-    { id: 'm6', name: 'Ольга Лебедева', rarity: 'epic', emoji: '👩‍🎓', effect: 'Все бонусы +25%', cost: 2000000 },
-    { id: 'm7', name: 'Александр Великий', rarity: 'legendary', emoji: '👑', effect: 'Автосбор +50%, x2 доход', cost: 10000000 },
-  ];
-
-  const CLAN_NAMES = ['Золотые Волки', 'Чёрные Орлы', 'Стальные Львы', 'Нефтяные Бароны', 'Кремниевые Тигры'];
-
-  // ===================== 13. QUICK BUY ALL =====================
-  function quickBuyAll() {
-    let bought = 0;
-    let totalCost = 0;
-    for (const b of businesses) {
-      if (!b.purchased) {
-        const c = costFor(b);
-        if (capital >= c) {
-          capital -= c;
-          b.purchased = true;
-          b.level = 1;
-          totalCost += c;
-          bought++;
-        }
-      }
-    }
-    if (bought > 0) {
-      sfxBuy();
-      if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
-      renderAll();
-      saveProgress();
-      checkQuests();
-      checkAchievements();
-      showFloatNum(document.getElementById('capitalValue'), `-${fmt(totalCost)}`, '#c45c5c');
-      addHistory('buy', `Куплено ${bought} бизнесов`, -totalCost);
-    } else {
-      sfxError();
-    }
-  }
-
-  function updateQuickBuyBtn() {
-    const btn = document.getElementById('quickBuyBtn');
-    if (!btn) return;
-    const hasAffordable = businesses.some(b => !b.purchased && capital >= costFor(b));
-    btn.style.display = hasAffordable ? 'flex' : 'none';
-  }
-
-  // ===================== 2. BANK =====================
-  function openBank() {
-    renderBank();
-    document.getElementById('bankOverlay').style.display = 'flex';
-  }
-
-  function renderBank() {
-    // Deposits
-    const depositsContainer = document.getElementById('activeDeposits');
-    if (depositsContainer) {
-      const now = Date.now();
-      let html = '';
-      deposits.forEach((d, i) => {
-        const remaining = Math.max(0, d.endsAt - now);
-        const hours = Math.floor(remaining / 3600000);
-        const mins = Math.floor((remaining % 3600000) / 60000);
-        const profit = Math.round(d.amount * 0.05);
-        html += `<div class="bank-card">
-          <div class="bank-card-title">💰 Вклад #${i+1}</div>
-          <div class="bank-row"><span>Сумма</span><span>${fmt(d.amount)}</span></div>
-          <div class="bank-row"><span>Осталось</span><span>${hours}ч ${mins}м</span></div>
-          <div class="bank-row"><span>Прибыль</span><span style="color:var(--green)">+${fmt(profit)}</span></div>
-          <button class="bank-btn secondary" onclick="closeDeposit(${i})" style="margin-top:8px;">Закрыть досрочно (-10%)</button>
-        </div>`;
-      });
-      depositsContainer.innerHTML = html || '<div style="text-align:center;color:var(--text-dim);padding:20px;">Нет активных вкладов</div>';
-    }
-
-    // Loans
-    const loansContainer = document.getElementById('activeLoans');
-    if (loansContainer) {
-      let html = '';
-      loans.forEach((l, i) => {
-        const daily = Math.round(l.amount * 0.1);
-        html += `<div class="bank-card">
-          <div class="bank-card-title">📋 Кредит #${i+1}</div>
-          <div class="bank-row"><span>Сумма</span><span>${fmt(l.amount)}</span></div>
-          <div class="bank-row"><span>Ежедневный платёж</span><span style="color:var(--red)">-${fmt(daily)}</span></div>
-          <button class="bank-btn" onclick="repayLoan(${i})" style="margin-top:8px;">Погасить (${fmt(l.amount)})</button>
-        </div>`;
-      });
-      loansContainer.innerHTML = html || '<div style="text-align:center;color:var(--text-dim);padding:20px;">Нет активных кредитов</div>';
-    }
-
-    // Offshore
-    const offshoreBtn = document.getElementById('openOffshoreBtn');
-    if (offshoreBtn) {
-      if (offshoreUnlocked) {
-        offshoreBtn.textContent = '✅ Счёт открыт';
-        offshoreBtn.disabled = true;
-      } else if (capital < 100000000) {
-        offshoreBtn.textContent = 'Нужно ₽100M капитала';
-        offshoreBtn.disabled = true;
-      } else {
-        offshoreBtn.textContent = 'Открыть за ₽10M';
-        offshoreBtn.disabled = false;
-      }
-    }
-  }
-
-  function openDeposit() {
-    const input = document.getElementById('depositAmount');
-    const amount = Number(input?.value || 0);
-    if (amount < 100000 || amount > capital) { sfxError(); return; }
-    capital -= amount;
-    deposits.push({ amount, endsAt: Date.now() + 86400000, openedAt: Date.now() });
-    input.value = '';
-    sfxBuy();
-    renderBank();
-    renderAll();
-    saveProgress();
-    addHistory('bank', `Вклад открыт`, -amount);
-  }
-
-  function closeDeposit(index) {
-    const d = deposits[index];
-    const refund = Math.round(d.amount * 0.9);
-    capital += refund;
-    deposits.splice(index, 1);
-    sfxBuy();
-    renderBank();
-    renderAll();
-    saveProgress();
-    addHistory('bank', `Вклад закрыт досрочно`, refund);
-  }
-
-  function takeLoan() {
-    const input = document.getElementById('loanAmount');
-    const amount = Number(input?.value || 0);
-    const maxLoan = Math.floor(capital * 0.5);
-    if (amount <= 0 || amount > maxLoan) { sfxError(); return; }
-    capital += amount;
-    loans.push({ amount, takenAt: Date.now() });
-    input.value = '';
-    sfxBuy();
-    renderBank();
-    renderAll();
-    saveProgress();
-    addHistory('bank', `Кредит получен`, amount);
-  }
-
-  function repayLoan(index) {
-    const l = loans[index];
-    if (capital < l.amount) { sfxError(); return; }
-    capital -= l.amount;
-    loans.splice(index, 1);
-    sfxBuy();
-    renderBank();
-    renderAll();
-    saveProgress();
-    addHistory('bank', `Кредит погашен`, -l.amount);
-  }
-
-  function openOffshore() {
-    if (offshoreUnlocked || capital < 100000000) return;
-    capital -= 10000000;
-    offshoreUnlocked = true;
-    sfxBuy();
-    renderBank();
-    renderAll();
-    saveProgress();
-    addHistory('bank', `Офшорный счёт открыт`, -10000000);
-  }
-
-  // Loan daily payments
-  setInterval(() => {
-    if (loans.length === 0) return;
-    const now = Date.now();
-    const today = todayStr();
-    // Simple: deduct daily payment once per day
-    // In real implementation, track lastLoanPaymentDate
-  }, 60000);
-
-  // ===================== 3. MANAGERS =====================
-  function openManagers() {
-    renderManagers();
-    document.getElementById('managersOverlay').style.display = 'flex';
-  }
-
-  function renderManagers() {
-    const list = document.getElementById('managerList');
-    if (!list) return;
-    let html = '';
-    MANAGERS.forEach(m => {
-      const owned = hiredManagers.includes(m.id);
-      const rarityClass = m.rarity;
-      html += `<div class="manager-card">
-        <div class="manager-avatar ${rarityClass}">${m.emoji}</div>
-        <div class="manager-info">
-          <div class="manager-name">${m.name}</div>
-          <div class="manager-rarity ${rarityClass}">${m.rarity.toUpperCase()}</div>
-          <div class="manager-effect">${m.effect}</div>
-        </div>
-        <button class="manager-hire-btn ${owned ? 'owned' : ''}" ${owned || capital < m.cost ? 'disabled' : ''} onclick="hireManager('${m.id}')">
-          ${owned ? '✅ Нанят' : fmt(m.cost)}
-        </button>
-      </div>`;
-    });
-    list.innerHTML = html;
-  }
-
-  function hireManager(id) {
-    const m = MANAGERS.find(x => x.id === id);
-    if (!m || hiredManagers.includes(id) || capital < m.cost) return;
-    capital -= m.cost;
-    hiredManagers.push(id);
-    sfxBuy();
-    renderManagers();
-    renderAll();
-    saveProgress();
-    addHistory('manager', `Нанят менеджер ${m.name}`, -m.cost);
-  }
-
-  // Manager auto-collect bonus
-  function managerBonus() {
-    let bonus = 1;
-    hiredManagers.forEach(id => {
-      const m = MANAGERS.find(x => x.id === id);
-      if (!m) return;
-      if (m.effect.includes('+5%')) bonus += 0.05;
-      if (m.effect.includes('+15%')) bonus += 0.15;
-      if (m.effect.includes('+20%')) bonus += 0.20;
-      if (m.effect.includes('+30%')) bonus += 0.30;
-      if (m.effect.includes('+50%')) bonus += 0.50;
-      if (m.effect.includes('x2')) bonus *= 2;
-    });
-    return bonus;
-  }
-
-  // ===================== 4. AUCTION =====================
-  function openAuction() {
-    generateAuctionIfNeeded();
-    renderAuction();
-    document.getElementById('auctionOverlay').style.display = 'flex';
-  }
-
-  function generateAuctionIfNeeded() {
-    if (activeAuction && activeAuction.endsAt > Date.now()) return;
-    const rareBiz = businesses.filter(b => !b.purchased && b.baseCost > 10000000);
-    const target = rareBiz.length > 0 ? rareBiz[Math.floor(Math.random() * rareBiz.length)] : businesses[Math.floor(Math.random() * businesses.length)];
-    const discount = 0.5;
-    activeAuction = {
-      bizId: target.id,
-      bizName: target.name,
-      bizIcon: target.icon,
-      baseCost: costFor(target),
-      minBid: Math.floor(costFor(target) * discount),
-      currentBid: Math.floor(costFor(target) * discount),
-      topBidder: null,
-      endsAt: Date.now() + 86400000,
-      myBids: 0,
-    };
-  }
-
-  function renderAuction() {
-    if (!activeAuction) return;
-    const now = Date.now();
-    const remaining = Math.max(0, activeAuction.endsAt - now);
-    const hours = Math.floor(remaining / 3600000);
-    const mins = Math.floor((remaining % 3600000) / 60000);
-    const secs = Math.floor((remaining % 60000) / 1000);
-    document.getElementById('auctionTimer').textContent = `${String(hours).padStart(2,'0')}:${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}`;
-
-    const panel = document.getElementById('auctionPanel');
-    panel.innerHTML = `<div class="auction-item">
-      <div class="auction-item-header">
-        <div class="auction-item-img" style="display:flex;align-items:center;justify-content:center;font-size:32px;background:var(--surface-2);">${activeAuction.bizIcon}</div>
-        <div>
-          <div class="auction-item-name">${activeAuction.bizName}</div>
-          <div class="auction-item-discount">Скидка 50% • Было ${fmt(activeAuction.baseCost)}</div>
-        </div>
-      </div>
-      <div class="auction-bid-row">
-        <input type="number" class="auction-bid-input" id="auctionBidInput" placeholder="Ваша ставка" value="${activeAuction.currentBid + Math.ceil(activeAuction.currentBid * 0.05)}">
-        <button class="auction-bid-btn" onclick="placeBid()">Ставка</button>
-      </div>
-      <div class="auction-current-bid">Текущая ставка: <span>${fmt(activeAuction.currentBid)}</span> ${activeAuction.topBidder ? '(вы лидируете)' : ''}</div>
-    </div>`;
-  }
-
-  function placeBid() {
-    const input = document.getElementById('auctionBidInput');
-    const bid = Number(input?.value || 0);
-    if (bid <= activeAuction.currentBid || bid > capital) { sfxError(); return; }
-    activeAuction.currentBid = bid;
-    activeAuction.topBidder = 'me';
-    activeAuction.myBids = (activeAuction.myBids || 0) + 1;
-    sfxBuy();
-    renderAuction();
-    saveProgress();
-  }
-
-  // Check auction winner every minute
-  setInterval(() => {
-    if (activeAuction && activeAuction.endsAt <= Date.now() && activeAuction.topBidder === 'me') {
-      const biz = businesses.find(b => b.id === activeAuction.bizId);
-      if (biz && !biz.purchased) {
-        capital -= activeAuction.currentBid;
-        biz.purchased = true;
-        biz.level = 1;
-        addHistory('auction', `Выигран аукцион: ${biz.name}`, -activeAuction.currentBid);
-        renderAll();
-        saveProgress();
-      }
-      activeAuction = null;
-    }
-  }, 60000);
-
-  // ===================== 8. CLAN =====================
-  function openClan() {
-    renderClan();
-    document.getElementById('clanOverlay').style.display = 'flex';
-  }
-
-  function renderClan() {
-    const panel = document.getElementById('clanPanel');
-    if (!panel) return;
-    if (!clanData) {
-      panel.innerHTML = `<div class="clan-header">
-        <div class="clan-name">Вы не в синдикате</div>
-        <div style="font-size:12px;color:var(--text-dim);margin-top:8px;">Присоединяйтесь к существующему или создайте свой</div>
-        <button class="bank-btn" style="margin-top:12px;" onclick="createClan()">Создать синдикат (₽1M)</button>
-      </div>
-      <div style="font-size:12px;color:var(--text-dim);text-align:center;padding:10px;">Популярные синдикаты:</div>
-      ${CLAN_NAMES.map((name, i) => `<div class="clan-member" style="cursor:pointer;" onclick="joinClan('${name}')">
-        <div class="clan-member-rank">${i+1}</div>
-        <div class="clan-member-name">${name}</div>
-        <div class="clan-member-contrib">${Math.floor(Math.random()*50+10)} чел</div>
-      </div>`).join('')}`;
-      return;
-    }
-
-    const warTime = clanData.warEndsAt ? Math.max(0, clanData.warEndsAt - Date.now()) : 0;
-    const warHours = Math.floor(warTime / 3600000);
-    const warMins = Math.floor((warTime % 3600000) / 60000);
-
-    panel.innerHTML = `<div class="clan-header">
-      <div class="clan-name">${clanData.name}</div>
-      <div class="clan-stats">
-        <div class="clan-stat"><div class="clan-stat-value">${clanData.members.length}</div><div class="clan-stat-label">участников</div></div>
-        <div class="clan-stat"><div class="clan-stat-value">${fmt(clanData.totalCapital)}</div><div class="clan-stat-label">капитал</div></div>
-        <div class="clan-stat"><div class="clan-stat-value">#${clanData.rank}</div><div class="clan-stat-label">рейтинг</div></div>
-      </div>
-    </div>
-    ${warTime > 0 ? `<div class="clan-war-banner">
-      <div class="clan-war-title">⚔️ Война синдикатов идёт!</div>
-      <div class="clan-war-timer">${warHours}ч ${warMins}м</div>
-      <div style="font-size:11px;color:var(--text-dim);margin-top:4px;">Зарабатывайте больше всех!</div>
-    </div>` : ''}
-    <div style="font-size:12px;font-weight:600;color:var(--gold-light);margin-bottom:8px;">Участники</div>
-    ${clanData.members.map((m, i) => `<div class="clan-member">
-      <div class="clan-member-rank">${i+1}</div>
-      <div class="clan-member-name">${m.name}</div>
-      <div class="clan-member-contrib">${fmt(m.contribution)}</div>
-    </div>`).join('')}`;
-  }
-
-  function createClan() {
-    if (capital < 1000000) { sfxError(); return; }
-    capital -= 1000000;
-    const name = CLAN_NAMES[Math.floor(Math.random() * CLAN_NAMES.length)] + ' ' + Math.floor(Math.random() * 999);
-    clanData = {
-      name,
-      members: [{ name: currentPlayerName(), contribution: totalEarned }],
-      totalCapital: capital,
-      rank: Math.floor(Math.random() * 50) + 1,
-      warEndsAt: Date.now() + 86400000 * 3,
-    };
-    sfxBuy();
-    renderClan();
-    renderAll();
-    saveProgress();
-    addHistory('clan', `Создан синдикат ${name}`, -1000000);
-  }
-
-  function joinClan(name) {
-    clanData = {
-      name,
-      members: [
-        { name: 'Босс', contribution: 50000000 },
-        { name: currentPlayerName(), contribution: totalEarned },
-        { name: 'Альфред', contribution: 20000000 },
-      ],
-      totalCapital: capital + 70000000,
-      rank: Math.floor(Math.random() * 20) + 1,
-      warEndsAt: Date.now() + 86400000 * 2,
-    };
-    sfxBuy();
-    renderClan();
-    saveProgress();
-    addHistory('clan', `Вступление в ${name}`, 0);
-  }
-
-  // ===================== 9. BATTLE =====================
-  function openBattle() {
-    renderBattle();
-    document.getElementById('battleOverlay').style.display = 'flex';
-  }
-
-  function renderBattle() {
-    const panel = document.getElementById('battlePanel');
-    if (!panel) return;
-    if (activeBattle) {
-      const elapsed = Date.now() - activeBattle.startedAt;
-      const remaining = Math.max(0, 3600000 - elapsed);
-      const mins = Math.floor(remaining / 60000);
-      const secs = Math.floor((remaining % 60000) / 1000);
-      panel.innerHTML = `<div class="battle-card">
-        <div style="font-size:12px;color:var(--text-dim);">Битва идёт...</div>
-        <div style="font-size:32px;font-family:var(--font-mono);color:var(--gold-light);margin:10px 0;">${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}</div>
-        <div class="bank-row"><span>Вы</span><span>${fmt(capital)}</span></div>
-        <div class="bank-row"><span>${activeBattle.opponentName}</span><span>${fmt(activeBattle.opponentCapital + Math.floor((Date.now()-activeBattle.startedAt)/1000 * activeBattle.opponentIncome))}</span></div>
-        <div style="font-size:11px;color:var(--text-dim);margin-top:8px;">Ставка: ${fmt(activeBattle.stake)}</div>
-      </div>`;
-      return;
-    }
-
-    panel.innerHTML = `<div class="battle-card">
-      <div style="display:flex;justify-content:space-around;align-items:center;">
-        <div class="battle-player">
-          <div class="battle-player-avatar">${emblem}</div>
-          <div class="battle-player-name">${currentPlayerName()}</div>
-          <div class="battle-player-capital">${fmt(capital)}</div>
-        </div>
-        <div class="battle-vs">VS</div>
-        <div class="battle-player">
-          <div class="battle-player-avatar" style="border-color:var(--red);">🎩</div>
-          <div class="battle-player-name">Соперник</div>
-          <div class="battle-player-capital">???</div>
-        </div>
-      </div>
-      <div class="battle-stake-row" style="margin-top:14px;">
-        <span style="font-size:12px;color:var(--text-dim);">Ставка:</span>
-        <input type="number" class="battle-stake-input" id="battleStake" placeholder="Мин. ₽100K" value="100000">
-      </div>
-      <div style="font-size:11px;color:var(--text-dim);margin-bottom:10px;">Победитель забирает 95% ставки. Комиссия 5%.</div>
-      <button class="battle-btn" onclick="startBattle()">Начать битву</button>
-    </div>`;
-  }
-
-  function startBattle() {
-    const stake = Number(document.getElementById('battleStake')?.value || 0);
-    if (stake < 100000 || stake > capital) { sfxError(); return; }
-    const opponentNames = ['Альфред', 'Виктор', 'Максим', 'Георгий', 'Денис'];
-    activeBattle = {
-      opponentName: opponentNames[Math.floor(Math.random() * opponentNames.length)],
-      opponentCapital: Math.floor(capital * (0.5 + Math.random())),
-      opponentIncome: totalIncome() * (0.8 + Math.random() * 0.4),
-      stake,
-      startedAt: Date.now(),
-    };
-    sfxBuy();
-    renderBattle();
-    saveProgress();
-    addHistory('battle', `Битва со ставкой ${fmt(stake)}`, -stake);
-  }
-
-  // Check battle result
-  setInterval(() => {
-    if (!activeBattle) return;
-    const elapsed = Date.now() - activeBattle.startedAt;
-    if (elapsed >= 3600000) {
-      const myFinal = capital;
-      const oppFinal = activeBattle.opponentCapital + Math.floor(3600 * activeBattle.opponentIncome);
-      if (myFinal > oppFinal) {
-        const win = Math.floor(activeBattle.stake * 1.9);
-        capital += win;
-        addHistory('battle', `Победа в битве!`, win);
-        showFloatNum(document.getElementById('capitalValue'), `+${fmt(win)}`, '#4a9d6f');
-      } else {
-        addHistory('battle', `Поражение в битве`, -activeBattle.stake);
-      }
-      activeBattle = null;
-      renderAll();
-      saveProgress();
-      if (document.getElementById('battleOverlay').style.display === 'flex') renderBattle();
-    }
-  }, 10000);
-
-  // ===================== 10. CO-OP =====================
-  function openCoop() {
-    renderCoop();
-    document.getElementById('coopOverlay').style.display = 'flex';
-  }
-
-  function renderCoop() {
-    const panel = document.getElementById('coopPanel');
-    if (!panel) return;
-    if (coopBusinesses.length === 0) {
-      panel.innerHTML = `<div style="text-align:center;color:var(--text-dim);padding:30px;">
-        <div style="font-size:32px;margin-bottom:10px;">🤝</div>
-        <div style="font-size:14px;margin-bottom:8px;">Нет совместных бизнесов</div>
-        <div style="font-size:12px;">Пригласите друга и вложитесь вместе!</div>
-      </div>`;
-      return;
-    }
-    panel.innerHTML = coopBusinesses.map(c => {
-      const biz = businesses.find(b => b.id === c.bizId);
-      return `<div class="coop-biz-card">
-        <div style="display:flex;align-items:center;gap:10px;">
-          <div style="font-size:28px;">${biz?.icon || '🏢'}</div>
-          <div>
-            <div style="font-size:13px;font-weight:600;color:var(--text);">${biz?.name || c.bizId}</div>
-            <div style="font-size:11px;color:var(--text-dim);">Ваш вклад: ${fmt(c.myShare)} (${c.myPercent}%)</div>
-          </div>
-        </div>
-        <div class="coop-partners">
-          ${c.partners.map(p => `<div class="coop-partner-chip">${p.name} ${p.percent}%</div>`).join('')}
-        </div>
-        <div style="font-size:11px;color:var(--green);margin-top:6px;">Доход: +${fmt(c.income)}/сек</div>
-      </div>`;
-    }).join('');
-  }
-
-  // ===================== 11. CHART =====================
-  function openChart() {
-    renderChart('7d');
-    document.getElementById('chartOverlay').style.display = 'flex';
-  }
-
-  function renderChart(period) {
-    const canvas = document.getElementById('growthChart');
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    const dpr = window.devicePixelRatio || 1;
-    const rect = canvas.getBoundingClientRect();
-    canvas.width = rect.width * dpr;
-    canvas.height = rect.height * dpr;
-    ctx.scale(dpr, dpr);
-
-    // Generate demo data if empty
-    if (capitalHistory.length === 0) {
-      let val = capital * 0.3;
-      for (let i = 0; i < 90; i++) {
-        val = val * (1 + (Math.random() - 0.3) * 0.15);
-        capitalHistory.push({ date: new Date(Date.now() - (89-i)*86400000).toISOString().slice(0,10), value: Math.round(val) });
-      }
-    }
-
-    const days = period === '7d' ? 7 : period === '30d' ? 30 : 90;
-    const data = capitalHistory.slice(-days);
-    if (data.length === 0) return;
-
-    const w = rect.width;
-    const h = rect.height;
-    const padding = 30;
-    const maxVal = Math.max(...data.map(d => d.value));
-    const minVal = Math.min(...data.map(d => d.value));
-
-    ctx.clearRect(0, 0, w, h);
-
-    // Grid
-    ctx.strokeStyle = 'rgba(255,255,255,0.05)';
-    ctx.lineWidth = 1;
-    for (let i = 0; i <= 4; i++) {
-      const y = padding + (h - 2*padding) * (i / 4);
-      ctx.beginPath();
-      ctx.moveTo(padding, y);
-      ctx.lineTo(w - padding, y);
-      ctx.stroke();
-    }
-
-    // Line
-    ctx.strokeStyle = '#c9a84c';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    data.forEach((d, i) => {
-      const x = padding + (w - 2*padding) * (i / (data.length - 1));
-      const y = padding + (h - 2*padding) * (1 - (d.value - minVal) / (maxVal - minVal || 1));
-      if (i === 0) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
-    });
-    ctx.stroke();
-
-    // Fill
-    ctx.fillStyle = 'rgba(201,168,76,0.1)';
-    ctx.beginPath();
-    data.forEach((d, i) => {
-      const x = padding + (w - 2*padding) * (i / (data.length - 1));
-      const y = padding + (h - 2*padding) * (1 - (d.value - minVal) / (maxVal - minVal || 1));
-      if (i === 0) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
-    });
-    ctx.lineTo(w - padding, h - padding);
-    ctx.lineTo(padding, h - padding);
-    ctx.closePath();
-    ctx.fill();
-
-    // Points
-    ctx.fillStyle = '#e8d5a3';
-    data.forEach((d, i) => {
-      if (i % Math.ceil(data.length / 7) !== 0 && i !== data.length - 1) return;
-      const x = padding + (w - 2*padding) * (i / (data.length - 1));
-      const y = padding + (h - 2*padding) * (1 - (d.value - minVal) / (maxVal - minVal || 1));
-      ctx.beginPath();
-      ctx.arc(x, y, 3, 0, Math.PI * 2);
-      ctx.fill();
-    });
-
-    document.getElementById('chartMax').textContent = fmt(maxVal);
-    document.getElementById('chartMin').textContent = fmt(minVal);
-    const growth = data.length > 1 ? Math.round(((data[data.length-1].value / data[0].value) - 1) * 100) : 0;
-    const growthEl = document.getElementById('chartGrowth');
-    growthEl.textContent = (growth >= 0 ? '+' : '') + growth + '%';
-    growthEl.style.color = growth >= 0 ? 'var(--green)' : 'var(--red)';
-  }
-
-  // Record capital daily
-  setInterval(() => {
-    const today = todayStr();
-    const last = capitalHistory[capitalHistory.length - 1];
-    if (!last || last.date !== today) {
-      capitalHistory.push({ date: today, value: capital });
-      if (capitalHistory.length > 90) capitalHistory.shift();
-    } else {
-      last.value = capital;
-    }
-  }, 60000);
-
-  // ===================== 12. HISTORY =====================
-  function openHistory() {
-    renderHistory('all');
-    document.getElementById('historyOverlay').style.display = 'flex';
-  }
-
-  function addHistory(type, title, amount) {
-    transactionHistory.unshift({
-      type, title, amount,
-      time: Date.now(),
-      dateStr: new Date().toLocaleString('ru-RU', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }),
-    });
-    if (transactionHistory.length > 200) transactionHistory.pop();
-  }
-
-  function renderHistory(filter) {
-    const panel = document.getElementById('historyPanel');
-    if (!panel) return;
-    const filtered = filter === 'all' ? transactionHistory : transactionHistory.filter(t => t.type === filter);
-    if (filtered.length === 0) {
-      panel.innerHTML = '<div style="text-align:center;color:var(--text-dim);padding:30px;">Нет транзакций</div>';
-      return;
-    }
-    const icons = { buy: '🛒', sell: '💰', job: '💼', market: '📈', bank: '🏦', manager: '👔', auction: '🔨', clan: '🏛️', battle: '⚔️', reward: '🎁', daily: '📅' };
-    panel.innerHTML = filtered.map(t => `<div class="history-item">
-      <div class="history-icon">${icons[t.type] || '📄'}</div>
-      <div class="history-info">
-        <div class="history-title">${t.title}</div>
-        <div class="history-time">${t.dateStr}</div>
-      </div>
-      <div class="history-amount ${t.amount >= 0 ? 'positive' : 'negative'}">${t.amount >= 0 ? '+' : ''}${fmt(t.amount)}</div>
-    </div>`).join('');
-  }
-
-  // ===================== 14. ACHIEVEMENT REWARDS =====================
-  function claimAchievementReward(id) {
-    const a = achievements.find(x => x.id === id);
-    if (!a || !a.unlocked || a.claimed) return;
-    const rewards = {
-      first_biz: 50000,
-      first_million: 100000,
-      ten_biz: 200000,
-      centimillionaire: 500000,
-      billionaire: 1000000,
-      first_referral: 100000,
-      ten_referrals: 500000,
-      market_guru: 300000,
-      market_king: 1000000,
-      first_job: 25000,
-      hundred_jobs: 150000,
-      first_upgrade: 50000,
-      max_upgrade: 300000,
-      first_item: 40000,
-      ten_items: 200000,
-      first_login: 10000,
-      week_login: 100000,
-      month_login: 500000,
-      sold_apartment: 50000,
-      sold_car: 30000,
-      kept_assets: 100000,
-    };
-    const reward = rewards[id] || 50000;
-    capital += reward;
-    totalEarned += reward;
-    a.claimed = true;
-    sfxBuy();
-    renderAchievements();
-    renderAll();
-    saveProgress();
-    addHistory('reward', `Награда: ${a.name}`, reward);
-    showFloatNum(document.getElementById('capitalValue'), `+${fmt(reward)}`, '#4a9d6f');
-  }
-
-  // Override renderAchievements to add reward buttons
-  const originalRenderAchievements = renderAchievements;
-  renderAchievements = function() {
-    const list = document.getElementById('achievementsList');
-    if (!list) return;
-    const rewards = {
-      first_biz: 50000, first_million: 100000, ten_biz: 200000, centimillionaire: 500000,
-      billionaire: 1000000, first_referral: 100000, ten_referrals: 500000,
-      market_guru: 300000, market_king: 1000000, first_job: 25000, hundred_jobs: 150000,
-      first_upgrade: 50000, max_upgrade: 300000, first_item: 40000, ten_items: 200000,
-      first_login: 10000, week_login: 100000, month_login: 500000,
-      sold_apartment: 50000, sold_car: 30000, kept_assets: 100000,
-    };
-    list.innerHTML = achievements.map(a => {
-      const reward = rewards[a.id] || 50000;
-      const canClaim = a.unlocked && !a.claimed;
-      return `<div class="achievement-item ${a.unlocked ? 'unlocked' : ''}">
-        <div class="achievement-icon">${a.icon}</div>
-        <div class="achievement-info">
-          <div class="achievement-name">${a.name}</div>
-          <div class="achievement-desc">${a.desc}</div>
-        </div>
-        ${canClaim ? `<button class="achievement-reward-btn" onclick="claimAchievementReward('${a.id}')">+${fmt(reward)}</button>` : `<div class="achievement-status">${a.unlocked ? '✅' : '🔒'}</div>`}
-      </div>`;
-    }).join('');
-  };
-
-  // ===================== INIT NEW FEATURES =====================
-  // Hook into existing renderAll to update quick buy
-  const originalRenderAll = renderAll;
-  renderAll = function() {
-    originalRenderAll();
-    updateQuickBuyBtn();
-  };
-
-</script>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script type="module">
+
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import { getFirestore, doc, getDoc, setDoc, collection, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
@@ -778,2298 +30,8 @@
   window.__limit = limit;
   window.__getDocs = getDocs;
 
-  // ===================== NEW FEATURE DATA =====================
-  let deposits = [];
-  let loans = [];
-  let offshoreUnlocked = false;
-  let hiredManagers = [];
-  let transactionHistory = [];
-  let capitalHistory = [];
-  let clanData = null;
-  let activeAuction = null;
-  let activeBattle = null;
-  let coopBusinesses = [];
+  
 
-  const MANAGERS = [
-    { id: 'm1', name: 'Иван Петров', rarity: 'common', emoji: '👨‍💼', effect: 'Автосбор +5%', cost: 50000 },
-    { id: 'm2', name: 'Анна Смирнова', rarity: 'common', emoji: '👩‍💼', effect: 'Автосбор +5%', cost: 50000 },
-    { id: 'm3', name: 'Сергей Волков', rarity: 'rare', emoji: '🕴️', effect: 'Автосбор +15%', cost: 250000 },
-    { id: 'm4', name: 'Елена Орлова', rarity: 'rare', emoji: '👩‍💻', effect: 'Скорость +20%', cost: 300000 },
-    { id: 'm5', name: 'Дмитрий Медведев', rarity: 'epic', emoji: '🧑‍💼', effect: 'Автосбор +30%', cost: 1500000 },
-    { id: 'm6', name: 'Ольга Лебедева', rarity: 'epic', emoji: '👩‍🎓', effect: 'Все бонусы +25%', cost: 2000000 },
-    { id: 'm7', name: 'Александр Великий', rarity: 'legendary', emoji: '👑', effect: 'Автосбор +50%, x2 доход', cost: 10000000 },
-  ];
-
-  const CLAN_NAMES = ['Золотые Волки', 'Чёрные Орлы', 'Стальные Львы', 'Нефтяные Бароны', 'Кремниевые Тигры'];
-
-  // ===================== 13. QUICK BUY ALL =====================
-  function quickBuyAll() {
-    let bought = 0;
-    let totalCost = 0;
-    for (const b of businesses) {
-      if (!b.purchased) {
-        const c = costFor(b);
-        if (capital >= c) {
-          capital -= c;
-          b.purchased = true;
-          b.level = 1;
-          totalCost += c;
-          bought++;
-        }
-      }
-    }
-    if (bought > 0) {
-      sfxBuy();
-      if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
-      renderAll();
-      saveProgress();
-      checkQuests();
-      checkAchievements();
-      showFloatNum(document.getElementById('capitalValue'), `-${fmt(totalCost)}`, '#c45c5c');
-      addHistory('buy', `Куплено ${bought} бизнесов`, -totalCost);
-    } else {
-      sfxError();
-    }
-  }
-
-  function updateQuickBuyBtn() {
-    const btn = document.getElementById('quickBuyBtn');
-    if (!btn) return;
-    const hasAffordable = businesses.some(b => !b.purchased && capital >= costFor(b));
-    btn.style.display = hasAffordable ? 'flex' : 'none';
-  }
-
-  // ===================== 2. BANK =====================
-  function openBank() {
-    renderBank();
-    document.getElementById('bankOverlay').style.display = 'flex';
-  }
-
-  function renderBank() {
-    // Deposits
-    const depositsContainer = document.getElementById('activeDeposits');
-    if (depositsContainer) {
-      const now = Date.now();
-      let html = '';
-      deposits.forEach((d, i) => {
-        const remaining = Math.max(0, d.endsAt - now);
-        const hours = Math.floor(remaining / 3600000);
-        const mins = Math.floor((remaining % 3600000) / 60000);
-        const profit = Math.round(d.amount * 0.05);
-        html += `<div class="bank-card">
-          <div class="bank-card-title">💰 Вклад #${i+1}</div>
-          <div class="bank-row"><span>Сумма</span><span>${fmt(d.amount)}</span></div>
-          <div class="bank-row"><span>Осталось</span><span>${hours}ч ${mins}м</span></div>
-          <div class="bank-row"><span>Прибыль</span><span style="color:var(--green)">+${fmt(profit)}</span></div>
-          <button class="bank-btn secondary" onclick="closeDeposit(${i})" style="margin-top:8px;">Закрыть досрочно (-10%)</button>
-        </div>`;
-      });
-      depositsContainer.innerHTML = html || '<div style="text-align:center;color:var(--text-dim);padding:20px;">Нет активных вкладов</div>';
-    }
-
-    // Loans
-    const loansContainer = document.getElementById('activeLoans');
-    if (loansContainer) {
-      let html = '';
-      loans.forEach((l, i) => {
-        const daily = Math.round(l.amount * 0.1);
-        html += `<div class="bank-card">
-          <div class="bank-card-title">📋 Кредит #${i+1}</div>
-          <div class="bank-row"><span>Сумма</span><span>${fmt(l.amount)}</span></div>
-          <div class="bank-row"><span>Ежедневный платёж</span><span style="color:var(--red)">-${fmt(daily)}</span></div>
-          <button class="bank-btn" onclick="repayLoan(${i})" style="margin-top:8px;">Погасить (${fmt(l.amount)})</button>
-        </div>`;
-      });
-      loansContainer.innerHTML = html || '<div style="text-align:center;color:var(--text-dim);padding:20px;">Нет активных кредитов</div>';
-    }
-
-    // Offshore
-    const offshoreBtn = document.getElementById('openOffshoreBtn');
-    if (offshoreBtn) {
-      if (offshoreUnlocked) {
-        offshoreBtn.textContent = '✅ Счёт открыт';
-        offshoreBtn.disabled = true;
-      } else if (capital < 100000000) {
-        offshoreBtn.textContent = 'Нужно ₽100M капитала';
-        offshoreBtn.disabled = true;
-      } else {
-        offshoreBtn.textContent = 'Открыть за ₽10M';
-        offshoreBtn.disabled = false;
-      }
-    }
-  }
-
-  function openDeposit() {
-    const input = document.getElementById('depositAmount');
-    const amount = Number(input?.value || 0);
-    if (amount < 100000 || amount > capital) { sfxError(); return; }
-    capital -= amount;
-    deposits.push({ amount, endsAt: Date.now() + 86400000, openedAt: Date.now() });
-    input.value = '';
-    sfxBuy();
-    renderBank();
-    renderAll();
-    saveProgress();
-    addHistory('bank', `Вклад открыт`, -amount);
-  }
-
-  function closeDeposit(index) {
-    const d = deposits[index];
-    const refund = Math.round(d.amount * 0.9);
-    capital += refund;
-    deposits.splice(index, 1);
-    sfxBuy();
-    renderBank();
-    renderAll();
-    saveProgress();
-    addHistory('bank', `Вклад закрыт досрочно`, refund);
-  }
-
-  function takeLoan() {
-    const input = document.getElementById('loanAmount');
-    const amount = Number(input?.value || 0);
-    const maxLoan = Math.floor(capital * 0.5);
-    if (amount <= 0 || amount > maxLoan) { sfxError(); return; }
-    capital += amount;
-    loans.push({ amount, takenAt: Date.now() });
-    input.value = '';
-    sfxBuy();
-    renderBank();
-    renderAll();
-    saveProgress();
-    addHistory('bank', `Кредит получен`, amount);
-  }
-
-  function repayLoan(index) {
-    const l = loans[index];
-    if (capital < l.amount) { sfxError(); return; }
-    capital -= l.amount;
-    loans.splice(index, 1);
-    sfxBuy();
-    renderBank();
-    renderAll();
-    saveProgress();
-    addHistory('bank', `Кредит погашен`, -l.amount);
-  }
-
-  function openOffshore() {
-    if (offshoreUnlocked || capital < 100000000) return;
-    capital -= 10000000;
-    offshoreUnlocked = true;
-    sfxBuy();
-    renderBank();
-    renderAll();
-    saveProgress();
-    addHistory('bank', `Офшорный счёт открыт`, -10000000);
-  }
-
-  // Loan daily payments
-  setInterval(() => {
-    if (loans.length === 0) return;
-    const now = Date.now();
-    const today = todayStr();
-    // Simple: deduct daily payment once per day
-    // In real implementation, track lastLoanPaymentDate
-  }, 60000);
-
-  // ===================== 3. MANAGERS =====================
-  function openManagers() {
-    renderManagers();
-    document.getElementById('managersOverlay').style.display = 'flex';
-  }
-
-  function renderManagers() {
-    const list = document.getElementById('managerList');
-    if (!list) return;
-    let html = '';
-    MANAGERS.forEach(m => {
-      const owned = hiredManagers.includes(m.id);
-      const rarityClass = m.rarity;
-      html += `<div class="manager-card">
-        <div class="manager-avatar ${rarityClass}">${m.emoji}</div>
-        <div class="manager-info">
-          <div class="manager-name">${m.name}</div>
-          <div class="manager-rarity ${rarityClass}">${m.rarity.toUpperCase()}</div>
-          <div class="manager-effect">${m.effect}</div>
-        </div>
-        <button class="manager-hire-btn ${owned ? 'owned' : ''}" ${owned || capital < m.cost ? 'disabled' : ''} onclick="hireManager('${m.id}')">
-          ${owned ? '✅ Нанят' : fmt(m.cost)}
-        </button>
-      </div>`;
-    });
-    list.innerHTML = html;
-  }
-
-  function hireManager(id) {
-    const m = MANAGERS.find(x => x.id === id);
-    if (!m || hiredManagers.includes(id) || capital < m.cost) return;
-    capital -= m.cost;
-    hiredManagers.push(id);
-    sfxBuy();
-    renderManagers();
-    renderAll();
-    saveProgress();
-    addHistory('manager', `Нанят менеджер ${m.name}`, -m.cost);
-  }
-
-  // Manager auto-collect bonus
-  function managerBonus() {
-    let bonus = 1;
-    hiredManagers.forEach(id => {
-      const m = MANAGERS.find(x => x.id === id);
-      if (!m) return;
-      if (m.effect.includes('+5%')) bonus += 0.05;
-      if (m.effect.includes('+15%')) bonus += 0.15;
-      if (m.effect.includes('+20%')) bonus += 0.20;
-      if (m.effect.includes('+30%')) bonus += 0.30;
-      if (m.effect.includes('+50%')) bonus += 0.50;
-      if (m.effect.includes('x2')) bonus *= 2;
-    });
-    return bonus;
-  }
-
-  // ===================== 4. AUCTION =====================
-  function openAuction() {
-    generateAuctionIfNeeded();
-    renderAuction();
-    document.getElementById('auctionOverlay').style.display = 'flex';
-  }
-
-  function generateAuctionIfNeeded() {
-    if (activeAuction && activeAuction.endsAt > Date.now()) return;
-    const rareBiz = businesses.filter(b => !b.purchased && b.baseCost > 10000000);
-    const target = rareBiz.length > 0 ? rareBiz[Math.floor(Math.random() * rareBiz.length)] : businesses[Math.floor(Math.random() * businesses.length)];
-    const discount = 0.5;
-    activeAuction = {
-      bizId: target.id,
-      bizName: target.name,
-      bizIcon: target.icon,
-      baseCost: costFor(target),
-      minBid: Math.floor(costFor(target) * discount),
-      currentBid: Math.floor(costFor(target) * discount),
-      topBidder: null,
-      endsAt: Date.now() + 86400000,
-      myBids: 0,
-    };
-  }
-
-  function renderAuction() {
-    if (!activeAuction) return;
-    const now = Date.now();
-    const remaining = Math.max(0, activeAuction.endsAt - now);
-    const hours = Math.floor(remaining / 3600000);
-    const mins = Math.floor((remaining % 3600000) / 60000);
-    const secs = Math.floor((remaining % 60000) / 1000);
-    document.getElementById('auctionTimer').textContent = `${String(hours).padStart(2,'0')}:${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}`;
-
-    const panel = document.getElementById('auctionPanel');
-    panel.innerHTML = `<div class="auction-item">
-      <div class="auction-item-header">
-        <div class="auction-item-img" style="display:flex;align-items:center;justify-content:center;font-size:32px;background:var(--surface-2);">${activeAuction.bizIcon}</div>
-        <div>
-          <div class="auction-item-name">${activeAuction.bizName}</div>
-          <div class="auction-item-discount">Скидка 50% • Было ${fmt(activeAuction.baseCost)}</div>
-        </div>
-      </div>
-      <div class="auction-bid-row">
-        <input type="number" class="auction-bid-input" id="auctionBidInput" placeholder="Ваша ставка" value="${activeAuction.currentBid + Math.ceil(activeAuction.currentBid * 0.05)}">
-        <button class="auction-bid-btn" onclick="placeBid()">Ставка</button>
-      </div>
-      <div class="auction-current-bid">Текущая ставка: <span>${fmt(activeAuction.currentBid)}</span> ${activeAuction.topBidder ? '(вы лидируете)' : ''}</div>
-    </div>`;
-  }
-
-  function placeBid() {
-    const input = document.getElementById('auctionBidInput');
-    const bid = Number(input?.value || 0);
-    if (bid <= activeAuction.currentBid || bid > capital) { sfxError(); return; }
-    activeAuction.currentBid = bid;
-    activeAuction.topBidder = 'me';
-    activeAuction.myBids = (activeAuction.myBids || 0) + 1;
-    sfxBuy();
-    renderAuction();
-    saveProgress();
-  }
-
-  // Check auction winner every minute
-  setInterval(() => {
-    if (activeAuction && activeAuction.endsAt <= Date.now() && activeAuction.topBidder === 'me') {
-      const biz = businesses.find(b => b.id === activeAuction.bizId);
-      if (biz && !biz.purchased) {
-        capital -= activeAuction.currentBid;
-        biz.purchased = true;
-        biz.level = 1;
-        addHistory('auction', `Выигран аукцион: ${biz.name}`, -activeAuction.currentBid);
-        renderAll();
-        saveProgress();
-      }
-      activeAuction = null;
-    }
-  }, 60000);
-
-  // ===================== 8. CLAN =====================
-  function openClan() {
-    renderClan();
-    document.getElementById('clanOverlay').style.display = 'flex';
-  }
-
-  function renderClan() {
-    const panel = document.getElementById('clanPanel');
-    if (!panel) return;
-    if (!clanData) {
-      panel.innerHTML = `<div class="clan-header">
-        <div class="clan-name">Вы не в синдикате</div>
-        <div style="font-size:12px;color:var(--text-dim);margin-top:8px;">Присоединяйтесь к существующему или создайте свой</div>
-        <button class="bank-btn" style="margin-top:12px;" onclick="createClan()">Создать синдикат (₽1M)</button>
-      </div>
-      <div style="font-size:12px;color:var(--text-dim);text-align:center;padding:10px;">Популярные синдикаты:</div>
-      ${CLAN_NAMES.map((name, i) => `<div class="clan-member" style="cursor:pointer;" onclick="joinClan('${name}')">
-        <div class="clan-member-rank">${i+1}</div>
-        <div class="clan-member-name">${name}</div>
-        <div class="clan-member-contrib">${Math.floor(Math.random()*50+10)} чел</div>
-      </div>`).join('')}`;
-      return;
-    }
-
-    const warTime = clanData.warEndsAt ? Math.max(0, clanData.warEndsAt - Date.now()) : 0;
-    const warHours = Math.floor(warTime / 3600000);
-    const warMins = Math.floor((warTime % 3600000) / 60000);
-
-    panel.innerHTML = `<div class="clan-header">
-      <div class="clan-name">${clanData.name}</div>
-      <div class="clan-stats">
-        <div class="clan-stat"><div class="clan-stat-value">${clanData.members.length}</div><div class="clan-stat-label">участников</div></div>
-        <div class="clan-stat"><div class="clan-stat-value">${fmt(clanData.totalCapital)}</div><div class="clan-stat-label">капитал</div></div>
-        <div class="clan-stat"><div class="clan-stat-value">#${clanData.rank}</div><div class="clan-stat-label">рейтинг</div></div>
-      </div>
-    </div>
-    ${warTime > 0 ? `<div class="clan-war-banner">
-      <div class="clan-war-title">⚔️ Война синдикатов идёт!</div>
-      <div class="clan-war-timer">${warHours}ч ${warMins}м</div>
-      <div style="font-size:11px;color:var(--text-dim);margin-top:4px;">Зарабатывайте больше всех!</div>
-    </div>` : ''}
-    <div style="font-size:12px;font-weight:600;color:var(--gold-light);margin-bottom:8px;">Участники</div>
-    ${clanData.members.map((m, i) => `<div class="clan-member">
-      <div class="clan-member-rank">${i+1}</div>
-      <div class="clan-member-name">${m.name}</div>
-      <div class="clan-member-contrib">${fmt(m.contribution)}</div>
-    </div>`).join('')}`;
-  }
-
-  function createClan() {
-    if (capital < 1000000) { sfxError(); return; }
-    capital -= 1000000;
-    const name = CLAN_NAMES[Math.floor(Math.random() * CLAN_NAMES.length)] + ' ' + Math.floor(Math.random() * 999);
-    clanData = {
-      name,
-      members: [{ name: currentPlayerName(), contribution: totalEarned }],
-      totalCapital: capital,
-      rank: Math.floor(Math.random() * 50) + 1,
-      warEndsAt: Date.now() + 86400000 * 3,
-    };
-    sfxBuy();
-    renderClan();
-    renderAll();
-    saveProgress();
-    addHistory('clan', `Создан синдикат ${name}`, -1000000);
-  }
-
-  function joinClan(name) {
-    clanData = {
-      name,
-      members: [
-        { name: 'Босс', contribution: 50000000 },
-        { name: currentPlayerName(), contribution: totalEarned },
-        { name: 'Альфред', contribution: 20000000 },
-      ],
-      totalCapital: capital + 70000000,
-      rank: Math.floor(Math.random() * 20) + 1,
-      warEndsAt: Date.now() + 86400000 * 2,
-    };
-    sfxBuy();
-    renderClan();
-    saveProgress();
-    addHistory('clan', `Вступление в ${name}`, 0);
-  }
-
-  // ===================== 9. BATTLE =====================
-  function openBattle() {
-    renderBattle();
-    document.getElementById('battleOverlay').style.display = 'flex';
-  }
-
-  function renderBattle() {
-    const panel = document.getElementById('battlePanel');
-    if (!panel) return;
-    if (activeBattle) {
-      const elapsed = Date.now() - activeBattle.startedAt;
-      const remaining = Math.max(0, 3600000 - elapsed);
-      const mins = Math.floor(remaining / 60000);
-      const secs = Math.floor((remaining % 60000) / 1000);
-      panel.innerHTML = `<div class="battle-card">
-        <div style="font-size:12px;color:var(--text-dim);">Битва идёт...</div>
-        <div style="font-size:32px;font-family:var(--font-mono);color:var(--gold-light);margin:10px 0;">${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}</div>
-        <div class="bank-row"><span>Вы</span><span>${fmt(capital)}</span></div>
-        <div class="bank-row"><span>${activeBattle.opponentName}</span><span>${fmt(activeBattle.opponentCapital + Math.floor((Date.now()-activeBattle.startedAt)/1000 * activeBattle.opponentIncome))}</span></div>
-        <div style="font-size:11px;color:var(--text-dim);margin-top:8px;">Ставка: ${fmt(activeBattle.stake)}</div>
-      </div>`;
-      return;
-    }
-
-    panel.innerHTML = `<div class="battle-card">
-      <div style="display:flex;justify-content:space-around;align-items:center;">
-        <div class="battle-player">
-          <div class="battle-player-avatar">${emblem}</div>
-          <div class="battle-player-name">${currentPlayerName()}</div>
-          <div class="battle-player-capital">${fmt(capital)}</div>
-        </div>
-        <div class="battle-vs">VS</div>
-        <div class="battle-player">
-          <div class="battle-player-avatar" style="border-color:var(--red);">🎩</div>
-          <div class="battle-player-name">Соперник</div>
-          <div class="battle-player-capital">???</div>
-        </div>
-      </div>
-      <div class="battle-stake-row" style="margin-top:14px;">
-        <span style="font-size:12px;color:var(--text-dim);">Ставка:</span>
-        <input type="number" class="battle-stake-input" id="battleStake" placeholder="Мин. ₽100K" value="100000">
-      </div>
-      <div style="font-size:11px;color:var(--text-dim);margin-bottom:10px;">Победитель забирает 95% ставки. Комиссия 5%.</div>
-      <button class="battle-btn" onclick="startBattle()">Начать битву</button>
-    </div>`;
-  }
-
-  function startBattle() {
-    const stake = Number(document.getElementById('battleStake')?.value || 0);
-    if (stake < 100000 || stake > capital) { sfxError(); return; }
-    const opponentNames = ['Альфред', 'Виктор', 'Максим', 'Георгий', 'Денис'];
-    activeBattle = {
-      opponentName: opponentNames[Math.floor(Math.random() * opponentNames.length)],
-      opponentCapital: Math.floor(capital * (0.5 + Math.random())),
-      opponentIncome: totalIncome() * (0.8 + Math.random() * 0.4),
-      stake,
-      startedAt: Date.now(),
-    };
-    sfxBuy();
-    renderBattle();
-    saveProgress();
-    addHistory('battle', `Битва со ставкой ${fmt(stake)}`, -stake);
-  }
-
-  // Check battle result
-  setInterval(() => {
-    if (!activeBattle) return;
-    const elapsed = Date.now() - activeBattle.startedAt;
-    if (elapsed >= 3600000) {
-      const myFinal = capital;
-      const oppFinal = activeBattle.opponentCapital + Math.floor(3600 * activeBattle.opponentIncome);
-      if (myFinal > oppFinal) {
-        const win = Math.floor(activeBattle.stake * 1.9);
-        capital += win;
-        addHistory('battle', `Победа в битве!`, win);
-        showFloatNum(document.getElementById('capitalValue'), `+${fmt(win)}`, '#4a9d6f');
-      } else {
-        addHistory('battle', `Поражение в битве`, -activeBattle.stake);
-      }
-      activeBattle = null;
-      renderAll();
-      saveProgress();
-      if (document.getElementById('battleOverlay').style.display === 'flex') renderBattle();
-    }
-  }, 10000);
-
-  // ===================== 10. CO-OP =====================
-  function openCoop() {
-    renderCoop();
-    document.getElementById('coopOverlay').style.display = 'flex';
-  }
-
-  function renderCoop() {
-    const panel = document.getElementById('coopPanel');
-    if (!panel) return;
-    if (coopBusinesses.length === 0) {
-      panel.innerHTML = `<div style="text-align:center;color:var(--text-dim);padding:30px;">
-        <div style="font-size:32px;margin-bottom:10px;">🤝</div>
-        <div style="font-size:14px;margin-bottom:8px;">Нет совместных бизнесов</div>
-        <div style="font-size:12px;">Пригласите друга и вложитесь вместе!</div>
-      </div>`;
-      return;
-    }
-    panel.innerHTML = coopBusinesses.map(c => {
-      const biz = businesses.find(b => b.id === c.bizId);
-      return `<div class="coop-biz-card">
-        <div style="display:flex;align-items:center;gap:10px;">
-          <div style="font-size:28px;">${biz?.icon || '🏢'}</div>
-          <div>
-            <div style="font-size:13px;font-weight:600;color:var(--text);">${biz?.name || c.bizId}</div>
-            <div style="font-size:11px;color:var(--text-dim);">Ваш вклад: ${fmt(c.myShare)} (${c.myPercent}%)</div>
-          </div>
-        </div>
-        <div class="coop-partners">
-          ${c.partners.map(p => `<div class="coop-partner-chip">${p.name} ${p.percent}%</div>`).join('')}
-        </div>
-        <div style="font-size:11px;color:var(--green);margin-top:6px;">Доход: +${fmt(c.income)}/сек</div>
-      </div>`;
-    }).join('');
-  }
-
-  // ===================== 11. CHART =====================
-  function openChart() {
-    renderChart('7d');
-    document.getElementById('chartOverlay').style.display = 'flex';
-  }
-
-  function renderChart(period) {
-    const canvas = document.getElementById('growthChart');
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    const dpr = window.devicePixelRatio || 1;
-    const rect = canvas.getBoundingClientRect();
-    canvas.width = rect.width * dpr;
-    canvas.height = rect.height * dpr;
-    ctx.scale(dpr, dpr);
-
-    // Generate demo data if empty
-    if (capitalHistory.length === 0) {
-      let val = capital * 0.3;
-      for (let i = 0; i < 90; i++) {
-        val = val * (1 + (Math.random() - 0.3) * 0.15);
-        capitalHistory.push({ date: new Date(Date.now() - (89-i)*86400000).toISOString().slice(0,10), value: Math.round(val) });
-      }
-    }
-
-    const days = period === '7d' ? 7 : period === '30d' ? 30 : 90;
-    const data = capitalHistory.slice(-days);
-    if (data.length === 0) return;
-
-    const w = rect.width;
-    const h = rect.height;
-    const padding = 30;
-    const maxVal = Math.max(...data.map(d => d.value));
-    const minVal = Math.min(...data.map(d => d.value));
-
-    ctx.clearRect(0, 0, w, h);
-
-    // Grid
-    ctx.strokeStyle = 'rgba(255,255,255,0.05)';
-    ctx.lineWidth = 1;
-    for (let i = 0; i <= 4; i++) {
-      const y = padding + (h - 2*padding) * (i / 4);
-      ctx.beginPath();
-      ctx.moveTo(padding, y);
-      ctx.lineTo(w - padding, y);
-      ctx.stroke();
-    }
-
-    // Line
-    ctx.strokeStyle = '#c9a84c';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    data.forEach((d, i) => {
-      const x = padding + (w - 2*padding) * (i / (data.length - 1));
-      const y = padding + (h - 2*padding) * (1 - (d.value - minVal) / (maxVal - minVal || 1));
-      if (i === 0) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
-    });
-    ctx.stroke();
-
-    // Fill
-    ctx.fillStyle = 'rgba(201,168,76,0.1)';
-    ctx.beginPath();
-    data.forEach((d, i) => {
-      const x = padding + (w - 2*padding) * (i / (data.length - 1));
-      const y = padding + (h - 2*padding) * (1 - (d.value - minVal) / (maxVal - minVal || 1));
-      if (i === 0) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
-    });
-    ctx.lineTo(w - padding, h - padding);
-    ctx.lineTo(padding, h - padding);
-    ctx.closePath();
-    ctx.fill();
-
-    // Points
-    ctx.fillStyle = '#e8d5a3';
-    data.forEach((d, i) => {
-      if (i % Math.ceil(data.length / 7) !== 0 && i !== data.length - 1) return;
-      const x = padding + (w - 2*padding) * (i / (data.length - 1));
-      const y = padding + (h - 2*padding) * (1 - (d.value - minVal) / (maxVal - minVal || 1));
-      ctx.beginPath();
-      ctx.arc(x, y, 3, 0, Math.PI * 2);
-      ctx.fill();
-    });
-
-    document.getElementById('chartMax').textContent = fmt(maxVal);
-    document.getElementById('chartMin').textContent = fmt(minVal);
-    const growth = data.length > 1 ? Math.round(((data[data.length-1].value / data[0].value) - 1) * 100) : 0;
-    const growthEl = document.getElementById('chartGrowth');
-    growthEl.textContent = (growth >= 0 ? '+' : '') + growth + '%';
-    growthEl.style.color = growth >= 0 ? 'var(--green)' : 'var(--red)';
-  }
-
-  // Record capital daily
-  setInterval(() => {
-    const today = todayStr();
-    const last = capitalHistory[capitalHistory.length - 1];
-    if (!last || last.date !== today) {
-      capitalHistory.push({ date: today, value: capital });
-      if (capitalHistory.length > 90) capitalHistory.shift();
-    } else {
-      last.value = capital;
-    }
-  }, 60000);
-
-  // ===================== 12. HISTORY =====================
-  function openHistory() {
-    renderHistory('all');
-    document.getElementById('historyOverlay').style.display = 'flex';
-  }
-
-  function addHistory(type, title, amount) {
-    transactionHistory.unshift({
-      type, title, amount,
-      time: Date.now(),
-      dateStr: new Date().toLocaleString('ru-RU', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }),
-    });
-    if (transactionHistory.length > 200) transactionHistory.pop();
-  }
-
-  function renderHistory(filter) {
-    const panel = document.getElementById('historyPanel');
-    if (!panel) return;
-    const filtered = filter === 'all' ? transactionHistory : transactionHistory.filter(t => t.type === filter);
-    if (filtered.length === 0) {
-      panel.innerHTML = '<div style="text-align:center;color:var(--text-dim);padding:30px;">Нет транзакций</div>';
-      return;
-    }
-    const icons = { buy: '🛒', sell: '💰', job: '💼', market: '📈', bank: '🏦', manager: '👔', auction: '🔨', clan: '🏛️', battle: '⚔️', reward: '🎁', daily: '📅' };
-    panel.innerHTML = filtered.map(t => `<div class="history-item">
-      <div class="history-icon">${icons[t.type] || '📄'}</div>
-      <div class="history-info">
-        <div class="history-title">${t.title}</div>
-        <div class="history-time">${t.dateStr}</div>
-      </div>
-      <div class="history-amount ${t.amount >= 0 ? 'positive' : 'negative'}">${t.amount >= 0 ? '+' : ''}${fmt(t.amount)}</div>
-    </div>`).join('');
-  }
-
-  // ===================== 14. ACHIEVEMENT REWARDS =====================
-  function claimAchievementReward(id) {
-    const a = achievements.find(x => x.id === id);
-    if (!a || !a.unlocked || a.claimed) return;
-    const rewards = {
-      first_biz: 50000,
-      first_million: 100000,
-      ten_biz: 200000,
-      centimillionaire: 500000,
-      billionaire: 1000000,
-      first_referral: 100000,
-      ten_referrals: 500000,
-      market_guru: 300000,
-      market_king: 1000000,
-      first_job: 25000,
-      hundred_jobs: 150000,
-      first_upgrade: 50000,
-      max_upgrade: 300000,
-      first_item: 40000,
-      ten_items: 200000,
-      first_login: 10000,
-      week_login: 100000,
-      month_login: 500000,
-      sold_apartment: 50000,
-      sold_car: 30000,
-      kept_assets: 100000,
-    };
-    const reward = rewards[id] || 50000;
-    capital += reward;
-    totalEarned += reward;
-    a.claimed = true;
-    sfxBuy();
-    renderAchievements();
-    renderAll();
-    saveProgress();
-    addHistory('reward', `Награда: ${a.name}`, reward);
-    showFloatNum(document.getElementById('capitalValue'), `+${fmt(reward)}`, '#4a9d6f');
-  }
-
-  // Override renderAchievements to add reward buttons
-  const originalRenderAchievements = renderAchievements;
-  renderAchievements = function() {
-    const list = document.getElementById('achievementsList');
-    if (!list) return;
-    const rewards = {
-      first_biz: 50000, first_million: 100000, ten_biz: 200000, centimillionaire: 500000,
-      billionaire: 1000000, first_referral: 100000, ten_referrals: 500000,
-      market_guru: 300000, market_king: 1000000, first_job: 25000, hundred_jobs: 150000,
-      first_upgrade: 50000, max_upgrade: 300000, first_item: 40000, ten_items: 200000,
-      first_login: 10000, week_login: 100000, month_login: 500000,
-      sold_apartment: 50000, sold_car: 30000, kept_assets: 100000,
-    };
-    list.innerHTML = achievements.map(a => {
-      const reward = rewards[a.id] || 50000;
-      const canClaim = a.unlocked && !a.claimed;
-      return `<div class="achievement-item ${a.unlocked ? 'unlocked' : ''}">
-        <div class="achievement-icon">${a.icon}</div>
-        <div class="achievement-info">
-          <div class="achievement-name">${a.name}</div>
-          <div class="achievement-desc">${a.desc}</div>
-        </div>
-        ${canClaim ? `<button class="achievement-reward-btn" onclick="claimAchievementReward('${a.id}')">+${fmt(reward)}</button>` : `<div class="achievement-status">${a.unlocked ? '✅' : '🔒'}</div>`}
-      </div>`;
-    }).join('');
-  };
-
-  // ===================== INIT NEW FEATURES =====================
-  // Hook into existing renderAll to update quick buy
-  const originalRenderAll = renderAll;
-  renderAll = function() {
-    originalRenderAll();
-    updateQuickBuyBtn();
-  };
-
-</script>
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap');
-
-  :root{
-    --bg: #0a0e1a;
-    --surface: #12182b;
-    --surface-2: #1a2240;
-    --border: rgba(255,255,255,0.06);
-    --text: #e8e4dc;
-    --text-dim: #7a8299;
-    --gold: #c9a84c;
-    --gold-light: #e8d5a3;
-    --gold-dim: rgba(201,168,76,0.25);
-    --green: #4a9d6f;
-    --red: #c45c5c;
-    --font-display: 'Playfair Display', serif;
-    --font-mono: 'JetBrains Mono', monospace;
-    --font-body: 'Inter', sans-serif;
-  }
-
-  [data-theme="sunset"]{
-    --bg: #1a0f0a;
-    --surface: #2a1810;
-    --surface-2: #3d2418;
-    --border: rgba(255,200,150,0.08);
-    --text: #f0e0d0;
-    --text-dim: #a08070;
-    --gold: #e8a05c;
-    --gold-light: #ffc890;
-    --gold-dim: rgba(232,160,92,0.25);
-    --green: #6ab88a;
-  }
-
-  [data-theme="neon"]{
-    --bg: #0a0a1a;
-    --surface: #12122b;
-    --surface-2: #1a1a40;
-    --border: rgba(150,100,255,0.1);
-    --text: #e0e0ff;
-    --text-dim: #7a70a0;
-    --gold: #b084ff;
-    --gold-light: #d4b8ff;
-    --gold-dim: rgba(176,132,255,0.25);
-    --green: #5cd4a0;
-  }
-
-  *{ box-sizing: border-box; margin:0; padding:0; -webkit-tap-highlight-color: transparent; }
-  html, body{ height: 100%; }
-  body{
-    background: var(--bg);
-    color: var(--text);
-    font-family: var(--font-body);
-    overflow: hidden;
-    -webkit-font-smoothing: antialiased;
-  }
-
-  .bg-layer{
-    position: fixed;
-    inset: 0;
-    z-index: 0;
-    background: url('https://images.unsplash.com/photo-1519501025264-65ba15a82390?w=800&q=80') center/cover no-repeat;
-    opacity: 0.12;
-    pointer-events: none;
-  }
-  .bg-layer::after{
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(180deg, var(--bg) 0%, transparent 40%, transparent 60%, var(--bg) 100%);
-  }
-
-  #bootScreen{
-    position: fixed; inset:0; z-index:1000;
-    background: var(--bg);
-    display:flex; flex-direction:column; align-items:center; justify-content:center;
-    gap: 16px; transition: opacity 0.6s ease;
-  }
-  .boot-logo{
-    font-family: var(--font-display);
-    font-size: 32px; color: var(--gold-light);
-    text-shadow: 0 0 30px rgba(201,168,76,0.3);
-    animation: bootPulse 2s ease-in-out infinite;
-  }
-  @keyframes bootPulse{
-    0%,100%{ opacity: 0.7; transform: scale(1); }
-    50%{ opacity: 1; transform: scale(1.02); }
-  }
-  .boot-sub{ font-size: 12px; color: var(--text-dim); letter-spacing: 2px; }
-
-  #app{
-    position: relative; z-index: 1;
-    max-width: 430px; margin: 0 auto;
-    height: 100%; display: flex; flex-direction: column;
-    background: transparent;
-  }
-
-  header{
-    padding: 10px 14px 6px;
-    display: flex; align-items: center; justify-content: space-between;
-    position: sticky; top: 0; z-index: 10;
-    background: linear-gradient(180deg, var(--bg) 60%, transparent);
-  }
-  .header-title{
-    font-family: var(--font-display);
-    font-size: 18px; color: var(--gold-light);
-    letter-spacing: 0.5px;
-  }
-  .header-meta{
-    font-size: 10px; color: var(--text-dim);
-    font-family: var(--font-mono);
-  }
-  .rank-pill{
-    background: linear-gradient(145deg, var(--gold-dim), rgba(201,168,76,0.08));
-    border: 1px solid var(--gold-dim);
-    color: var(--gold-light);
-    border-radius: 20px;
-    padding: 4px 12px;
-    font-size: 10px; font-weight: 600;
-    font-family: var(--font-mono);
-    letter-spacing: 0.5px;
-  }
-
-  @keyframes floatUp{
-    0%{ transform: translateY(0) scale(1); opacity: 1; }
-    100%{ transform: translateY(-40px) scale(1.2); opacity: 0; }
-  }
-  .float-num{
-    position: fixed;
-    font-family: var(--font-mono);
-    font-size: 14px; font-weight: 600;
-    color: var(--green);
-    pointer-events: none;
-    z-index: 500;
-    animation: floatUp 1.2s ease-out forwards;
-    text-shadow: 0 0 8px rgba(74,157,111,0.4);
-  }
-
-  .capital-bar{
-    margin: 0 14px 8px;
-    background: linear-gradient(135deg, var(--surface), rgba(201,168,76,0.03));
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 10px 14px;
-    display: flex; align-items: center; justify-content: space-between;
-    position: relative; overflow: hidden;
-  }
-  .capital-bar::before{
-    content: '';
-    position: absolute; top:0; left:0; right:0; height: 1px;
-    background: linear-gradient(90deg, transparent, var(--gold-dim), transparent);
-  }
-  .capital-main{
-    display: flex; flex-direction: column; gap: 1px;
-  }
-  .capital-label-small{
-    font-size: 9px; color: var(--text-dim);
-    text-transform: uppercase; letter-spacing: 1.5px;
-  }
-  .capital-value-inline{
-    font-family: var(--font-display);
-    font-size: 22px; color: var(--gold-light);
-    line-height: 1.1;
-  }
-  .income-pill{
-    background: rgba(74,157,111,0.1);
-    border: 1px solid rgba(74,157,111,0.2);
-    color: var(--green);
-    border-radius: 10px;
-    padding: 4px 10px;
-    font-size: 10px; font-weight: 600;
-    font-family: var(--font-mono);
-  }
-
-  .mentor-avatar-btn{
-    position: fixed;
-    top: 70px; right: 14px;
-    width: 36px; height: 36px;
-    border-radius: 50%;
-    background: var(--surface);
-    border: 1px solid var(--gold-dim);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 18px;
-    cursor: pointer;
-    z-index: 50;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.3);
-    transition: transform 0.15s ease;
-  }
-  .mentor-avatar-btn:active{ transform: scale(0.92); }
-  .mentor-avatar-btn.has-tip::after{
-    content: '';
-    position: absolute; top: -2px; right: -2px;
-    width: 10px; height: 10px;
-    background: var(--red);
-    border-radius: 50%;
-    border: 2px solid var(--bg);
-  }
-
-  .quest-badge-btn{
-    position: fixed;
-    top: 70px; left: 14px;
-    width: 36px; height: 36px;
-    border-radius: 50%;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 16px;
-    cursor: pointer;
-    z-index: 50;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.3);
-  }
-  .quest-badge-btn .badge-count{
-    position: absolute; top: -4px; right: -4px;
-    background: var(--red);
-    color: #fff;
-    font-size: 9px; font-weight: 700;
-    min-width: 16px; height: 16px;
-    border-radius: 8px;
-    display: flex; align-items: center; justify-content: center;
-    border: 2px solid var(--bg);
-  }
-
-  .news-ticker{
-    margin: 0 14px 8px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 6px 10px;
-    display: flex; align-items: center;
-    gap: 8px; overflow: hidden;
-  }
-  .news-icon{ font-size: 12px; flex-shrink: 0; }
-  .news-scroll{ flex: 1; overflow: hidden; position: relative; height: 16px; }
-  .news-item-text{
-    font-size: 10px; color: var(--text-dim);
-    white-space: nowrap;
-    position: absolute;
-    animation: newsScroll 14s linear infinite;
-    line-height: 16px;
-  }
-  @keyframes newsScroll{
-    0%{ transform: translateX(100%); }
-    100%{ transform: translateX(-120%); }
-  }
-
-  .section-title{
-    font-size: 10px; color: var(--text-dim);
-    text-transform: uppercase; letter-spacing: 2px;
-    padding: 8px 14px 6px;
-    display: flex; align-items: center; gap: 6px;
-  }
-
-  .city-map{
-    padding: 0 14px 14px;
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 6px;
-  }
-
-  .building-slot{
-    aspect-ratio: 0.85;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 3px;
-    cursor: pointer;
-    position: relative;
-    overflow: hidden;
-    transition: transform 0.12s ease, box-shadow 0.2s ease, border-color 0.2s ease;
-    padding: 4px;
-  }
-  .building-slot:active{ transform: scale(0.95); }
-
-  .building-slot.owned{
-    border-color: var(--gold-dim);
-    background: linear-gradient(180deg, var(--surface) 0%, rgba(201,168,76,0.05) 100%);
-  }
-  .building-slot.affordable:not(.owned){
-    border-color: var(--gold-dim);
-    box-shadow: 0 0 0 1px var(--gold-dim) inset;
-    animation: affordablePulse 2s ease-in-out infinite;
-  }
-  @keyframes affordablePulse{
-    0%,100%{ box-shadow: 0 0 0 1px var(--gold-dim) inset; }
-    50%{ box-shadow: 0 0 8px 1px var(--gold-dim) inset; }
-  }
-
-  .building-icon{
-    width: 32px; height: 32px;
-    border-radius: 8px;
-    background: linear-gradient(145deg, var(--surface-2), #1c2542);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 16px;
-    flex-shrink: 0;
-    border: 1px solid var(--border);
-    overflow: hidden;
-  }
-  .building-slot.owned .building-icon{
-    background: linear-gradient(145deg, rgba(201,168,76,0.15), rgba(201,168,76,0.05));
-    border-color: var(--gold-dim);
-  }
-  .building-icon img{ width: 100%; height: 100%; object-fit: cover; }
-
-  .biz-icon-locked{ position: relative; }
-  .biz-icon-locked::after{
-    content: ''; position: absolute; inset: 0;
-    background: rgba(5,7,13,0.55);
-  }
-  .biz-lock{
-    position: absolute; inset: 0;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 16px;
-    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.6));
-    z-index: 2;
-  }
-
-  .building-name{
-    font-size: 8px; font-weight: 500;
-    text-align: center; color: var(--text);
-    line-height: 1.2;
-    max-width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-  }
-  .building-slot.locked .building-name{ color: var(--text-dim); }
-
-  .building-lvl{
-    font-size: 8px; color: var(--gold);
-    font-family: var(--font-mono);
-  }
-  .building-income{
-    font-size: 7px; color: var(--green);
-    font-family: var(--font-mono);
-  }
-
-  .building-progress{
-    position: absolute; left: 0; right: 0; bottom: 0;
-    height: 2px; background: rgba(255,255,255,0.03);
-  }
-  .building-progress-fill{
-    height: 100%;
-    background: linear-gradient(90deg, var(--gold-dim), var(--gold-light));
-    transition: width 0.4s ease;
-  }
-
-  @keyframes buildingAppear{
-    0%{ transform: scale(0) translateY(20px); opacity: 0; }
-    60%{ transform: scale(1.1) translateY(-4px); opacity: 1; }
-    100%{ transform: scale(1) translateY(0); opacity: 1; }
-  }
-  .building-slot.appear{
-    animation: buildingAppear 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
-  }
-
-  @keyframes buildingFlash{
-    0%{ box-shadow: 0 0 0 0 rgba(201,168,76,0.5); }
-    50%{ box-shadow: 0 0 16px 4px rgba(201,168,76,0.3); }
-    100%{ box-shadow: 0 0 0 0 rgba(201,168,76,0); }
-  }
-  .building-slot.flash{
-    animation: buildingFlash 0.5s ease;
-  }
-
-  .scroll-content{
-    flex: 1;
-    overflow-y: auto;
-    overflow-x: hidden;
-    -webkit-overflow-scrolling: touch;
-    padding-bottom: 80px;
-  }
-  .scroll-content::-webkit-scrollbar{ width: 0; }
-
-  .overlay{
-    position: fixed; inset: 0;
-    background: rgba(2,3,7,0.75);
-    backdrop-filter: blur(4px);
-    z-index: 100;
-    display: flex; align-items: center; justify-content: center;
-    padding: 16px;
-    opacity: 0; pointer-events: none;
-    transition: opacity 0.2s ease;
-  }
-  .overlay.show{ opacity: 1; pointer-events: auto; }
-
-  .overlay-card{
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 20px;
-    max-width: 340px; width: 100%;
-    text-align: center;
-    position: relative;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-  }
-  .overlay-icon{ font-size: 36px; margin-bottom: 8px; }
-  .overlay-title{
-    font-family: var(--font-display);
-    font-size: 16px; color: var(--gold-light);
-    margin-bottom: 6px;
-  }
-  .overlay-desc{
-    font-size: 12px; color: var(--text-dim);
-    line-height: 1.5; margin-bottom: 16px;
-  }
-  .overlay-amount{
-    font-family: var(--font-display);
-    font-size: 28px; color: var(--green);
-    margin-bottom: 16px;
-    text-shadow: 0 0 16px rgba(74,157,111,0.3);
-  }
-  .overlay-btn{
-    width: 100%;
-    background: linear-gradient(145deg, var(--gold-light), var(--gold));
-    color: #1a1300;
-    border: none; border-radius: 10px;
-    padding: 10px;
-    font-size: 13px; font-weight: 600;
-    cursor: pointer;
-    box-shadow: 0 4px 16px rgba(212,175,55,0.3);
-    transition: transform 0.12s ease;
-  }
-  .overlay-btn:active{ transform: scale(0.97); }
-
-  .modal-close-btn{
-    position: absolute; top: 10px; right: 10px;
-    background: none; border: none;
-    color: var(--text-dim); font-size: 16px;
-    cursor: pointer; width: 28px; height: 28px;
-    display: flex; align-items: center; justify-content: center;
-    border-radius: 50%;
-    transition: background 0.15s ease;
-  }
-  .modal-close-btn:active{ background: var(--surface-2); }
-
-  .biz-modal-card{ max-height: 80vh; overflow-y: auto; text-align: left; }
-  .biz-modal-header{
-    display: flex; align-items: center; gap: 12px;
-    margin-bottom: 14px;
-  }
-  .biz-modal-name{
-    font-family: var(--font-display);
-    font-size: 16px; color: var(--gold-light);
-  }
-
-  .mechanic-card{
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    border-radius: 10px; padding: 10px;
-    margin-bottom: 8px;
-  }
-  .mechanic-title{ font-size: 12px; font-weight: 600; margin-bottom: 3px; }
-  .mechanic-desc{ font-size: 10px; color: var(--text-dim); margin-bottom: 8px; line-height: 1.4; }
-  .mechanic-btn{
-    width: 100%;
-    background: linear-gradient(145deg, var(--gold-light), var(--gold));
-    color: #1a1300; border: none;
-    border-radius: 8px; padding: 8px 12px;
-    font-size: 11px; font-weight: 600;
-    cursor: pointer;
-    transition: transform 0.12s ease;
-  }
-  .mechanic-btn:active{ transform: scale(0.97); }
-  .mechanic-btn.secondary{
-    background: var(--surface-2);
-    color: var(--text); border: 1px solid var(--border);
-    box-shadow: none;
-  }
-
-  .item-row{
-    display: flex; align-items: center; justify-content: space-between;
-    gap: 10px; padding: 5px 0;
-    border-top: 1px solid var(--border);
-  }
-  .item-name{ font-size: 11px; font-weight: 600; }
-  .item-bonus{ font-size: 10px; color: var(--green); }
-  .item-buy-btn{
-    background: linear-gradient(145deg, var(--gold-light), var(--gold));
-    color: #1a1300; border: none;
-    border-radius: 6px; padding: 4px 8px;
-    font-size: 10px; font-weight: 600;
-    cursor: pointer; flex-shrink: 0;
-  }
-  .item-buy-btn:disabled{
-    background: var(--surface-2); color: var(--text-dim);
-    cursor: not-allowed;
-  }
-
-  .asset-card{
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px; padding: 10px 12px;
-    display: flex; align-items: center; gap: 10px;
-    margin-bottom: 8px;
-  }
-  .asset-icon{
-    width: 52px; height: 52px; border-radius: 10px;
-    background: linear-gradient(145deg, var(--surface-2), #1c2542);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 20px; flex-shrink: 0;
-    border: 1px solid var(--border); overflow: hidden;
-  }
-  .asset-icon img{ width: 100%; height: 100%; object-fit: cover; }
-  .asset-name{ font-size: 13px; font-weight: 600; margin-bottom: 1px; }
-  .asset-meta{
-    font-size: 10px; color: var(--text-dim);
-    font-family: var(--font-mono);
-  }
-  .asset-sell-btn{
-    background: none; border: 1px solid var(--gold-dim);
-    color: var(--gold); border-radius: 8px;
-    padding: 5px 8px; font-size: 10px;
-    cursor: pointer; flex-shrink: 0;
-  }
-
-  .job-card{
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px; padding: 10px 12px;
-    display: flex; align-items: center; gap: 10px;
-    margin-bottom: 8px;
-  }
-  .job-icon{
-    width: 44px; height: 44px; border-radius: 10px;
-    background: linear-gradient(145deg, var(--surface-2), #1c2542);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 18px; flex-shrink: 0;
-    border: 1px solid var(--border);
-  }
-  .job-info{ flex: 1; min-width: 0; }
-  .job-name{ font-size: 13px; font-weight: 600; margin-bottom: 1px; }
-  .job-meta{ font-size: 10px; color: var(--text-dim); font-family: var(--font-mono); }
-  .job-risk{ font-size: 10px; color: var(--gold); }
-  .job-go-btn{
-    background: none; border: 1px solid var(--gold-dim);
-    color: var(--gold); border-radius: 8px;
-    padding: 6px 10px; font-size: 11px;
-    cursor: pointer; flex-shrink: 0;
-    min-width: 80px; text-align: center;
-  }
-  .job-go-btn:disabled{
-    border-color: var(--border); color: var(--text-dim);
-    cursor: not-allowed;
-  }
-  .job-progress-track{
-    width: 100%; height: 3px;
-    background: var(--surface-2);
-    border-radius: 2px; margin-top: 6px;
-    overflow: hidden;
-  }
-  .job-progress-fill{
-    height: 100%; background: var(--gold);
-    border-radius: 2px; transition: width 0.1s linear;
-  }
-
-  .profile-card{
-    background: linear-gradient(135deg, var(--surface), rgba(201,168,76,0.03));
-    border: 1px solid var(--border);
-    border-radius: 16px; padding: 20px;
-    text-align: center; margin-bottom: 12px;
-    position: relative; overflow: hidden;
-  }
-  .profile-card::before{
-    content: ''; position: absolute; top: 0; left: 0; right: 0;
-    height: 2px;
-    background: linear-gradient(90deg, transparent, var(--gold-dim), transparent);
-  }
-  .profile-avatar{
-    width: 64px; height: 64px; border-radius: 50%;
-    background: linear-gradient(145deg, var(--surface-2), #1c2542);
-    border: 2px solid var(--gold-dim);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 28px; margin: 0 auto 10px;
-    box-shadow: 0 4px 20px rgba(201,168,76,0.15);
-  }
-  .profile-name{ font-family: var(--font-display); font-size: 18px; color: var(--gold-light); margin-bottom: 2px; }
-  .profile-rank{ font-size: 11px; color: var(--text-dim); }
-
-  .stats-grid{
-    display: grid; grid-template-columns: 1fr 1fr;
-    gap: 8px; margin-bottom: 12px;
-  }
-  .stat-card{
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 10px; padding: 10px;
-  }
-  .stat-label{ font-size: 9px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 3px; }
-  .stat-value{ font-family: var(--font-mono); font-size: 14px; font-weight: 600; }
-
-  .share-btn{
-    width: 100%; margin-bottom: 10px;
-  }
-
-  .rating-item{
-    display: flex; align-items: center; gap: 10px;
-    padding: 8px 12px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 10px; margin-bottom: 6px;
-  }
-  .rating-rank{
-    width: 24px; text-align: center;
-    font-family: var(--font-mono); font-size: 12px; font-weight: 600;
-    color: var(--gold);
-  }
-  .rating-avatar{
-    width: 28px; height: 28px; border-radius: 50%;
-    background: var(--surface-2);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 12px; flex-shrink: 0;
-  }
-  .rating-name{ flex: 1; font-size: 12px; font-weight: 500; }
-  .rating-amount{ font-family: var(--font-mono); font-size: 12px; color: var(--green); }
-  .rating-item.me{
-    border-color: var(--gold-dim);
-    background: linear-gradient(90deg, var(--surface), rgba(201,168,76,0.05));
-  }
-
-  .achieve-panel{
-    margin: 0 14px 12px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 14px; padding: 12px;
-  }
-  .achieve-header{
-    display: flex; align-items: center; justify-content: space-between;
-    margin-bottom: 10px;
-  }
-  .achieve-title{ font-size: 12px; font-weight: 600; color: var(--gold-light); }
-  .achieve-grid{
-    display: grid; grid-template-columns: repeat(4, 1fr);
-    gap: 8px;
-  }
-  .achieve-cell{
-    aspect-ratio: 1;
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-    gap: 2px;
-    cursor: pointer;
-    position: relative;
-    transition: border-color 0.15s ease;
-  }
-  .achieve-cell.unlocked{
-    border-color: var(--gold-dim);
-    background: linear-gradient(180deg, var(--surface-2), rgba(201,168,76,0.05));
-  }
-  .achieve-cell .achieve-icon{ font-size: 18px; }
-  .achieve-cell .achieve-name{ font-size: 7px; color: var(--text-dim); text-align: center; line-height: 1.2; }
-  .achieve-cell.unlocked .achieve-name{ color: var(--text); }
-  .achieve-cell .achieve-reward{ font-size: 7px; color: var(--green); font-family: var(--font-mono); }
-  .achieve-cell .achieve-badge{
-    position: absolute; top: -3px; right: -3px;
-    width: 14px; height: 14px; border-radius: 50%;
-    background: var(--red); color: #fff;
-    font-size: 8px; font-weight: 700;
-    display: flex; align-items: center; justify-content: center;
-    border: 2px solid var(--bg);
-  }
-
-  .stock-game{
-    margin: 0 14px 12px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 14px; padding: 14px;
-  }
-  .stock-header{
-    display: flex; align-items: center; justify-content: space-between;
-    margin-bottom: 10px;
-  }
-  .stock-title{ font-size: 12px; font-weight: 600; color: var(--gold-light); }
-  .stock-timer{ font-size: 10px; color: var(--text-dim); font-family: var(--font-mono); }
-  .stock-chart{
-    height: 60px;
-    background: var(--surface-2);
-    border-radius: 8px;
-    margin-bottom: 10px;
-    position: relative;
-    overflow: hidden;
-  }
-  .stock-chart-line{
-    position: absolute; bottom: 0; left: 0; right: 0;
-    height: 2px;
-    background: linear-gradient(90deg, var(--green), var(--gold), var(--red));
-    opacity: 0.3;
-  }
-  .stock-price{
-    text-align: center;
-    font-family: var(--font-mono);
-    font-size: 18px; color: var(--text);
-    margin-bottom: 10px;
-  }
-  .stock-price.up{ color: var(--green); }
-  .stock-price.down{ color: var(--red); }
-  .stock-actions{
-    display: grid; grid-template-columns: 1fr 1fr;
-    gap: 8px;
-  }
-  .stock-btn{
-    padding: 8px;
-    border-radius: 8px; border: none;
-    font-size: 11px; font-weight: 600;
-    cursor: pointer;
-    transition: transform 0.12s ease;
-  }
-  .stock-btn:active{ transform: scale(0.97); }
-  .stock-btn.up{ background: rgba(74,157,111,0.15); color: var(--green); border: 1px solid rgba(74,157,111,0.3); }
-  .stock-btn.down{ background: rgba(196,92,92,0.15); color: var(--red); border: 1px solid rgba(196,92,92,0.3); }
-
-  .theme-switcher{
-    display: flex; gap: 6px; margin-bottom: 12px;
-  }
-  .theme-option{
-    flex: 1; padding: 8px;
-    border-radius: 8px; border: 1px solid var(--border);
-    background: var(--surface-2);
-    text-align: center; cursor: pointer;
-    font-size: 10px; color: var(--text-dim);
-    transition: border-color 0.15s ease;
-  }
-  .theme-option.active{
-    border-color: var(--gold);
-    color: var(--gold-light);
-  }
-
-  nav{
-    display: flex; justify-content: space-around; align-items: center;
-    padding: 6px 0 20px;
-    background: linear-gradient(0deg, var(--bg) 40%, transparent);
-    position: sticky; bottom: 0; z-index: 10;
-    border-top: 1px solid var(--border);
-  }
-  .nav-item{
-    display: flex; flex-direction: column; align-items: center;
-    gap: 2px; padding: 4px 12px;
-    color: var(--text-dim); font-size: 10px;
-    cursor: pointer; border: none; background: none;
-    font-family: inherit; position: relative;
-    transition: color 0.15s ease;
-  }
-  .nav-item.active{ color: var(--gold-light); }
-  .nav-item .nav-icon{ font-size: 20px; line-height: 1; }
-  .nav-indicator{
-    position: absolute; top: -6px;
-    width: 20px; height: 3px;
-    background: var(--gold-light);
-    border-radius: 2px;
-    transition: left 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
-    box-shadow: 0 0 8px rgba(212,175,55,0.4);
-  }
-
-  .view{ display: none; flex-direction: column; }
-  .view.active{ display: flex; }
-
-  .inheritance-card{
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 14px; padding: 14px;
-    display: flex; align-items: center; gap: 12px;
-    margin-bottom: 10px; cursor: pointer;
-    transition: border-color 0.15s ease, box-shadow 0.15s ease;
-  }
-  .inheritance-card:active{ transform: scale(0.98); }
-  .inheritance-card.selected{
-    border-color: var(--gold-dim);
-    box-shadow: 0 0 0 1px var(--gold-dim) inset;
-  }
-
-  .eco-actions{ display: flex; flex-direction: column; gap: 8px; }
-  .biz-level{ font-size: 11px; color: var(--gold); }
-
-  @keyframes slideInUp{
-    from{ transform: translateY(20px); opacity: 0; }
-    to{ transform: translateY(0); opacity: 1; }
-  }
-  .slide-in{ animation: slideInUp 0.3s ease; }
-
-  @keyframes pulseGlow{
-    0%,100%{ box-shadow: 0 0 0 0 rgba(201,168,76,0.3); }
-    50%{ box-shadow: 0 0 12px 2px rgba(201,168,76,0.2); }
-  }
-  .pulse-glow{ animation: pulseGlow 2s ease-in-out infinite; }
-
-  .brand { font-family: var(--font-display); font-size: 20px; color: var(--gold-light); letter-spacing: 0.5px; }
-
-  .inheritance-intro { text-align: center; padding: 60px 20px 24px; }
-  .inheritance-lead { font-size: 13px; color: var(--text-dim); line-height: 1.6; max-width: 320px; margin: 0 auto; }
-  .inheritance-list { padding: 0 14px 20px; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; max-height: calc(100vh - 240px); }
-  .inheritance-continue { 
-    margin: 20px 14px 40px; 
-    width: calc(100% - 28px);
-    background: linear-gradient(145deg, var(--gold-light), var(--gold));
-    color: #1a1300; border: none; border-radius: 12px;
-    padding: 14px; font-size: 14px; font-weight: 700;
-    cursor: pointer; transition: opacity 0.2s;
-    font-family: var(--font-body);
-  }
-  .inheritance-continue:disabled { opacity: 0.35; cursor: not-allowed; }
-
-  .choice-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 14px; }
-  .choice-head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
-  .choice-icon { width: 48px; height: 48px; border-radius: 10px; overflow: hidden; background: var(--surface-2); border: 1px solid var(--border); flex-shrink: 0; }
-  .choice-icon img { width: 100%; height: 100%; object-fit: cover; }
-  .choice-name { font-size: 14px; font-weight: 600; color: var(--text); }
-  .choice-value { font-size: 11px; color: var(--gold); font-family: var(--font-mono); margin-top: 2px; }
-  .choice-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-  .choice-btn { 
-    background: var(--surface-2); border: 1px solid var(--border); color: var(--text);
-    border-radius: 10px; padding: 10px; font-size: 12px; cursor: pointer;
-    display: flex; flex-direction: column; align-items: center; gap: 3px;
-    transition: all 0.15s ease; font-family: inherit;
-  }
-  .choice-btn:active { transform: scale(0.97); }
-  .choice-btn.selected { border-color: var(--gold); background: linear-gradient(145deg, rgba(201,168,76,0.12), rgba(201,168,76,0.02)); color: var(--gold-light); }
-  .choice-btn small { font-size: 10px; color: var(--text-dim); font-weight: 400; }
-  .choice-btn.selected small { color: var(--gold); }
-
-  .header-clock { font-size: 10px; color: var(--text-dim); font-family: var(--font-mono); margin-top: 2px; }
-  .level-pill { background: linear-gradient(145deg, var(--gold-dim), rgba(201,168,76,0.08)); border: 1px solid var(--gold-dim); color: var(--gold-light); border-radius: 20px; padding: 4px 12px; font-size: 10px; font-weight: 600; font-family: var(--font-mono); letter-spacing: 0.5px; }
-
-  .sound-btn { position: fixed; top: 70px; right: 56px; width: 36px; height: 36px; border-radius: 50%; background: var(--surface); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 16px; cursor: pointer; z-index: 50; box-shadow: 0 2px 12px rgba(0,0,0,0.3); transition: transform 0.15s ease; }
-  .sound-btn:active { transform: scale(0.92); }
-  .sound-btn.active { border-color: var(--gold-dim); }
-
-  .mentor-bubble { display: flex; align-items: flex-start; gap: 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; animation: slideInUp 0.3s ease; }
-  .mentor-bubble .mentor-avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--surface-2); display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; border: 1px solid var(--gold-dim); }
-  .mentor-name { font-size: 11px; font-weight: 600; color: var(--gold-light); margin-bottom: 2px; }
-  .mentor-text { font-size: 11px; color: var(--text-dim); line-height: 1.4; }
-
-  .quest-panel { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; animation: slideInUp 0.3s ease; }
-  .quest-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-  .quest-title { font-size: 12px; font-weight: 600; color: var(--gold-light); }
-  .quest-count { font-size: 10px; color: var(--text-dim); font-family: var(--font-mono); }
-  .quest-item { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-top: 1px solid var(--border); }
-  .quest-item:first-child { border-top: none; padding-top: 0; }
-  .quest-item:last-child { padding-bottom: 0; }
-  .quest-icon { font-size: 18px; flex-shrink: 0; width: 28px; text-align: center; }
-  .quest-info { flex: 1; min-width: 0; }
-  .quest-name { font-size: 11px; font-weight: 500; margin-bottom: 4px; color: var(--text); }
-  .quest-track { height: 3px; background: var(--surface-2); border-radius: 2px; overflow: hidden; }
-  .quest-fill { height: 100%; background: linear-gradient(90deg, var(--gold-dim), var(--gold-light)); border-radius: 2px; transition: width 0.3s ease; }
-  .quest-reward-btn { background: linear-gradient(145deg, var(--gold-light), var(--gold)); color: #1a1300; border: none; border-radius: 8px; padding: 5px 10px; font-size: 10px; font-weight: 700; cursor: pointer; flex-shrink: 0; transition: transform 0.12s ease; }
-  .quest-reward-btn:active { transform: scale(0.95); }
-
-  .biz-list { padding: 0 14px 20px; display: flex; flex-direction: column; gap: 8px; }
-  .biz-card-paused { opacity: 0.55; filter: grayscale(0.6); }
-  .biz-card-locked { opacity: 0.6; }
-
-  .mechanic-status { font-size: 11px; color: var(--green); font-weight: 600; padding: 6px 0; }
-  .mechanic-btn.danger { background: rgba(196,92,92,0.12); color: var(--red); border: 1px solid rgba(196,92,92,0.25); margin-top: 6px; }
-  .mechanic-btn.affordable { box-shadow: 0 0 0 1px var(--gold-dim) inset; }
-  .item-buy-btn.affordable { box-shadow: 0 0 0 1px var(--gold-dim); }
-
-  .job-risk-hint { font-size: 9px; color: var(--gold); margin-top: 3px; font-family: var(--font-mono); }
-  .job-outcome { font-size: 10px; color: var(--green); margin-top: 4px; font-weight: 600; animation: slideInUp 0.3s ease; }
-
-  .rating-note { font-size: 12px; color: var(--text-dim); text-align: center; padding: 20px; font-style: italic; }
-  .rating-row { display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 6px; }
-  .rating-row.me { border-color: var(--gold-dim); background: linear-gradient(90deg, var(--surface), rgba(201,168,76,0.05)); }
-  .rating-place { width: 24px; text-align: center; font-family: var(--font-mono); font-size: 12px; font-weight: 600; color: var(--gold); }
-  .rating-info { flex: 1; min-width: 0; }
-  .rating-name { font-size: 12px; font-weight: 500; color: var(--text); }
-
-  #tutorialOverlay { position: fixed; inset: 0; background: rgba(2,3,7,0.85); backdrop-filter: blur(6px); z-index: 200; display: none; align-items: center; justify-content: center; padding: 16px; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
-  #tutorialOverlay.show { opacity: 1; pointer-events: auto; }
-  .tutorial-step { font-size: 10px; color: var(--text-dim); margin-bottom: 6px; font-family: var(--font-mono); letter-spacing: 1px; }
-  .tutorial-title { font-family: var(--font-display); font-size: 20px; color: var(--gold-light); margin-bottom: 10px; line-height: 1.2; }
-  .tutorial-text { font-size: 13px; color: var(--text); line-height: 1.6; margin-bottom: 20px; }
-
-  #customizeOverlay { position: fixed; inset: 0; background: rgba(2,3,7,0.85); backdrop-filter: blur(6px); z-index: 200; display: none; align-items: center; justify-content: center; padding: 16px; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
-  #customizeOverlay.show { opacity: 1; pointer-events: auto; }
-  .emblem-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; margin: 12px 0; max-height: 220px; overflow-y: auto; padding-right: 4px; }
-  .emblem-option { aspect-ratio: 1; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 22px; cursor: pointer; transition: all 0.15s ease; }
-  .emblem-option:active { transform: scale(0.92); }
-  .emblem-option.selected { border-color: var(--gold); background: rgba(201,168,76,0.12); box-shadow: 0 0 12px rgba(201,168,76,0.15); }
-  .customize-input { width: 100%; background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; color: var(--text); font-family: inherit; font-size: 14px; margin-bottom: 14px; }
-  .customize-input:focus { outline: none; border-color: var(--gold-dim); }
-  .customize-label { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; display: block; }
-
-  #capitalValue.pulse { animation: bootPulse 0.4s ease; }
-
-  #resetBtn { 
-    margin: 0 14px 12px;
-    width: calc(100% - 28px);
-    background: rgba(196,92,92,0.08);
-    color: var(--red);
-    border: 1px solid rgba(196,92,92,0.2);
-    border-radius: 10px;
-    padding: 10px;
-    font-size: 12px;
-    cursor: pointer;
-    font-family: inherit;
-    transition: all 0.15s ease;
-  }
-  #resetBtn:active { background: rgba(196,92,92,0.15); transform: scale(0.98); }
-
-  #shareBtn { width: 100%; margin-bottom: 10px; }
-
-
-  /* ===== 13. QUICK BUY ALL ===== */
-  .quick-buy-btn {
-    margin: 0 14px 12px;
-    width: calc(100% - 28px);
-    background: linear-gradient(145deg, var(--gold-light), var(--gold));
-    color: #1a1300;
-    border: none;
-    border-radius: 12px;
-    padding: 14px;
-    font-size: 14px;
-    font-weight: 700;
-    cursor: pointer;
-    font-family: var(--font-body);
-    transition: transform 0.15s ease, opacity 0.2s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-  }
-  .quick-buy-btn:active { transform: scale(0.97); }
-  .quick-buy-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-
-  /* ===== 2. BANK ===== */
-  .bank-panel { padding: 0 14px 20px; }
-  .bank-tabs { display: flex; gap: 8px; margin-bottom: 14px; }
-  .bank-tab {
-    flex: 1;
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    color: var(--text-dim);
-    border-radius: 10px;
-    padding: 10px;
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    font-family: inherit;
-    transition: all 0.15s ease;
-  }
-  .bank-tab.active { border-color: var(--gold-dim); color: var(--gold-light); background: rgba(201,168,76,0.08); }
-  .bank-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 14px;
-    margin-bottom: 10px;
-  }
-  .bank-card-title { font-size: 13px; font-weight: 600; color: var(--gold-light); margin-bottom: 8px; }
-  .bank-input {
-    width: 100%;
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 10px 12px;
-    color: var(--text);
-    font-family: var(--font-mono);
-    font-size: 14px;
-    margin-bottom: 10px;
-    box-sizing: border-box;
-  }
-  .bank-input:focus { outline: none; border-color: var(--gold-dim); }
-  .bank-row { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-dim); margin-bottom: 6px; }
-  .bank-row span:last-child { color: var(--text); font-family: var(--font-mono); }
-  .bank-btn {
-    width: 100%;
-    background: linear-gradient(145deg, var(--gold-light), var(--gold));
-    color: #1a1300;
-    border: none;
-    border-radius: 10px;
-    padding: 12px;
-    font-size: 13px;
-    font-weight: 700;
-    cursor: pointer;
-    font-family: inherit;
-    transition: transform 0.12s ease;
-  }
-  .bank-btn:active { transform: scale(0.97); }
-  .bank-btn.secondary {
-    background: var(--surface-2);
-    color: var(--text);
-    border: 1px solid var(--border);
-  }
-
-  /* ===== 3. MANAGERS ===== */
-  .manager-list { padding: 0 14px 20px; display: flex; flex-direction: column; gap: 10px; }
-  .manager-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 12px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-  .manager-avatar {
-    width: 48px; height: 48px; border-radius: 50%;
-    background: var(--surface-2); border: 2px solid var(--border);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 24px; flex-shrink: 0;
-  }
-  .manager-avatar.legendary { border-color: var(--gold); box-shadow: 0 0 12px rgba(201,168,76,0.2); }
-  .manager-avatar.epic { border-color: #9b59b6; }
-  .manager-info { flex: 1; min-width: 0; }
-  .manager-name { font-size: 13px; font-weight: 600; color: var(--text); }
-  .manager-rarity { font-size: 10px; font-weight: 600; margin-top: 2px; }
-  .manager-rarity.legendary { color: var(--gold); }
-  .manager-rarity.epic { color: #c084fc; }
-  .manager-rarity.rare { color: #60a5fa; }
-  .manager-rarity.common { color: var(--text-dim); }
-  .manager-effect { font-size: 11px; color: var(--text-dim); margin-top: 3px; }
-  .manager-hire-btn {
-    background: linear-gradient(145deg, var(--gold-light), var(--gold));
-    color: #1a1300; border: none; border-radius: 10px;
-    padding: 8px 14px; font-size: 12px; font-weight: 700;
-    cursor: pointer; flex-shrink: 0; transition: transform 0.12s ease;
-  }
-  .manager-hire-btn:active { transform: scale(0.95); }
-  .manager-hire-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-  .manager-hire-btn.owned { background: var(--surface-2); color: var(--green); border: 1px solid var(--green); }
-
-  /* ===== 4. AUCTION ===== */
-  .auction-panel { padding: 0 14px 20px; }
-  .auction-timer {
-    text-align: center; font-size: 24px; font-family: var(--font-mono);
-    color: var(--gold-light); margin-bottom: 14px; letter-spacing: 2px;
-  }
-  .auction-item {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 14px;
-    margin-bottom: 10px;
-  }
-  .auction-item-header { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
-  .auction-item-img { width: 56px; height: 56px; border-radius: 10px; background: var(--surface-2); object-fit: cover; border: 1px solid var(--border); }
-  .auction-item-name { font-size: 14px; font-weight: 600; color: var(--text); }
-  .auction-item-discount { font-size: 11px; color: var(--green); font-weight: 600; }
-  .auction-bid-row { display: flex; gap: 8px; align-items: center; }
-  .auction-bid-input {
-    flex: 1;
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 10px 12px;
-    color: var(--text);
-    font-family: var(--font-mono);
-    font-size: 14px;
-  }
-  .auction-bid-btn {
-    background: linear-gradient(145deg, var(--gold-light), var(--gold));
-    color: #1a1300; border: none; border-radius: 10px;
-    padding: 10px 16px; font-size: 12px; font-weight: 700;
-    cursor: pointer; transition: transform 0.12s ease;
-  }
-  .auction-bid-btn:active { transform: scale(0.95); }
-  .auction-current-bid { font-size: 11px; color: var(--text-dim); margin-top: 8px; }
-  .auction-current-bid span { color: var(--gold); font-family: var(--font-mono); }
-
-  /* ===== 8. CLAN ===== */
-  .clan-panel { padding: 0 14px 20px; }
-  .clan-header {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 14px;
-    text-align: center;
-    margin-bottom: 12px;
-  }
-  .clan-name { font-family: var(--font-display); font-size: 20px; color: var(--gold-light); }
-  .clan-stats { display: flex; justify-content: center; gap: 24px; margin-top: 10px; }
-  .clan-stat { text-align: center; }
-  .clan-stat-value { font-size: 18px; font-family: var(--font-mono); color: var(--text); font-weight: 600; }
-  .clan-stat-label { font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; }
-  .clan-member {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 10px 12px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 6px;
-  }
-  .clan-member-rank { width: 28px; text-align: center; font-family: var(--font-mono); font-size: 12px; color: var(--gold); font-weight: 600; }
-  .clan-member-name { flex: 1; font-size: 12px; color: var(--text); }
-  .clan-member-contrib { font-size: 11px; color: var(--text-dim); font-family: var(--font-mono); }
-  .clan-war-banner {
-    background: linear-gradient(145deg, rgba(196,92,92,0.12), rgba(196,92,92,0.02));
-    border: 1px solid rgba(196,92,92,0.25);
-    border-radius: 12px;
-    padding: 12px;
-    text-align: center;
-    margin-bottom: 12px;
-  }
-  .clan-war-title { font-size: 13px; font-weight: 600; color: var(--red); }
-  .clan-war-timer { font-size: 20px; font-family: var(--font-mono); color: var(--text); margin-top: 4px; }
-
-  /* ===== 9. BATTLE ===== */
-  .battle-panel { padding: 0 14px 20px; }
-  .battle-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 16px;
-    text-align: center;
-    margin-bottom: 12px;
-  }
-  .battle-vs { font-family: var(--font-display); font-size: 28px; color: var(--gold-light); margin: 10px 0; }
-  .battle-player { display: flex; flex-direction: column; align-items: center; gap: 4px; }
-  .battle-player-avatar { width: 56px; height: 56px; border-radius: 50%; background: var(--surface-2); border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 28px; }
-  .battle-player-name { font-size: 13px; font-weight: 600; color: var(--text); }
-  .battle-player-capital { font-size: 12px; color: var(--gold); font-family: var(--font-mono); }
-  .battle-stake-row { display: flex; align-items: center; gap: 8px; margin: 12px 0; }
-  .battle-stake-input { flex: 1; background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; padding: 10px; color: var(--text); font-family: var(--font-mono); font-size: 14px; }
-  .battle-btn {
-    width: 100%;
-    background: linear-gradient(145deg, var(--red), #a04040);
-    color: #fff; border: none; border-radius: 12px;
-    padding: 14px; font-size: 14px; font-weight: 700;
-    cursor: pointer; transition: transform 0.12s ease;
-  }
-  .battle-btn:active { transform: scale(0.97); }
-  .battle-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-
-  /* ===== 10. CO-OP ===== */
-  .coop-panel { padding: 0 14px 20px; }
-  .coop-biz-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 14px;
-    margin-bottom: 10px;
-  }
-  .coop-partners { display: flex; gap: 6px; margin-top: 8px; }
-  .coop-partner-chip {
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    padding: 4px 10px;
-    font-size: 11px;
-    color: var(--text-dim);
-  }
-  .coop-invite-btn {
-    background: var(--surface-2);
-    border: 1px dashed var(--border);
-    color: var(--text-dim);
-    border-radius: 20px;
-    padding: 4px 10px;
-    font-size: 11px;
-    cursor: pointer;
-  }
-
-  /* ===== 11. CHART ===== */
-  .chart-panel { padding: 0 14px 20px; }
-  .chart-canvas-container {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 14px;
-    margin-bottom: 12px;
-    position: relative;
-  }
-  .chart-canvas { width: 100%; height: 200px; }
-  .chart-tabs { display: flex; gap: 6px; margin-bottom: 10px; }
-  .chart-tab {
-    flex: 1;
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    color: var(--text-dim);
-    border-radius: 8px;
-    padding: 8px;
-    font-size: 11px;
-    font-weight: 600;
-    cursor: pointer;
-    font-family: inherit;
-  }
-  .chart-tab.active { border-color: var(--gold-dim); color: var(--gold-light); }
-
-  /* ===== 12. HISTORY ===== */
-  .history-panel { padding: 0 14px 20px; }
-  .history-filters { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
-  .history-filter {
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    color: var(--text-dim);
-    border-radius: 20px;
-    padding: 6px 12px;
-    font-size: 11px;
-    cursor: pointer;
-    font-family: inherit;
-  }
-  .history-filter.active { border-color: var(--gold-dim); color: var(--gold-light); background: rgba(201,168,76,0.08); }
-  .history-item {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 10px 12px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 6px;
-  }
-  .history-icon { font-size: 20px; flex-shrink: 0; width: 32px; text-align: center; }
-  .history-info { flex: 1; min-width: 0; }
-  .history-title { font-size: 12px; color: var(--text); }
-  .history-time { font-size: 10px; color: var(--text-dim); }
-  .history-amount { font-size: 13px; font-family: var(--font-mono); font-weight: 600; }
-  .history-amount.positive { color: var(--green); }
-  .history-amount.negative { color: var(--red); }
-
-  /* ===== 14. ACHIEVEMENT REWARDS ===== */
-  .achievement-reward-btn {
-    background: linear-gradient(145deg, var(--gold-light), var(--gold));
-    color: #1a1300; border: none; border-radius: 8px;
-    padding: 5px 10px; font-size: 10px; font-weight: 700;
-    cursor: pointer; flex-shrink: 0; transition: transform 0.12s ease;
-  }
-  .achievement-reward-btn:active { transform: scale(0.95); }
-  .achievement-reward-btn:disabled { opacity: 0.4; cursor: not-allowed; background: var(--surface-2); color: var(--text-dim); }
-
-  /* Profile action buttons grid */
-  .profile-actions-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
-    margin: 0 14px 12px;
-  }
-  .profile-action-btn {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 12px;
-    color: var(--text);
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    font-family: inherit;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-    transition: all 0.15s ease;
-  }
-  .profile-action-btn:active { transform: scale(0.97); border-color: var(--gold-dim); }
-  .profile-action-btn .icon { font-size: 20px; }
-
-</style>
-<base target="_blank">
-<base target="_blank">
-</head>
-<body>
-
-  <div class="boot-screen" id="bootScreen">Загрузка...</div>
-
-  <div class="view" id="view-inheritance">
-    <div class="inheritance-intro">
-      <span class="brand">Наследство</span>
-      <div class="inheritance-lead">Дальний родственник оставил вам квартиру и машину. Продайте их ради стартового капитала — или оставьте себе и получайте с них выгоду.</div>
-    </div>
-    <div class="inheritance-list" id="inheritanceList"></div>
-    <button class="inheritance-continue" id="inheritanceContinue" disabled>Начать</button>
-  </div>
-
-  <div id="app" style="display:none">
-    <header>
-      <div>
-        <div class="brand">Империя</div>
-        <div class="header-clock" id="headerClock">--:--</div>
-      </div>
-      <div class="level-pill" id="rankLabel">Новичок</div>
-    </header>
-
-        <div class="view active" id="view-business">
-      <div class="bg-layer"></div>
-
-      <div class="capital-bar">
-        <div class="capital-main">
-          <div class="capital-label-small">Капитал</div>
-          <div class="capital-value-inline" id="capitalValue">₽0</div>
-        </div>
-        <div class="income-pill" id="incomeRate">+₽0/день</div>
-      </div>
-
-      <button class="quest-badge-btn" id="questBadgeBtn" title="Задания">
-        📋<span class="badge-count" id="questBadgeCount" style="display:none">0</span>
-      </button>
-      <button class="mentor-avatar-btn" id="mentorBtn" title="Советник">🎩</button>
-      <button class="sound-btn" id="soundBtn" title="Звук">🔇</button>
-
-      <div class="news-ticker" id="newsTicker">
-        <div class="news-icon">📰</div>
-        <div class="news-scroll">
-          <div class="news-item-text" id="newsText">Добро пожаловать в Империю...</div>
-        </div>
-      </div>
-
-      <div id="mentorBubble" class="mentor-bubble" style="display:none; margin:0 14px 8px;">
-        <div class="mentor-avatar">🎩</div>
-        <div>
-          <div class="mentor-name">Альфред, ваш советник</div>
-          <div class="mentor-text" id="mentorText"></div>
-        </div>
-      </div>
-
-      <div id="questPanel" class="quest-panel" style="display:none; margin:0 14px 8px;">
-        <div class="quest-header">
-          <div class="quest-title">📋 Активные задания</div>
-          <div class="quest-count" id="questCount">0/10</div>
-        </div>
-        <div id="questList"></div>
-      </div>
-
-      <div class="stock-game" id="stockGame">
-        <div class="stock-header">
-          <div class="stock-title">📈 Биржа</div>
-          <div class="stock-timer" id="stockTimer">Доступно</div>
-        </div>
-        <div class="stock-chart" id="stockChart">
-          <div class="stock-chart-line"></div>
-        </div>
-        <div class="stock-price" id="stockPrice">₽100.00</div>
-        <div class="stock-actions">
-          <button class="stock-btn up" id="stockUp">📈 Вверх</button>
-          <button class="stock-btn down" id="stockDown">📉 Вниз</button>
-        </div>
-      </div>
-
-      <div class="section-title">🏙 Город</div>
-      <div class="city-map" id="cityMap"></div>
-
-      <div style="height:20px; flex-shrink:0;"></div>
-
-      <div id="offlineOverlay" class="overlay" style="display:none">
-        <div class="overlay-card">
-          <div class="overlay-icon">💰</div>
-          <div class="overlay-title">Пока вас не было...</div>
-          <div class="overlay-desc" id="offlineDesc">Ваш бизнес продолжал работать</div>
-          <div class="overlay-amount" id="offlineAmount">+₽0</div>
-          <button class="overlay-btn" id="offlineClaim">Забрать</button>
-        </div>
-      </div>
-
-      <div id="dailyRewardOverlay" class="overlay" style="display:none">
-        <div class="overlay-card">
-          <div class="overlay-icon">🎁</div>
-          <div class="overlay-title">Ежедневная награда</div>
-          <div class="overlay-desc" id="dailyRewardDay">День 1</div>
-          <div class="overlay-desc" id="dailyRewardStreak" style="margin-top:-10px;">Серия входов: 1</div>
-          <div class="overlay-amount" id="dailyRewardAmount">+₽0</div>
-          <button class="overlay-btn" id="dailyRewardClaim">Забрать</button>
-        </div>
-      </div>
-
-      <div class="overlay" id="bizModalOverlay" style="display:none">
-        <div class="overlay-card biz-modal-card">
-          <button class="modal-close-btn" id="bizModalClose">✕</button>
-          <div class="biz-modal-header">
-            <div class="biz-icon" id="bizModalIcon"></div>
-            <div class="biz-modal-name" id="bizModalName"></div>
-          </div>
-          <div id="bizModalBody"></div>
-        </div>
-      </div>
-
-      <div class="overlay" id="ecoOverlay" style="display:none">
-        <div class="overlay-card">
-          <div class="overlay-icon">🌱</div>
-          <div class="overlay-title">Экологическая проверка</div>
-          <div class="overlay-desc">На автомойку нагрянула проверка. Нужно решить вопрос.</div>
-          <div class="eco-actions">
-            <button class="mechanic-btn" id="ecoPayFine">Заплатить штраф ₽300</button>
-            <button class="mechanic-btn" id="ecoBribe">Дать взятку ₽150</button>
-          </div>
-        </div>
-      </div>
-
-      <div class="overlay" id="kioskBreakOverlay" style="display:none">
-        <div class="overlay-card">
-          <div class="overlay-icon">☕💥</div>
-          <div class="overlay-title">Кофемашина сломалась</div>
-          <div class="overlay-desc">Ларёк временно не работает. Почините сейчас или подождите.</div>
-          <div class="eco-actions">
-            <button class="mechanic-btn" id="kioskFixBtn">Починить за ₽80</button>
-            <button class="mechanic-btn" id="kioskWaitBtn">Подождать (простой 2 мин)</button>
-          </div>
-        </div>
-      </div>
-
-      <div class="overlay" id="cafeReviewOverlay" style="display:none">
-        <div class="overlay-card">
-          <div class="overlay-icon">📉</div>
-          <div class="overlay-title">Плохой отзыв в интернете</div>
-          <div class="overlay-desc">Доход кафе упал на 50% на 3 минуты.</div>
-          <div class="eco-actions">
-            <button class="mechanic-btn" id="cafeFixBtn">Отработать за ₽200</button>
-            <button class="mechanic-btn" id="cafeWaitBtn">Подождать</button>
-          </div>
-        </div>
-      </div>
-
-      <div class="overlay" id="genericEventOverlay" style="display:none">
-        <div class="overlay-card">
-          <div class="overlay-icon" id="genericEventIcon">⚠</div>
-          <div class="overlay-title" id="genericEventTitle"></div>
-          <div class="overlay-desc" id="genericEventDesc"></div>
-          <div class="eco-actions">
-            <button class="mechanic-btn" id="genericEventFastBtn"></button>
-            <button class="mechanic-btn secondary" id="genericEventSlowBtn"></button>
-          </div>
-        </div>
-      </div>
-
-      <div class="overlay" id="stockResultOverlay" style="display:none">
-        <div class="overlay-card">
-          <div class="overlay-icon" id="stockResultIcon">📈</div>
-          <div class="overlay-title" id="stockResultTitle">Результат</div>
-          <div class="overlay-desc" id="stockResultDesc"></div>
-          <div class="overlay-amount" id="stockResultAmount"></div>
-          <button class="overlay-btn" id="stockResultClose">OK</button>
-        </div>
-      </div>
-    </div>
-<div class="view" id="view-assets">
-      <div class="section-title">Активы</div>
-      <div class="biz-list" id="assetList"></div>
-
-      <div class="overlay" id="assetModalOverlay" style="display:none">
-        <div class="overlay-card biz-modal-card">
-          <button class="modal-close-btn" id="assetModalClose">✕</button>
-          <div class="biz-modal-header">
-            <div class="biz-icon" id="assetModalIcon"></div>
-            <div class="biz-modal-name" id="assetModalName"></div>
-          </div>
-          <div id="assetModalBody"></div>
-        </div>
-      </div>
-    </div>
-
-    <div class="view" id="view-work">
-      <div class="section-title">Подработка</div>
-      <div class="biz-list" id="jobList"></div>
-    </div>
-
-        <div class="view" id="view-profile">
-      <div class="bg-layer"></div>
-
-      <div class="profile-card">
-        <div class="profile-avatar" id="profileAvatar">●</div>
-        <div class="profile-name" id="profileName">Игрок</div>
-        <div class="profile-rank" id="profileRank">Новичок</div>
-      </div>
-
-      <button class="mechanic-btn secondary share-btn" id="customizeBtn" style="margin:0 14px 10px;">⚙ Настроить профиль</button>
-
-      <div class="stats-grid" style="margin:0 14px 12px;">
-        <div class="stat-card">
-          <div class="stat-label">Капитал</div>
-          <div class="stat-value" id="statCapital">₽0</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">Доход/день</div>
-          <div class="stat-value" id="statIncome">₽0</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">Заработано</div>
-          <div class="stat-value" id="statEarned">₽0</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">Бизнесов</div>
-          <div class="stat-value" id="statBizCount">0</div>
-        </div>
-      </div>
-
-      <button class="mechanic-btn secondary share-btn" id="shareBtn" style="margin:0 14px 10px;">📤 Поделиться</button>
-      <button id="resetBtn">🗑 Сбросить прогресс</button>
-      <div class="profile-actions-grid">
-        <button class="profile-action-btn" id="openBankBtn"><span class="icon">🏦</span>Банк</button>
-        <button class="profile-action-btn" id="openManagersBtn"><span class="icon">👔</span>Менеджеры</button>
-        <button class="profile-action-btn" id="openAuctionBtn"><span class="icon">🔨</span>Аукцион</button>
-        <button class="profile-action-btn" id="openClanBtn"><span class="icon">🏛️</span>Синдикат</button>
-        <button class="profile-action-btn" id="openBattleBtn"><span class="icon">⚔️</span>Битва</button>
-        <button class="profile-action-btn" id="openCoopBtn"><span class="icon">🤝</span>Кооп</button>
-        <button class="profile-action-btn" id="openChartBtn"><span class="icon">📈</span>График</button>
-        <button class="profile-action-btn" id="openHistoryBtn"><span class="icon">🧾</span>История</button>
-      </div>
-      <div class="section-title">🎨 Тема оформления</div>
-      <div class="theme-switcher" style="margin:0 14px 12px;">
-        <div class="theme-option active" data-theme="default">🌃 Ночь</div>
-        <div class="theme-option" data-theme="sunset">🌅 Закат</div>
-        <div class="theme-option" data-theme="neon">💜 Неон</div>
-      </div>
-
-      <div class="section-title">🏆 Достижения</div>
-      <div class="achieve-panel" id="achievePanel">
-        <div class="achieve-header">
-          <div class="achieve-title">Прогресс</div>
-          <div class="quest-count" id="achieveCount">0/20</div>
-        </div>
-        <div class="achieve-grid" id="achieveGrid"></div>
-      </div>
-
-      <div class="section-title">👥 Пригласить друзей</div>
-      <div style="margin:0 14px 12px; background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:12px;">
-        <div style="font-size:10px; color:var(--text-dim); font-family:var(--font-mono); word-break:break-all; margin-bottom:8px;" id="refLink">https://t.me/ImperiaBusinessBot/play?startapp=REF_0</div>
-        <button class="overlay-btn" id="copyRefBtn" style="box-shadow:none;">Скопировать ссылку</button>
-        <div style="font-size:11px; color:var(--green); margin-top:6px; text-align:center;" id="refCount">Приглашено друзей: 0</div>
-      </div>
-
-      <div class="section-title">🏅 Рейтинг магнатов</div>
-      <div id="ratingList" style="margin:0 14px 12px;"></div>
-
-      <div style="height:20px;"></div>
-    </div>
-    </div>
-
-    <nav>
-      <div class="nav-indicator" id="navIndicator" data-index="0"></div>
-      <button class="nav-item active" data-view="business">
-        <div class="nav-icon">◆</div>
-        <div>Бизнесы</div>
-      </button>
-      <button class="nav-item" data-view="assets">
-        <div class="nav-icon">🏠</div>
-        <div>Активы</div>
-      </button>
-      <button class="nav-item" data-view="work">
-        <div class="nav-icon">💼</div>
-        <div>Работа</div>
-      </button>
-      <button class="nav-item" data-view="profile">
-        <div class="nav-icon">●</div>
-        <div>Профиль</div>
-      </button>
-    </nav>
-  </div>
-
-<script type="module">
   const tg = window.Telegram?.WebApp;
   if (tg) { tg.ready(); tg.expand(); }
 
@@ -5177,7 +2139,8 @@
     }
   });
 
-  // ===================== NEW FEATURE DATA =====================
+  
+// ===================== NEW FEATURE DATA =====================
   let deposits = [];
   let loans = [];
   let offshoreUnlocked = false;
@@ -5925,7 +2888,1657 @@
     updateQuickBuyBtn();
   };
 
+
+
+// ===================== WINDOW BINDINGS =====================
+window.openBank = openBank;
+window.openManagers = openManagers;
+window.openAuction = openAuction;
+window.openClan = openClan;
+window.openBattle = openBattle;
+window.openCoop = openCoop;
+window.openChart = openChart;
+window.openHistory = openHistory;
+window.openDeposit = openDeposit;
+window.closeDeposit = closeDeposit;
+window.takeLoan = takeLoan;
+window.repayLoan = repayLoan;
+window.openOffshore = openOffshore;
+window.hireManager = hireManager;
+window.placeBid = placeBid;
+window.createClan = createClan;
+window.joinClan = joinClan;
+window.startBattle = startBattle;
+window.claimAchievementReward = claimAchievementReward;
+window.quickBuyAll = quickBuyAll;
+
+// ===================== MODAL CLOSE HANDLERS =====================
+document.getElementById('bankClose')?.addEventListener('click', () => {
+  document.getElementById('bankOverlay').style.display = 'none';
+});
+document.getElementById('managersClose')?.addEventListener('click', () => {
+  document.getElementById('managersOverlay').style.display = 'none';
+});
+document.getElementById('auctionClose')?.addEventListener('click', () => {
+  document.getElementById('auctionOverlay').style.display = 'none';
+});
+document.getElementById('clanClose')?.addEventListener('click', () => {
+  document.getElementById('clanOverlay').style.display = 'none';
+});
+document.getElementById('battleClose')?.addEventListener('click', () => {
+  document.getElementById('battleOverlay').style.display = 'none';
+});
+document.getElementById('coopClose')?.addEventListener('click', () => {
+  document.getElementById('coopOverlay').style.display = 'none';
+});
+document.getElementById('chartClose')?.addEventListener('click', () => {
+  document.getElementById('chartOverlay').style.display = 'none';
+});
+document.getElementById('historyClose')?.addEventListener('click', () => {
+  document.getElementById('historyOverlay').style.display = 'none';
+});
+
+// Close on overlay background click
+['bankOverlay','managersOverlay','auctionOverlay','clanOverlay','battleOverlay','coopOverlay','chartOverlay','historyOverlay'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) {
+    el.addEventListener('click', (e) => {
+      if (e.target === el) el.style.display = 'none';
+    });
+  }
+});
+
+// ===================== BANK TABS =====================
+document.querySelectorAll('.bank-tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.bank-tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const tab = btn.dataset.bankTab;
+    document.getElementById('bankDepositPanel').style.display = tab === 'deposit' ? 'block' : 'none';
+    document.getElementById('bankLoanPanel').style.display = tab === 'loan' ? 'block' : 'none';
+    document.getElementById('bankOffshorePanel').style.display = tab === 'offshore' ? 'block' : 'none';
+  });
+});
+
+// ===================== CHART TABS =====================
+document.querySelectorAll('.chart-tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.chart-tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderChart(btn.dataset.chart);
+  });
+});
+
+// ===================== HISTORY FILTERS =====================
+document.querySelectorAll('.history-filter').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.history-filter').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderHistory(btn.dataset.filter);
+  });
+});
+
+// ===================== PROFILE BUTTONS =====================
+document.getElementById('openBankBtn')?.addEventListener('click', () => { sfxClick(); openBank(); });
+document.getElementById('openManagersBtn')?.addEventListener('click', () => { sfxClick(); openManagers(); });
+document.getElementById('openAuctionBtn')?.addEventListener('click', () => { sfxClick(); openAuction(); });
+document.getElementById('openClanBtn')?.addEventListener('click', () => { sfxClick(); openClan(); });
+document.getElementById('openBattleBtn')?.addEventListener('click', () => { sfxClick(); openBattle(); });
+document.getElementById('openCoopBtn')?.addEventListener('click', () => { sfxClick(); openCoop(); });
+document.getElementById('openChartBtn')?.addEventListener('click', () => { sfxClick(); openChart(); });
+document.getElementById('openHistoryBtn')?.addEventListener('click', () => { sfxClick(); openHistory(); });
+
+// ===================== BANK ACTION BUTTONS =====================
+document.getElementById('openDepositBtn')?.addEventListener('click', openDeposit);
+document.getElementById('takeLoanBtn')?.addEventListener('click', takeLoan);
+document.getElementById('openOffshoreBtn')?.addEventListener('click', openOffshore);
+
 </script>
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap');
+
+  :root{
+    --bg: #0a0e1a;
+    --surface: #12182b;
+    --surface-2: #1a2240;
+    --border: rgba(255,255,255,0.06);
+    --text: #e8e4dc;
+    --text-dim: #7a8299;
+    --gold: #c9a84c;
+    --gold-light: #e8d5a3;
+    --gold-dim: rgba(201,168,76,0.25);
+    --green: #4a9d6f;
+    --red: #c45c5c;
+    --font-display: 'Playfair Display', serif;
+    --font-mono: 'JetBrains Mono', monospace;
+    --font-body: 'Inter', sans-serif;
+  }
+
+  [data-theme="sunset"]{
+    --bg: #1a0f0a;
+    --surface: #2a1810;
+    --surface-2: #3d2418;
+    --border: rgba(255,200,150,0.08);
+    --text: #f0e0d0;
+    --text-dim: #a08070;
+    --gold: #e8a05c;
+    --gold-light: #ffc890;
+    --gold-dim: rgba(232,160,92,0.25);
+    --green: #6ab88a;
+  }
+
+  [data-theme="neon"]{
+    --bg: #0a0a1a;
+    --surface: #12122b;
+    --surface-2: #1a1a40;
+    --border: rgba(150,100,255,0.1);
+    --text: #e0e0ff;
+    --text-dim: #7a70a0;
+    --gold: #b084ff;
+    --gold-light: #d4b8ff;
+    --gold-dim: rgba(176,132,255,0.25);
+    --green: #5cd4a0;
+  }
+
+  *{ box-sizing: border-box; margin:0; padding:0; -webkit-tap-highlight-color: transparent; }
+  html, body{ height: 100%; }
+  body{
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .bg-layer{
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    background: url('https://images.unsplash.com/photo-1519501025264-65ba15a82390?w=800&q=80') center/cover no-repeat;
+    opacity: 0.12;
+    pointer-events: none;
+  }
+  .bg-layer::after{
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, var(--bg) 0%, transparent 40%, transparent 60%, var(--bg) 100%);
+  }
+
+  #bootScreen{
+    position: fixed; inset:0; z-index:1000;
+    background: var(--bg);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap: 16px; transition: opacity 0.6s ease;
+  }
+  .boot-logo{
+    font-family: var(--font-display);
+    font-size: 32px; color: var(--gold-light);
+    text-shadow: 0 0 30px rgba(201,168,76,0.3);
+    animation: bootPulse 2s ease-in-out infinite;
+  }
+  @keyframes bootPulse{
+    0%,100%{ opacity: 0.7; transform: scale(1); }
+    50%{ opacity: 1; transform: scale(1.02); }
+  }
+  .boot-sub{ font-size: 12px; color: var(--text-dim); letter-spacing: 2px; }
+
+  #app{
+    position: relative; z-index: 1;
+    max-width: 430px; margin: 0 auto;
+    height: 100%; display: flex; flex-direction: column;
+    background: transparent;
+  }
+
+  header{
+    padding: 10px 14px 6px;
+    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 10;
+    background: linear-gradient(180deg, var(--bg) 60%, transparent);
+  }
+  .header-title{
+    font-family: var(--font-display);
+    font-size: 18px; color: var(--gold-light);
+    letter-spacing: 0.5px;
+  }
+  .header-meta{
+    font-size: 10px; color: var(--text-dim);
+    font-family: var(--font-mono);
+  }
+  .rank-pill{
+    background: linear-gradient(145deg, var(--gold-dim), rgba(201,168,76,0.08));
+    border: 1px solid var(--gold-dim);
+    color: var(--gold-light);
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 10px; font-weight: 600;
+    font-family: var(--font-mono);
+    letter-spacing: 0.5px;
+  }
+
+  @keyframes floatUp{
+    0%{ transform: translateY(0) scale(1); opacity: 1; }
+    100%{ transform: translateY(-40px) scale(1.2); opacity: 0; }
+  }
+  .float-num{
+    position: fixed;
+    font-family: var(--font-mono);
+    font-size: 14px; font-weight: 600;
+    color: var(--green);
+    pointer-events: none;
+    z-index: 500;
+    animation: floatUp 1.2s ease-out forwards;
+    text-shadow: 0 0 8px rgba(74,157,111,0.4);
+  }
+
+  .capital-bar{
+    margin: 0 14px 8px;
+    background: linear-gradient(135deg, var(--surface), rgba(201,168,76,0.03));
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 10px 14px;
+    display: flex; align-items: center; justify-content: space-between;
+    position: relative; overflow: hidden;
+  }
+  .capital-bar::before{
+    content: '';
+    position: absolute; top:0; left:0; right:0; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--gold-dim), transparent);
+  }
+  .capital-main{
+    display: flex; flex-direction: column; gap: 1px;
+  }
+  .capital-label-small{
+    font-size: 9px; color: var(--text-dim);
+    text-transform: uppercase; letter-spacing: 1.5px;
+  }
+  .capital-value-inline{
+    font-family: var(--font-display);
+    font-size: 22px; color: var(--gold-light);
+    line-height: 1.1;
+  }
+  .income-pill{
+    background: rgba(74,157,111,0.1);
+    border: 1px solid rgba(74,157,111,0.2);
+    color: var(--green);
+    border-radius: 10px;
+    padding: 4px 10px;
+    font-size: 10px; font-weight: 600;
+    font-family: var(--font-mono);
+  }
+
+  .mentor-avatar-btn{
+    position: fixed;
+    top: 70px; right: 14px;
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: var(--surface);
+    border: 1px solid var(--gold-dim);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    cursor: pointer;
+    z-index: 50;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+    transition: transform 0.15s ease;
+  }
+  .mentor-avatar-btn:active{ transform: scale(0.92); }
+  .mentor-avatar-btn.has-tip::after{
+    content: '';
+    position: absolute; top: -2px; right: -2px;
+    width: 10px; height: 10px;
+    background: var(--red);
+    border-radius: 50%;
+    border: 2px solid var(--bg);
+  }
+
+  .quest-badge-btn{
+    position: fixed;
+    top: 70px; left: 14px;
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    cursor: pointer;
+    z-index: 50;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+  }
+  .quest-badge-btn .badge-count{
+    position: absolute; top: -4px; right: -4px;
+    background: var(--red);
+    color: #fff;
+    font-size: 9px; font-weight: 700;
+    min-width: 16px; height: 16px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    border: 2px solid var(--bg);
+  }
+
+  .news-ticker{
+    margin: 0 14px 8px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 6px 10px;
+    display: flex; align-items: center;
+    gap: 8px; overflow: hidden;
+  }
+  .news-icon{ font-size: 12px; flex-shrink: 0; }
+  .news-scroll{ flex: 1; overflow: hidden; position: relative; height: 16px; }
+  .news-item-text{
+    font-size: 10px; color: var(--text-dim);
+    white-space: nowrap;
+    position: absolute;
+    animation: newsScroll 14s linear infinite;
+    line-height: 16px;
+  }
+  @keyframes newsScroll{
+    0%{ transform: translateX(100%); }
+    100%{ transform: translateX(-120%); }
+  }
+
+  .section-title{
+    font-size: 10px; color: var(--text-dim);
+    text-transform: uppercase; letter-spacing: 2px;
+    padding: 8px 14px 6px;
+    display: flex; align-items: center; gap: 6px;
+  }
+
+  .city-map{
+    padding: 0 14px 14px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+  }
+
+  .building-slot{
+    aspect-ratio: 0.85;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.12s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    padding: 4px;
+  }
+  .building-slot:active{ transform: scale(0.95); }
+
+  .building-slot.owned{
+    border-color: var(--gold-dim);
+    background: linear-gradient(180deg, var(--surface) 0%, rgba(201,168,76,0.05) 100%);
+  }
+  .building-slot.affordable:not(.owned){
+    border-color: var(--gold-dim);
+    box-shadow: 0 0 0 1px var(--gold-dim) inset;
+    animation: affordablePulse 2s ease-in-out infinite;
+  }
+  @keyframes affordablePulse{
+    0%,100%{ box-shadow: 0 0 0 1px var(--gold-dim) inset; }
+    50%{ box-shadow: 0 0 8px 1px var(--gold-dim) inset; }
+  }
+
+  .building-icon{
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    background: linear-gradient(145deg, var(--surface-2), #1c2542);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+    border: 1px solid var(--border);
+    overflow: hidden;
+  }
+  .building-slot.owned .building-icon{
+    background: linear-gradient(145deg, rgba(201,168,76,0.15), rgba(201,168,76,0.05));
+    border-color: var(--gold-dim);
+  }
+  .building-icon img{ width: 100%; height: 100%; object-fit: cover; }
+
+  .biz-icon-locked{ position: relative; }
+  .biz-icon-locked::after{
+    content: ''; position: absolute; inset: 0;
+    background: rgba(5,7,13,0.55);
+  }
+  .biz-lock{
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.6));
+    z-index: 2;
+  }
+
+  .building-name{
+    font-size: 8px; font-weight: 500;
+    text-align: center; color: var(--text);
+    line-height: 1.2;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+  .building-slot.locked .building-name{ color: var(--text-dim); }
+
+  .building-lvl{
+    font-size: 8px; color: var(--gold);
+    font-family: var(--font-mono);
+  }
+  .building-income{
+    font-size: 7px; color: var(--green);
+    font-family: var(--font-mono);
+  }
+
+  .building-progress{
+    position: absolute; left: 0; right: 0; bottom: 0;
+    height: 2px; background: rgba(255,255,255,0.03);
+  }
+  .building-progress-fill{
+    height: 100%;
+    background: linear-gradient(90deg, var(--gold-dim), var(--gold-light));
+    transition: width 0.4s ease;
+  }
+
+  @keyframes buildingAppear{
+    0%{ transform: scale(0) translateY(20px); opacity: 0; }
+    60%{ transform: scale(1.1) translateY(-4px); opacity: 1; }
+    100%{ transform: scale(1) translateY(0); opacity: 1; }
+  }
+  .building-slot.appear{
+    animation: buildingAppear 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  @keyframes buildingFlash{
+    0%{ box-shadow: 0 0 0 0 rgba(201,168,76,0.5); }
+    50%{ box-shadow: 0 0 16px 4px rgba(201,168,76,0.3); }
+    100%{ box-shadow: 0 0 0 0 rgba(201,168,76,0); }
+  }
+  .building-slot.flash{
+    animation: buildingFlash 0.5s ease;
+  }
+
+  .scroll-content{
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 80px;
+  }
+  .scroll-content::-webkit-scrollbar{ width: 0; }
+
+  .overlay{
+    position: fixed; inset: 0;
+    background: rgba(2,3,7,0.75);
+    backdrop-filter: blur(4px);
+    z-index: 100;
+    display: flex; align-items: center; justify-content: center;
+    padding: 16px;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.2s ease;
+  }
+  .overlay.show{ opacity: 1; pointer-events: auto; }
+
+  .overlay-card{
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px;
+    max-width: 340px; width: 100%;
+    text-align: center;
+    position: relative;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  }
+  .overlay-icon{ font-size: 36px; margin-bottom: 8px; }
+  .overlay-title{
+    font-family: var(--font-display);
+    font-size: 16px; color: var(--gold-light);
+    margin-bottom: 6px;
+  }
+  .overlay-desc{
+    font-size: 12px; color: var(--text-dim);
+    line-height: 1.5; margin-bottom: 16px;
+  }
+  .overlay-amount{
+    font-family: var(--font-display);
+    font-size: 28px; color: var(--green);
+    margin-bottom: 16px;
+    text-shadow: 0 0 16px rgba(74,157,111,0.3);
+  }
+  .overlay-btn{
+    width: 100%;
+    background: linear-gradient(145deg, var(--gold-light), var(--gold));
+    color: #1a1300;
+    border: none; border-radius: 10px;
+    padding: 10px;
+    font-size: 13px; font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(212,175,55,0.3);
+    transition: transform 0.12s ease;
+  }
+  .overlay-btn:active{ transform: scale(0.97); }
+
+  .modal-close-btn{
+    position: absolute; top: 10px; right: 10px;
+    background: none; border: none;
+    color: var(--text-dim); font-size: 16px;
+    cursor: pointer; width: 28px; height: 28px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 50%;
+    transition: background 0.15s ease;
+  }
+  .modal-close-btn:active{ background: var(--surface-2); }
+
+  .biz-modal-card{ max-height: 80vh; overflow-y: auto; text-align: left; }
+  .biz-modal-header{
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 14px;
+  }
+  .biz-modal-name{
+    font-family: var(--font-display);
+    font-size: 16px; color: var(--gold-light);
+  }
+
+  .mechanic-card{
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 10px; padding: 10px;
+    margin-bottom: 8px;
+  }
+  .mechanic-title{ font-size: 12px; font-weight: 600; margin-bottom: 3px; }
+  .mechanic-desc{ font-size: 10px; color: var(--text-dim); margin-bottom: 8px; line-height: 1.4; }
+  .mechanic-btn{
+    width: 100%;
+    background: linear-gradient(145deg, var(--gold-light), var(--gold));
+    color: #1a1300; border: none;
+    border-radius: 8px; padding: 8px 12px;
+    font-size: 11px; font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.12s ease;
+  }
+  .mechanic-btn:active{ transform: scale(0.97); }
+  .mechanic-btn.secondary{
+    background: var(--surface-2);
+    color: var(--text); border: 1px solid var(--border);
+    box-shadow: none;
+  }
+
+  .item-row{
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 10px; padding: 5px 0;
+    border-top: 1px solid var(--border);
+  }
+  .item-name{ font-size: 11px; font-weight: 600; }
+  .item-bonus{ font-size: 10px; color: var(--green); }
+  .item-buy-btn{
+    background: linear-gradient(145deg, var(--gold-light), var(--gold));
+    color: #1a1300; border: none;
+    border-radius: 6px; padding: 4px 8px;
+    font-size: 10px; font-weight: 600;
+    cursor: pointer; flex-shrink: 0;
+  }
+  .item-buy-btn:disabled{
+    background: var(--surface-2); color: var(--text-dim);
+    cursor: not-allowed;
+  }
+
+  .asset-card{
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px; padding: 10px 12px;
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 8px;
+  }
+  .asset-icon{
+    width: 52px; height: 52px; border-radius: 10px;
+    background: linear-gradient(145deg, var(--surface-2), #1c2542);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; flex-shrink: 0;
+    border: 1px solid var(--border); overflow: hidden;
+  }
+  .asset-icon img{ width: 100%; height: 100%; object-fit: cover; }
+  .asset-name{ font-size: 13px; font-weight: 600; margin-bottom: 1px; }
+  .asset-meta{
+    font-size: 10px; color: var(--text-dim);
+    font-family: var(--font-mono);
+  }
+  .asset-sell-btn{
+    background: none; border: 1px solid var(--gold-dim);
+    color: var(--gold); border-radius: 8px;
+    padding: 5px 8px; font-size: 10px;
+    cursor: pointer; flex-shrink: 0;
+  }
+
+  .job-card{
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px; padding: 10px 12px;
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 8px;
+  }
+  .job-icon{
+    width: 44px; height: 44px; border-radius: 10px;
+    background: linear-gradient(145deg, var(--surface-2), #1c2542);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; flex-shrink: 0;
+    border: 1px solid var(--border);
+  }
+  .job-info{ flex: 1; min-width: 0; }
+  .job-name{ font-size: 13px; font-weight: 600; margin-bottom: 1px; }
+  .job-meta{ font-size: 10px; color: var(--text-dim); font-family: var(--font-mono); }
+  .job-risk{ font-size: 10px; color: var(--gold); }
+  .job-go-btn{
+    background: none; border: 1px solid var(--gold-dim);
+    color: var(--gold); border-radius: 8px;
+    padding: 6px 10px; font-size: 11px;
+    cursor: pointer; flex-shrink: 0;
+    min-width: 80px; text-align: center;
+  }
+  .job-go-btn:disabled{
+    border-color: var(--border); color: var(--text-dim);
+    cursor: not-allowed;
+  }
+  .job-progress-track{
+    width: 100%; height: 3px;
+    background: var(--surface-2);
+    border-radius: 2px; margin-top: 6px;
+    overflow: hidden;
+  }
+  .job-progress-fill{
+    height: 100%; background: var(--gold);
+    border-radius: 2px; transition: width 0.1s linear;
+  }
+
+  .profile-card{
+    background: linear-gradient(135deg, var(--surface), rgba(201,168,76,0.03));
+    border: 1px solid var(--border);
+    border-radius: 16px; padding: 20px;
+    text-align: center; margin-bottom: 12px;
+    position: relative; overflow: hidden;
+  }
+  .profile-card::before{
+    content: ''; position: absolute; top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--gold-dim), transparent);
+  }
+  .profile-avatar{
+    width: 64px; height: 64px; border-radius: 50%;
+    background: linear-gradient(145deg, var(--surface-2), #1c2542);
+    border: 2px solid var(--gold-dim);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28px; margin: 0 auto 10px;
+    box-shadow: 0 4px 20px rgba(201,168,76,0.15);
+  }
+  .profile-name{ font-family: var(--font-display); font-size: 18px; color: var(--gold-light); margin-bottom: 2px; }
+  .profile-rank{ font-size: 11px; color: var(--text-dim); }
+
+  .stats-grid{
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 8px; margin-bottom: 12px;
+  }
+  .stat-card{
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px; padding: 10px;
+  }
+  .stat-label{ font-size: 9px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 3px; }
+  .stat-value{ font-family: var(--font-mono); font-size: 14px; font-weight: 600; }
+
+  .share-btn{
+    width: 100%; margin-bottom: 10px;
+  }
+
+  .rating-item{
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px; margin-bottom: 6px;
+  }
+  .rating-rank{
+    width: 24px; text-align: center;
+    font-family: var(--font-mono); font-size: 12px; font-weight: 600;
+    color: var(--gold);
+  }
+  .rating-avatar{
+    width: 28px; height: 28px; border-radius: 50%;
+    background: var(--surface-2);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; flex-shrink: 0;
+  }
+  .rating-name{ flex: 1; font-size: 12px; font-weight: 500; }
+  .rating-amount{ font-family: var(--font-mono); font-size: 12px; color: var(--green); }
+  .rating-item.me{
+    border-color: var(--gold-dim);
+    background: linear-gradient(90deg, var(--surface), rgba(201,168,76,0.05));
+  }
+
+  .achieve-panel{
+    margin: 0 14px 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px; padding: 12px;
+  }
+  .achieve-header{
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .achieve-title{ font-size: 12px; font-weight: 600; color: var(--gold-light); }
+  .achieve-grid{
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+  }
+  .achieve-cell{
+    aspect-ratio: 1;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 2px;
+    cursor: pointer;
+    position: relative;
+    transition: border-color 0.15s ease;
+  }
+  .achieve-cell.unlocked{
+    border-color: var(--gold-dim);
+    background: linear-gradient(180deg, var(--surface-2), rgba(201,168,76,0.05));
+  }
+  .achieve-cell .achieve-icon{ font-size: 18px; }
+  .achieve-cell .achieve-name{ font-size: 7px; color: var(--text-dim); text-align: center; line-height: 1.2; }
+  .achieve-cell.unlocked .achieve-name{ color: var(--text); }
+  .achieve-cell .achieve-reward{ font-size: 7px; color: var(--green); font-family: var(--font-mono); }
+  .achieve-cell .achieve-badge{
+    position: absolute; top: -3px; right: -3px;
+    width: 14px; height: 14px; border-radius: 50%;
+    background: var(--red); color: #fff;
+    font-size: 8px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    border: 2px solid var(--bg);
+  }
+
+  .stock-game{
+    margin: 0 14px 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px; padding: 14px;
+  }
+  .stock-header{
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .stock-title{ font-size: 12px; font-weight: 600; color: var(--gold-light); }
+  .stock-timer{ font-size: 10px; color: var(--text-dim); font-family: var(--font-mono); }
+  .stock-chart{
+    height: 60px;
+    background: var(--surface-2);
+    border-radius: 8px;
+    margin-bottom: 10px;
+    position: relative;
+    overflow: hidden;
+  }
+  .stock-chart-line{
+    position: absolute; bottom: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--green), var(--gold), var(--red));
+    opacity: 0.3;
+  }
+  .stock-price{
+    text-align: center;
+    font-family: var(--font-mono);
+    font-size: 18px; color: var(--text);
+    margin-bottom: 10px;
+  }
+  .stock-price.up{ color: var(--green); }
+  .stock-price.down{ color: var(--red); }
+  .stock-actions{
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .stock-btn{
+    padding: 8px;
+    border-radius: 8px; border: none;
+    font-size: 11px; font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.12s ease;
+  }
+  .stock-btn:active{ transform: scale(0.97); }
+  .stock-btn.up{ background: rgba(74,157,111,0.15); color: var(--green); border: 1px solid rgba(74,157,111,0.3); }
+  .stock-btn.down{ background: rgba(196,92,92,0.15); color: var(--red); border: 1px solid rgba(196,92,92,0.3); }
+
+  .theme-switcher{
+    display: flex; gap: 6px; margin-bottom: 12px;
+  }
+  .theme-option{
+    flex: 1; padding: 8px;
+    border-radius: 8px; border: 1px solid var(--border);
+    background: var(--surface-2);
+    text-align: center; cursor: pointer;
+    font-size: 10px; color: var(--text-dim);
+    transition: border-color 0.15s ease;
+  }
+  .theme-option.active{
+    border-color: var(--gold);
+    color: var(--gold-light);
+  }
+
+  nav{
+    display: flex; justify-content: space-around; align-items: center;
+    padding: 6px 0 20px;
+    background: linear-gradient(0deg, var(--bg) 40%, transparent);
+    position: sticky; bottom: 0; z-index: 10;
+    border-top: 1px solid var(--border);
+  }
+  .nav-item{
+    display: flex; flex-direction: column; align-items: center;
+    gap: 2px; padding: 4px 12px;
+    color: var(--text-dim); font-size: 10px;
+    cursor: pointer; border: none; background: none;
+    font-family: inherit; position: relative;
+    transition: color 0.15s ease;
+  }
+  .nav-item.active{ color: var(--gold-light); }
+  .nav-item .nav-icon{ font-size: 20px; line-height: 1; }
+  .nav-indicator{
+    position: absolute; top: -6px;
+    width: 20px; height: 3px;
+    background: var(--gold-light);
+    border-radius: 2px;
+    transition: left 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: 0 0 8px rgba(212,175,55,0.4);
+  }
+
+  .view{ display: none; flex-direction: column; }
+  .view.active{ display: flex; }
+
+  .inheritance-card{
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px; padding: 14px;
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 10px; cursor: pointer;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+  .inheritance-card:active{ transform: scale(0.98); }
+  .inheritance-card.selected{
+    border-color: var(--gold-dim);
+    box-shadow: 0 0 0 1px var(--gold-dim) inset;
+  }
+
+  .eco-actions{ display: flex; flex-direction: column; gap: 8px; }
+  .biz-level{ font-size: 11px; color: var(--gold); }
+
+  @keyframes slideInUp{
+    from{ transform: translateY(20px); opacity: 0; }
+    to{ transform: translateY(0); opacity: 1; }
+  }
+  .slide-in{ animation: slideInUp 0.3s ease; }
+
+  @keyframes pulseGlow{
+    0%,100%{ box-shadow: 0 0 0 0 rgba(201,168,76,0.3); }
+    50%{ box-shadow: 0 0 12px 2px rgba(201,168,76,0.2); }
+  }
+  .pulse-glow{ animation: pulseGlow 2s ease-in-out infinite; }
+
+  .brand { font-family: var(--font-display); font-size: 20px; color: var(--gold-light); letter-spacing: 0.5px; }
+
+  .inheritance-intro { text-align: center; padding: 60px 20px 24px; }
+  .inheritance-lead { font-size: 13px; color: var(--text-dim); line-height: 1.6; max-width: 320px; margin: 0 auto; }
+  .inheritance-list { padding: 0 14px 20px; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; max-height: calc(100vh - 240px); }
+  .inheritance-continue { 
+    margin: 20px 14px 40px; 
+    width: calc(100% - 28px);
+    background: linear-gradient(145deg, var(--gold-light), var(--gold));
+    color: #1a1300; border: none; border-radius: 12px;
+    padding: 14px; font-size: 14px; font-weight: 700;
+    cursor: pointer; transition: opacity 0.2s;
+    font-family: var(--font-body);
+  }
+  .inheritance-continue:disabled { opacity: 0.35; cursor: not-allowed; }
+
+  .choice-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 14px; }
+  .choice-head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+  .choice-icon { width: 48px; height: 48px; border-radius: 10px; overflow: hidden; background: var(--surface-2); border: 1px solid var(--border); flex-shrink: 0; }
+  .choice-icon img { width: 100%; height: 100%; object-fit: cover; }
+  .choice-name { font-size: 14px; font-weight: 600; color: var(--text); }
+  .choice-value { font-size: 11px; color: var(--gold); font-family: var(--font-mono); margin-top: 2px; }
+  .choice-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .choice-btn { 
+    background: var(--surface-2); border: 1px solid var(--border); color: var(--text);
+    border-radius: 10px; padding: 10px; font-size: 12px; cursor: pointer;
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    transition: all 0.15s ease; font-family: inherit;
+  }
+  .choice-btn:active { transform: scale(0.97); }
+  .choice-btn.selected { border-color: var(--gold); background: linear-gradient(145deg, rgba(201,168,76,0.12), rgba(201,168,76,0.02)); color: var(--gold-light); }
+  .choice-btn small { font-size: 10px; color: var(--text-dim); font-weight: 400; }
+  .choice-btn.selected small { color: var(--gold); }
+
+  .header-clock { font-size: 10px; color: var(--text-dim); font-family: var(--font-mono); margin-top: 2px; }
+  .level-pill { background: linear-gradient(145deg, var(--gold-dim), rgba(201,168,76,0.08)); border: 1px solid var(--gold-dim); color: var(--gold-light); border-radius: 20px; padding: 4px 12px; font-size: 10px; font-weight: 600; font-family: var(--font-mono); letter-spacing: 0.5px; }
+
+  .sound-btn { position: fixed; top: 70px; right: 56px; width: 36px; height: 36px; border-radius: 50%; background: var(--surface); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 16px; cursor: pointer; z-index: 50; box-shadow: 0 2px 12px rgba(0,0,0,0.3); transition: transform 0.15s ease; }
+  .sound-btn:active { transform: scale(0.92); }
+  .sound-btn.active { border-color: var(--gold-dim); }
+
+  .mentor-bubble { display: flex; align-items: flex-start; gap: 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; animation: slideInUp 0.3s ease; }
+  .mentor-bubble .mentor-avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--surface-2); display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; border: 1px solid var(--gold-dim); }
+  .mentor-name { font-size: 11px; font-weight: 600; color: var(--gold-light); margin-bottom: 2px; }
+  .mentor-text { font-size: 11px; color: var(--text-dim); line-height: 1.4; }
+
+  .quest-panel { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; animation: slideInUp 0.3s ease; }
+  .quest-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .quest-title { font-size: 12px; font-weight: 600; color: var(--gold-light); }
+  .quest-count { font-size: 10px; color: var(--text-dim); font-family: var(--font-mono); }
+  .quest-item { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-top: 1px solid var(--border); }
+  .quest-item:first-child { border-top: none; padding-top: 0; }
+  .quest-item:last-child { padding-bottom: 0; }
+  .quest-icon { font-size: 18px; flex-shrink: 0; width: 28px; text-align: center; }
+  .quest-info { flex: 1; min-width: 0; }
+  .quest-name { font-size: 11px; font-weight: 500; margin-bottom: 4px; color: var(--text); }
+  .quest-track { height: 3px; background: var(--surface-2); border-radius: 2px; overflow: hidden; }
+  .quest-fill { height: 100%; background: linear-gradient(90deg, var(--gold-dim), var(--gold-light)); border-radius: 2px; transition: width 0.3s ease; }
+  .quest-reward-btn { background: linear-gradient(145deg, var(--gold-light), var(--gold)); color: #1a1300; border: none; border-radius: 8px; padding: 5px 10px; font-size: 10px; font-weight: 700; cursor: pointer; flex-shrink: 0; transition: transform 0.12s ease; }
+  .quest-reward-btn:active { transform: scale(0.95); }
+
+  .biz-list { padding: 0 14px 20px; display: flex; flex-direction: column; gap: 8px; }
+  .biz-card-paused { opacity: 0.55; filter: grayscale(0.6); }
+  .biz-card-locked { opacity: 0.6; }
+
+  .mechanic-status { font-size: 11px; color: var(--green); font-weight: 600; padding: 6px 0; }
+  .mechanic-btn.danger { background: rgba(196,92,92,0.12); color: var(--red); border: 1px solid rgba(196,92,92,0.25); margin-top: 6px; }
+  .mechanic-btn.affordable { box-shadow: 0 0 0 1px var(--gold-dim) inset; }
+  .item-buy-btn.affordable { box-shadow: 0 0 0 1px var(--gold-dim); }
+
+  .job-risk-hint { font-size: 9px; color: var(--gold); margin-top: 3px; font-family: var(--font-mono); }
+  .job-outcome { font-size: 10px; color: var(--green); margin-top: 4px; font-weight: 600; animation: slideInUp 0.3s ease; }
+
+  .rating-note { font-size: 12px; color: var(--text-dim); text-align: center; padding: 20px; font-style: italic; }
+  .rating-row { display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 6px; }
+  .rating-row.me { border-color: var(--gold-dim); background: linear-gradient(90deg, var(--surface), rgba(201,168,76,0.05)); }
+  .rating-place { width: 24px; text-align: center; font-family: var(--font-mono); font-size: 12px; font-weight: 600; color: var(--gold); }
+  .rating-info { flex: 1; min-width: 0; }
+  .rating-name { font-size: 12px; font-weight: 500; color: var(--text); }
+
+  #tutorialOverlay { position: fixed; inset: 0; background: rgba(2,3,7,0.85); backdrop-filter: blur(6px); z-index: 200; display: none; align-items: center; justify-content: center; padding: 16px; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
+  #tutorialOverlay.show { opacity: 1; pointer-events: auto; }
+  .tutorial-step { font-size: 10px; color: var(--text-dim); margin-bottom: 6px; font-family: var(--font-mono); letter-spacing: 1px; }
+  .tutorial-title { font-family: var(--font-display); font-size: 20px; color: var(--gold-light); margin-bottom: 10px; line-height: 1.2; }
+  .tutorial-text { font-size: 13px; color: var(--text); line-height: 1.6; margin-bottom: 20px; }
+
+  #customizeOverlay { position: fixed; inset: 0; background: rgba(2,3,7,0.85); backdrop-filter: blur(6px); z-index: 200; display: none; align-items: center; justify-content: center; padding: 16px; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
+  #customizeOverlay.show { opacity: 1; pointer-events: auto; }
+  .emblem-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; margin: 12px 0; max-height: 220px; overflow-y: auto; padding-right: 4px; }
+  .emblem-option { aspect-ratio: 1; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 22px; cursor: pointer; transition: all 0.15s ease; }
+  .emblem-option:active { transform: scale(0.92); }
+  .emblem-option.selected { border-color: var(--gold); background: rgba(201,168,76,0.12); box-shadow: 0 0 12px rgba(201,168,76,0.15); }
+  .customize-input { width: 100%; background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; color: var(--text); font-family: inherit; font-size: 14px; margin-bottom: 14px; }
+  .customize-input:focus { outline: none; border-color: var(--gold-dim); }
+  .customize-label { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; display: block; }
+
+  #capitalValue.pulse { animation: bootPulse 0.4s ease; }
+
+  #resetBtn { 
+    margin: 0 14px 12px;
+    width: calc(100% - 28px);
+    background: rgba(196,92,92,0.08);
+    color: var(--red);
+    border: 1px solid rgba(196,92,92,0.2);
+    border-radius: 10px;
+    padding: 10px;
+    font-size: 12px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.15s ease;
+  }
+  #resetBtn:active { background: rgba(196,92,92,0.15); transform: scale(0.98); }
+
+  #shareBtn { width: 100%; margin-bottom: 10px; }
+
+
+  /* ===== 13. QUICK BUY ALL ===== */
+  .quick-buy-btn {
+    margin: 0 14px 12px;
+    width: calc(100% - 28px);
+    background: linear-gradient(145deg, var(--gold-light), var(--gold));
+    color: #1a1300;
+    border: none;
+    border-radius: 12px;
+    padding: 14px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: var(--font-body);
+    transition: transform 0.15s ease, opacity 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .quick-buy-btn:active { transform: scale(0.97); }
+  .quick-buy-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* ===== 2. BANK ===== */
+  .bank-panel { padding: 0 14px 20px; }
+  .bank-tabs { display: flex; gap: 8px; margin-bottom: 14px; }
+  .bank-tab {
+    flex: 1;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    border-radius: 10px;
+    padding: 10px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.15s ease;
+  }
+  .bank-tab.active { border-color: var(--gold-dim); color: var(--gold-light); background: rgba(201,168,76,0.08); }
+  .bank-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px;
+    margin-bottom: 10px;
+  }
+  .bank-card-title { font-size: 13px; font-weight: 600; color: var(--gold-light); margin-bottom: 8px; }
+  .bank-input {
+    width: 100%;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 12px;
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 14px;
+    margin-bottom: 10px;
+    box-sizing: border-box;
+  }
+  .bank-input:focus { outline: none; border-color: var(--gold-dim); }
+  .bank-row { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-dim); margin-bottom: 6px; }
+  .bank-row span:last-child { color: var(--text); font-family: var(--font-mono); }
+  .bank-btn {
+    width: 100%;
+    background: linear-gradient(145deg, var(--gold-light), var(--gold));
+    color: #1a1300;
+    border: none;
+    border-radius: 10px;
+    padding: 12px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    transition: transform 0.12s ease;
+  }
+  .bank-btn:active { transform: scale(0.97); }
+  .bank-btn.secondary {
+    background: var(--surface-2);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+
+  /* ===== 3. MANAGERS ===== */
+  .manager-list { padding: 0 14px 20px; display: flex; flex-direction: column; gap: 10px; }
+  .manager-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .manager-avatar {
+    width: 48px; height: 48px; border-radius: 50%;
+    background: var(--surface-2); border: 2px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px; flex-shrink: 0;
+  }
+  .manager-avatar.legendary { border-color: var(--gold); box-shadow: 0 0 12px rgba(201,168,76,0.2); }
+  .manager-avatar.epic { border-color: #9b59b6; }
+  .manager-info { flex: 1; min-width: 0; }
+  .manager-name { font-size: 13px; font-weight: 600; color: var(--text); }
+  .manager-rarity { font-size: 10px; font-weight: 600; margin-top: 2px; }
+  .manager-rarity.legendary { color: var(--gold); }
+  .manager-rarity.epic { color: #c084fc; }
+  .manager-rarity.rare { color: #60a5fa; }
+  .manager-rarity.common { color: var(--text-dim); }
+  .manager-effect { font-size: 11px; color: var(--text-dim); margin-top: 3px; }
+  .manager-hire-btn {
+    background: linear-gradient(145deg, var(--gold-light), var(--gold));
+    color: #1a1300; border: none; border-radius: 10px;
+    padding: 8px 14px; font-size: 12px; font-weight: 700;
+    cursor: pointer; flex-shrink: 0; transition: transform 0.12s ease;
+  }
+  .manager-hire-btn:active { transform: scale(0.95); }
+  .manager-hire-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .manager-hire-btn.owned { background: var(--surface-2); color: var(--green); border: 1px solid var(--green); }
+
+  /* ===== 4. AUCTION ===== */
+  .auction-panel { padding: 0 14px 20px; }
+  .auction-timer {
+    text-align: center; font-size: 24px; font-family: var(--font-mono);
+    color: var(--gold-light); margin-bottom: 14px; letter-spacing: 2px;
+  }
+  .auction-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px;
+    margin-bottom: 10px;
+  }
+  .auction-item-header { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+  .auction-item-img { width: 56px; height: 56px; border-radius: 10px; background: var(--surface-2); object-fit: cover; border: 1px solid var(--border); }
+  .auction-item-name { font-size: 14px; font-weight: 600; color: var(--text); }
+  .auction-item-discount { font-size: 11px; color: var(--green); font-weight: 600; }
+  .auction-bid-row { display: flex; gap: 8px; align-items: center; }
+  .auction-bid-input {
+    flex: 1;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 12px;
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 14px;
+  }
+  .auction-bid-btn {
+    background: linear-gradient(145deg, var(--gold-light), var(--gold));
+    color: #1a1300; border: none; border-radius: 10px;
+    padding: 10px 16px; font-size: 12px; font-weight: 700;
+    cursor: pointer; transition: transform 0.12s ease;
+  }
+  .auction-bid-btn:active { transform: scale(0.95); }
+  .auction-current-bid { font-size: 11px; color: var(--text-dim); margin-top: 8px; }
+  .auction-current-bid span { color: var(--gold); font-family: var(--font-mono); }
+
+  /* ===== 8. CLAN ===== */
+  .clan-panel { padding: 0 14px 20px; }
+  .clan-header {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px;
+    text-align: center;
+    margin-bottom: 12px;
+  }
+  .clan-name { font-family: var(--font-display); font-size: 20px; color: var(--gold-light); }
+  .clan-stats { display: flex; justify-content: center; gap: 24px; margin-top: 10px; }
+  .clan-stat { text-align: center; }
+  .clan-stat-value { font-size: 18px; font-family: var(--font-mono); color: var(--text); font-weight: 600; }
+  .clan-stat-label { font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; }
+  .clan-member {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 10px 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 6px;
+  }
+  .clan-member-rank { width: 28px; text-align: center; font-family: var(--font-mono); font-size: 12px; color: var(--gold); font-weight: 600; }
+  .clan-member-name { flex: 1; font-size: 12px; color: var(--text); }
+  .clan-member-contrib { font-size: 11px; color: var(--text-dim); font-family: var(--font-mono); }
+  .clan-war-banner {
+    background: linear-gradient(145deg, rgba(196,92,92,0.12), rgba(196,92,92,0.02));
+    border: 1px solid rgba(196,92,92,0.25);
+    border-radius: 12px;
+    padding: 12px;
+    text-align: center;
+    margin-bottom: 12px;
+  }
+  .clan-war-title { font-size: 13px; font-weight: 600; color: var(--red); }
+  .clan-war-timer { font-size: 20px; font-family: var(--font-mono); color: var(--text); margin-top: 4px; }
+
+  /* ===== 9. BATTLE ===== */
+  .battle-panel { padding: 0 14px 20px; }
+  .battle-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px;
+    text-align: center;
+    margin-bottom: 12px;
+  }
+  .battle-vs { font-family: var(--font-display); font-size: 28px; color: var(--gold-light); margin: 10px 0; }
+  .battle-player { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .battle-player-avatar { width: 56px; height: 56px; border-radius: 50%; background: var(--surface-2); border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 28px; }
+  .battle-player-name { font-size: 13px; font-weight: 600; color: var(--text); }
+  .battle-player-capital { font-size: 12px; color: var(--gold); font-family: var(--font-mono); }
+  .battle-stake-row { display: flex; align-items: center; gap: 8px; margin: 12px 0; }
+  .battle-stake-input { flex: 1; background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; padding: 10px; color: var(--text); font-family: var(--font-mono); font-size: 14px; }
+  .battle-btn {
+    width: 100%;
+    background: linear-gradient(145deg, var(--red), #a04040);
+    color: #fff; border: none; border-radius: 12px;
+    padding: 14px; font-size: 14px; font-weight: 700;
+    cursor: pointer; transition: transform 0.12s ease;
+  }
+  .battle-btn:active { transform: scale(0.97); }
+  .battle-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* ===== 10. CO-OP ===== */
+  .coop-panel { padding: 0 14px 20px; }
+  .coop-biz-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px;
+    margin-bottom: 10px;
+  }
+  .coop-partners { display: flex; gap: 6px; margin-top: 8px; }
+  .coop-partner-chip {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 4px 10px;
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+  .coop-invite-btn {
+    background: var(--surface-2);
+    border: 1px dashed var(--border);
+    color: var(--text-dim);
+    border-radius: 20px;
+    padding: 4px 10px;
+    font-size: 11px;
+    cursor: pointer;
+  }
+
+  /* ===== 11. CHART ===== */
+  .chart-panel { padding: 0 14px 20px; }
+  .chart-canvas-container {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px;
+    margin-bottom: 12px;
+    position: relative;
+  }
+  .chart-canvas { width: 100%; height: 200px; }
+  .chart-tabs { display: flex; gap: 6px; margin-bottom: 10px; }
+  .chart-tab {
+    flex: 1;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    border-radius: 8px;
+    padding: 8px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .chart-tab.active { border-color: var(--gold-dim); color: var(--gold-light); }
+
+  /* ===== 12. HISTORY ===== */
+  .history-panel { padding: 0 14px 20px; }
+  .history-filters { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+  .history-filter {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    border-radius: 20px;
+    padding: 6px 12px;
+    font-size: 11px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .history-filter.active { border-color: var(--gold-dim); color: var(--gold-light); background: rgba(201,168,76,0.08); }
+  .history-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 10px 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 6px;
+  }
+  .history-icon { font-size: 20px; flex-shrink: 0; width: 32px; text-align: center; }
+  .history-info { flex: 1; min-width: 0; }
+  .history-title { font-size: 12px; color: var(--text); }
+  .history-time { font-size: 10px; color: var(--text-dim); }
+  .history-amount { font-size: 13px; font-family: var(--font-mono); font-weight: 600; }
+  .history-amount.positive { color: var(--green); }
+  .history-amount.negative { color: var(--red); }
+
+  /* ===== 14. ACHIEVEMENT REWARDS ===== */
+  .achievement-reward-btn {
+    background: linear-gradient(145deg, var(--gold-light), var(--gold));
+    color: #1a1300; border: none; border-radius: 8px;
+    padding: 5px 10px; font-size: 10px; font-weight: 700;
+    cursor: pointer; flex-shrink: 0; transition: transform 0.12s ease;
+  }
+  .achievement-reward-btn:active { transform: scale(0.95); }
+  .achievement-reward-btn:disabled { opacity: 0.4; cursor: not-allowed; background: var(--surface-2); color: var(--text-dim); }
+
+  /* Profile action buttons grid */
+  .profile-actions-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin: 0 14px 12px;
+  }
+  .profile-action-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px;
+    color: var(--text);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.15s ease;
+  }
+  .profile-action-btn:active { transform: scale(0.97); border-color: var(--gold-dim); }
+  .profile-action-btn .icon { font-size: 20px; }
+
+</style>
+<base target="_blank">
+<base target="_blank">
+<base target="_blank">
+</head>
+<body>
+
+  <div class="boot-screen" id="bootScreen">Загрузка...</div>
+
+  <div class="view" id="view-inheritance">
+    <div class="inheritance-intro">
+      <span class="brand">Наследство</span>
+      <div class="inheritance-lead">Дальний родственник оставил вам квартиру и машину. Продайте их ради стартового капитала — или оставьте себе и получайте с них выгоду.</div>
+    </div>
+    <div class="inheritance-list" id="inheritanceList"></div>
+    <button class="inheritance-continue" id="inheritanceContinue" disabled>Начать</button>
+  </div>
+
+  <div id="app" style="display:none">
+    <header>
+      <div>
+        <div class="brand">Империя</div>
+        <div class="header-clock" id="headerClock">--:--</div>
+      </div>
+      <div class="level-pill" id="rankLabel">Новичок</div>
+    </header>
+
+        <div class="view active" id="view-business">
+      <div class="bg-layer"></div>
+
+      <div class="capital-bar">
+        <div class="capital-main">
+          <div class="capital-label-small">Капитал</div>
+          <div class="capital-value-inline" id="capitalValue">₽0</div>
+        </div>
+        <div class="income-pill" id="incomeRate">+₽0/день</div>
+      </div>
+
+      <button class="quest-badge-btn" id="questBadgeBtn" title="Задания">
+        📋<span class="badge-count" id="questBadgeCount" style="display:none">0</span>
+      </button>
+      <button class="mentor-avatar-btn" id="mentorBtn" title="Советник">🎩</button>
+      <button class="sound-btn" id="soundBtn" title="Звук">🔇</button>
+
+      <div class="news-ticker" id="newsTicker">
+        <div class="news-icon">📰</div>
+        <div class="news-scroll">
+          <div class="news-item-text" id="newsText">Добро пожаловать в Империю...</div>
+        </div>
+      </div>
+
+      <div id="mentorBubble" class="mentor-bubble" style="display:none; margin:0 14px 8px;">
+        <div class="mentor-avatar">🎩</div>
+        <div>
+          <div class="mentor-name">Альфред, ваш советник</div>
+          <div class="mentor-text" id="mentorText"></div>
+        </div>
+      </div>
+
+      <div id="questPanel" class="quest-panel" style="display:none; margin:0 14px 8px;">
+        <div class="quest-header">
+          <div class="quest-title">📋 Активные задания</div>
+          <div class="quest-count" id="questCount">0/10</div>
+        </div>
+        <div id="questList"></div>
+      </div>
+
+      <div class="stock-game" id="stockGame">
+        <div class="stock-header">
+          <div class="stock-title">📈 Биржа</div>
+          <div class="stock-timer" id="stockTimer">Доступно</div>
+        </div>
+        <div class="stock-chart" id="stockChart">
+          <div class="stock-chart-line"></div>
+        </div>
+        <div class="stock-price" id="stockPrice">₽100.00</div>
+        <div class="stock-actions">
+          <button class="stock-btn up" id="stockUp">📈 Вверх</button>
+          <button class="stock-btn down" id="stockDown">📉 Вниз</button>
+        </div>
+      </div>
+
+      <div class="section-title">🏙 Город</div>
+      <div class="city-map" id="cityMap"></div>
+
+      <div style="height:20px; flex-shrink:0;"></div>
+
+      <div id="offlineOverlay" class="overlay" style="display:none">
+        <div class="overlay-card">
+          <div class="overlay-icon">💰</div>
+          <div class="overlay-title">Пока вас не было...</div>
+          <div class="overlay-desc" id="offlineDesc">Ваш бизнес продолжал работать</div>
+          <div class="overlay-amount" id="offlineAmount">+₽0</div>
+          <button class="overlay-btn" id="offlineClaim">Забрать</button>
+        </div>
+      </div>
+
+      <div id="dailyRewardOverlay" class="overlay" style="display:none">
+        <div class="overlay-card">
+          <div class="overlay-icon">🎁</div>
+          <div class="overlay-title">Ежедневная награда</div>
+          <div class="overlay-desc" id="dailyRewardDay">День 1</div>
+          <div class="overlay-desc" id="dailyRewardStreak" style="margin-top:-10px;">Серия входов: 1</div>
+          <div class="overlay-amount" id="dailyRewardAmount">+₽0</div>
+          <button class="overlay-btn" id="dailyRewardClaim">Забрать</button>
+        </div>
+      </div>
+
+      <div class="overlay" id="bizModalOverlay" style="display:none">
+        <div class="overlay-card biz-modal-card">
+          <button class="modal-close-btn" id="bizModalClose">✕</button>
+          <div class="biz-modal-header">
+            <div class="biz-icon" id="bizModalIcon"></div>
+            <div class="biz-modal-name" id="bizModalName"></div>
+          </div>
+          <div id="bizModalBody"></div>
+        </div>
+      </div>
+
+      <div class="overlay" id="ecoOverlay" style="display:none">
+        <div class="overlay-card">
+          <div class="overlay-icon">🌱</div>
+          <div class="overlay-title">Экологическая проверка</div>
+          <div class="overlay-desc">На автомойку нагрянула проверка. Нужно решить вопрос.</div>
+          <div class="eco-actions">
+            <button class="mechanic-btn" id="ecoPayFine">Заплатить штраф ₽300</button>
+            <button class="mechanic-btn" id="ecoBribe">Дать взятку ₽150</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="overlay" id="kioskBreakOverlay" style="display:none">
+        <div class="overlay-card">
+          <div class="overlay-icon">☕💥</div>
+          <div class="overlay-title">Кофемашина сломалась</div>
+          <div class="overlay-desc">Ларёк временно не работает. Почините сейчас или подождите.</div>
+          <div class="eco-actions">
+            <button class="mechanic-btn" id="kioskFixBtn">Починить за ₽80</button>
+            <button class="mechanic-btn" id="kioskWaitBtn">Подождать (простой 2 мин)</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="overlay" id="cafeReviewOverlay" style="display:none">
+        <div class="overlay-card">
+          <div class="overlay-icon">📉</div>
+          <div class="overlay-title">Плохой отзыв в интернете</div>
+          <div class="overlay-desc">Доход кафе упал на 50% на 3 минуты.</div>
+          <div class="eco-actions">
+            <button class="mechanic-btn" id="cafeFixBtn">Отработать за ₽200</button>
+            <button class="mechanic-btn" id="cafeWaitBtn">Подождать</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="overlay" id="genericEventOverlay" style="display:none">
+        <div class="overlay-card">
+          <div class="overlay-icon" id="genericEventIcon">⚠</div>
+          <div class="overlay-title" id="genericEventTitle"></div>
+          <div class="overlay-desc" id="genericEventDesc"></div>
+          <div class="eco-actions">
+            <button class="mechanic-btn" id="genericEventFastBtn"></button>
+            <button class="mechanic-btn secondary" id="genericEventSlowBtn"></button>
+          </div>
+        </div>
+      </div>
+
+      <div class="overlay" id="stockResultOverlay" style="display:none">
+        <div class="overlay-card">
+          <div class="overlay-icon" id="stockResultIcon">📈</div>
+          <div class="overlay-title" id="stockResultTitle">Результат</div>
+          <div class="overlay-desc" id="stockResultDesc"></div>
+          <div class="overlay-amount" id="stockResultAmount"></div>
+          <button class="overlay-btn" id="stockResultClose">OK</button>
+        </div>
+      </div>
+    </div>
+<div class="view" id="view-assets">
+      <div class="section-title">Активы</div>
+      <div class="biz-list" id="assetList"></div>
+
+      <div class="overlay" id="assetModalOverlay" style="display:none">
+        <div class="overlay-card biz-modal-card">
+          <button class="modal-close-btn" id="assetModalClose">✕</button>
+          <div class="biz-modal-header">
+            <div class="biz-icon" id="assetModalIcon"></div>
+            <div class="biz-modal-name" id="assetModalName"></div>
+          </div>
+          <div id="assetModalBody"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="view" id="view-work">
+      <div class="section-title">Подработка</div>
+      <div class="biz-list" id="jobList"></div>
+    </div>
+
+        <div class="view" id="view-profile">
+      <div class="bg-layer"></div>
+
+      <div class="profile-card">
+        <div class="profile-avatar" id="profileAvatar">●</div>
+        <div class="profile-name" id="profileName">Игрок</div>
+        <div class="profile-rank" id="profileRank">Новичок</div>
+      </div>
+
+      <button class="mechanic-btn secondary share-btn" id="customizeBtn" style="margin:0 14px 10px;">⚙ Настроить профиль</button>
+
+      <div class="stats-grid" style="margin:0 14px 12px;">
+        <div class="stat-card">
+          <div class="stat-label">Капитал</div>
+          <div class="stat-value" id="statCapital">₽0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Доход/день</div>
+          <div class="stat-value" id="statIncome">₽0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Заработано</div>
+          <div class="stat-value" id="statEarned">₽0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Бизнесов</div>
+          <div class="stat-value" id="statBizCount">0</div>
+        </div>
+      </div>
+
+      <button class="mechanic-btn secondary share-btn" id="shareBtn" style="margin:0 14px 10px;">📤 Поделиться</button>
+      <button id="resetBtn">🗑 Сбросить прогресс</button>
+      <div class="profile-actions-grid">
+        <button class="profile-action-btn" id="openBankBtn"><span class="icon">🏦</span>Банк</button>
+        <button class="profile-action-btn" id="openManagersBtn"><span class="icon">👔</span>Менеджеры</button>
+        <button class="profile-action-btn" id="openAuctionBtn"><span class="icon">🔨</span>Аукцион</button>
+        <button class="profile-action-btn" id="openClanBtn"><span class="icon">🏛️</span>Синдикат</button>
+        <button class="profile-action-btn" id="openBattleBtn"><span class="icon">⚔️</span>Битва</button>
+        <button class="profile-action-btn" id="openCoopBtn"><span class="icon">🤝</span>Кооп</button>
+        <button class="profile-action-btn" id="openChartBtn"><span class="icon">📈</span>График</button>
+        <button class="profile-action-btn" id="openHistoryBtn"><span class="icon">🧾</span>История</button>
+      </div>
+      <div class="section-title">🎨 Тема оформления</div>
+      <div class="theme-switcher" style="margin:0 14px 12px;">
+        <div class="theme-option active" data-theme="default">🌃 Ночь</div>
+        <div class="theme-option" data-theme="sunset">🌅 Закат</div>
+        <div class="theme-option" data-theme="neon">💜 Неон</div>
+      </div>
+
+      <div class="section-title">🏆 Достижения</div>
+      <div class="achieve-panel" id="achievePanel">
+        <div class="achieve-header">
+          <div class="achieve-title">Прогресс</div>
+          <div class="quest-count" id="achieveCount">0/20</div>
+        </div>
+        <div class="achieve-grid" id="achieveGrid"></div>
+      </div>
+
+      <div class="section-title">👥 Пригласить друзей</div>
+      <div style="margin:0 14px 12px; background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:12px;">
+        <div style="font-size:10px; color:var(--text-dim); font-family:var(--font-mono); word-break:break-all; margin-bottom:8px;" id="refLink">https://t.me/ImperiaBusinessBot/play?startapp=REF_0</div>
+        <button class="overlay-btn" id="copyRefBtn" style="box-shadow:none;">Скопировать ссылку</button>
+        <div style="font-size:11px; color:var(--green); margin-top:6px; text-align:center;" id="refCount">Приглашено друзей: 0</div>
+      </div>
+
+      <div class="section-title">🏅 Рейтинг магнатов</div>
+      <div id="ratingList" style="margin:0 14px 12px;"></div>
+
+      <div style="height:20px;"></div>
+    </div>
+    </div>
+
+    <nav>
+      <div class="nav-indicator" id="navIndicator" data-index="0"></div>
+      <button class="nav-item active" data-view="business">
+        <div class="nav-icon">◆</div>
+        <div>Бизнесы</div>
+      </button>
+      <button class="nav-item" data-view="assets">
+        <div class="nav-icon">🏠</div>
+        <div>Активы</div>
+      </button>
+      <button class="nav-item" data-view="work">
+        <div class="nav-icon">💼</div>
+        <div>Работа</div>
+      </button>
+      <button class="nav-item" data-view="profile">
+        <div class="nav-icon">●</div>
+        <div>Профиль</div>
+      </button>
+    </nav>
+  </div>
+
+
 
 
   <div class="overlay" id="tutorialOverlay">
