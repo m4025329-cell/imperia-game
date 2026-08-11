@@ -30,196 +30,338 @@
   window.__getDocs = getDocs;
 </script>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap');
 
   :root{
-    --bg: #05070d;
-    --surface: #0e1424;
-    --surface-2: #161d33;
-    --border: #232b47;
-    --gold: #d4af37;
-    --gold-light: #fbe58a;
-    --gold-dim: #9c7a1e;
-    --text: #eef1f8;
-    --text-dim: #7c8499;
+    --bg: #0a0e1a;
+    --surface: #12182b;
+    --surface-2: #1a2240;
+    --border: rgba(255,255,255,0.06);
+    --text: #e8e4dc;
+    --text-dim: #7a8299;
+    --gold: #c9a84c;
+    --gold-light: #e8d5a3;
+    --gold-dim: rgba(201,168,76,0.25);
     --green: #4a9d6f;
+    --red: #c45c5c;
+    --font-display: 'Playfair Display', serif;
+    --font-mono: 'JetBrains Mono', monospace;
+    --font-body: 'Inter', sans-serif;
   }
 
-  *{ box-sizing: border-box; margin:0; padding:0; }
+  [data-theme="sunset"]{
+    --bg: #1a0f0a;
+    --surface: #2a1810;
+    --surface-2: #3d2418;
+    --border: rgba(255,200,150,0.08);
+    --text: #f0e0d0;
+    --text-dim: #a08070;
+    --gold: #e8a05c;
+    --gold-light: #ffc890;
+    --gold-dim: rgba(232,160,92,0.25);
+    --green: #6ab88a;
+  }
 
+  [data-theme="neon"]{
+    --bg: #0a0a1a;
+    --surface: #12122b;
+    --surface-2: #1a1a40;
+    --border: rgba(150,100,255,0.1);
+    --text: #e0e0ff;
+    --text-dim: #7a70a0;
+    --gold: #b084ff;
+    --gold-light: #d4b8ff;
+    --gold-dim: rgba(176,132,255,0.25);
+    --green: #5cd4a0;
+  }
+
+  *{ box-sizing: border-box; margin:0; padding:0; -webkit-tap-highlight-color: transparent; }
+  html, body{ height: 100%; }
   body{
-    background:
-      radial-gradient(circle at 50% 0%, #101a30 0%, var(--bg) 60%),
-      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-    background-blend-mode: normal, overlay;
-    background-repeat: no-repeat, repeat;
+    background: var(--bg);
     color: var(--text);
-    font-family: 'Inter', sans-serif;
-    min-height: 100vh;
-    padding-bottom: 90px;
+    font-family: var(--font-body);
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
   }
 
-  .brand, .overlay-title, .biz-modal-name, .profile-name{
-    text-shadow: 0 0 16px rgba(212,175,55,0.25);
+  /* Background image */
+  .bg-layer{
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    background: url('https://images.unsplash.com/photo-1519501025264-65ba15a82390?w=800&q=80') center/cover no-repeat;
+    opacity: 0.12;
+    pointer-events: none;
+  }
+  .bg-layer::after{
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, var(--bg) 0%, transparent 40%, transparent 60%, var(--bg) 100%);
   }
 
+  /* Boot screen */
+  #bootScreen{
+    position: fixed; inset:0; z-index:1000;
+    background: var(--bg);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap: 16px; transition: opacity 0.6s ease;
+  }
+  .boot-logo{
+    font-family: var(--font-display);
+    font-size: 32px; color: var(--gold-light);
+    text-shadow: 0 0 30px rgba(201,168,76,0.3);
+    animation: bootPulse 2s ease-in-out infinite;
+  }
+  @keyframes bootPulse{
+    0%,100%{ opacity: 0.7; transform: scale(1); }
+    50%{ opacity: 1; transform: scale(1.02); }
+  }
+  .boot-sub{ font-size: 12px; color: var(--text-dim); letter-spacing: 2px; }
+
+  /* App container */
+  #app{
+    position: relative; z-index: 1;
+    max-width: 430px; margin: 0 auto;
+    height: 100%; display: flex; flex-direction: column;
+    background: transparent;
+  }
+
+  /* Header */
   header{
-    padding: 20px 18px 14px;
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    border-bottom: 1px solid var(--border);
+    padding: 10px 14px 6px;
+    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 10;
+    background: linear-gradient(180deg, var(--bg) 60%, transparent);
   }
-
-  .brand{
-    font-family: 'Playfair Display', serif;
-    font-weight: 700;
-    font-size: 20px;
+  .header-title{
+    font-family: var(--font-display);
+    font-size: 18px; color: var(--gold-light);
     letter-spacing: 0.5px;
-    color: var(--gold-light);
   }
-
-  .level-pill{
-    font-size: 11px;
-    color: var(--gold);
+  .header-meta{
+    font-size: 10px; color: var(--text-dim);
+    font-family: var(--font-mono);
+  }
+  .rank-pill{
+    background: linear-gradient(145deg, var(--gold-dim), rgba(201,168,76,0.08));
     border: 1px solid var(--gold-dim);
-    border-radius: 20px;
-    padding: 3px 10px;
-    font-weight: 500;
-  }
-
-  .capital-block{
-    padding: 22px 18px 18px;
-    text-align: center;
-  }
-
-  .capital-label{
-    font-size: 12px;
-    color: var(--text-dim);
-    text-transform: uppercase;
-    letter-spacing: 1.5px;
-    margin-bottom: 6px;
-  }
-
-  .capital-value{
-    font-family: 'JetBrains Mono', monospace;
-    font-weight: 700;
-    font-size: 38px;
     color: var(--gold-light);
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 10px; font-weight: 600;
+    font-family: var(--font-mono);
     letter-spacing: 0.5px;
-    text-shadow: 0 0 14px rgba(212,175,55,0.4), 0 0 32px rgba(212,175,55,0.15);
-    transition: transform 0.2s ease, text-shadow 0.2s ease;
   }
 
-  .capital-value.pulse{
-    transform: scale(1.07);
-    text-shadow: 0 0 22px rgba(251,229,138,0.8), 0 0 48px rgba(212,175,55,0.45);
+  /* Floating numbers */
+  @keyframes floatUp{
+    0%{ transform: translateY(0) scale(1); opacity: 1; }
+    100%{ transform: translateY(-40px) scale(1.2); opacity: 0; }
   }
-
-  .income-rate{
-    margin-top: 6px;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 13px;
+  .float-num{
+    position: fixed;
+    font-family: var(--font-mono);
+    font-size: 14px; font-weight: 600;
     color: var(--green);
+    pointer-events: none;
+    z-index: 500;
+    animation: floatUp 1.2s ease-out forwards;
+    text-shadow: 0 0 8px rgba(74,157,111,0.4);
   }
 
+  /* Capital compact bar */
+  .capital-bar{
+    margin: 0 14px 8px;
+    background: linear-gradient(135deg, var(--surface), rgba(201,168,76,0.03));
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 10px 14px;
+    display: flex; align-items: center; justify-content: space-between;
+    position: relative; overflow: hidden;
+  }
+  .capital-bar::before{
+    content: '';
+    position: absolute; top:0; left:0; right:0; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--gold-dim), transparent);
+  }
+  .capital-main{
+    display: flex; flex-direction: column; gap: 1px;
+  }
+  .capital-label-small{
+    font-size: 9px; color: var(--text-dim);
+    text-transform: uppercase; letter-spacing: 1.5px;
+  }
+  .capital-value-inline{
+    font-family: var(--font-display);
+    font-size: 22px; color: var(--gold-light);
+    line-height: 1.1;
+  }
+  .income-pill{
+    background: rgba(74,157,111,0.1);
+    border: 1px solid rgba(74,157,111,0.2);
+    color: var(--green);
+    border-radius: 10px;
+    padding: 4px 10px;
+    font-size: 10px; font-weight: 600;
+    font-family: var(--font-mono);
+  }
+
+  /* Mentor avatar (compact) */
+  .mentor-avatar-btn{
+    position: fixed;
+    top: 70px; right: 14px;
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: var(--surface);
+    border: 1px solid var(--gold-dim);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    cursor: pointer;
+    z-index: 50;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+    transition: transform 0.15s ease;
+  }
+  .mentor-avatar-btn:active{ transform: scale(0.92); }
+  .mentor-avatar-btn.has-tip::after{
+    content: '';
+    position: absolute; top: -2px; right: -2px;
+    width: 10px; height: 10px;
+    background: var(--red);
+    border-radius: 50%;
+    border: 2px solid var(--bg);
+  }
+
+  /* Quest badge in header */
+  .quest-badge-btn{
+    position: fixed;
+    top: 70px; left: 14px;
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    cursor: pointer;
+    z-index: 50;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+  }
+  .quest-badge-btn .badge-count{
+    position: absolute; top: -4px; right: -4px;
+    background: var(--red);
+    color: #fff;
+    font-size: 9px; font-weight: 700;
+    min-width: 16px; height: 16px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    border: 2px solid var(--bg);
+  }
+
+  /* News ticker */
+  .news-ticker{
+    margin: 0 14px 8px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 6px 10px;
+    display: flex; align-items: center;
+    gap: 8px; overflow: hidden;
+  }
+  .news-icon{ font-size: 12px; flex-shrink: 0; }
+  .news-scroll{ flex: 1; overflow: hidden; position: relative; height: 16px; }
+  .news-item-text{
+    font-size: 10px; color: var(--text-dim);
+    white-space: nowrap;
+    position: absolute;
+    animation: newsScroll 14s linear infinite;
+    line-height: 16px;
+  }
+  @keyframes newsScroll{
+    0%{ transform: translateX(100%); }
+    100%{ transform: translateX(-120%); }
+  }
+
+  /* Section title */
   .section-title{
-    padding: 18px 18px 10px;
-    font-size: 13px;
-    color: var(--text-dim);
-    text-transform: uppercase;
-    letter-spacing: 1.2px;
+    font-size: 10px; color: var(--text-dim);
+    text-transform: uppercase; letter-spacing: 2px;
+    padding: 8px 14px 6px;
+    display: flex; align-items: center; gap: 6px;
   }
 
-    /* ===== CITY MAP ===== */
+  /* City map - compact grid */
   .city-map{
     padding: 0 14px 14px;
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
-  }
-
-  .district-label{
-    grid-column: 1 / -1;
-    font-size: 10px;
-    color: var(--text-dim);
-    text-transform: uppercase;
-    letter-spacing: 1.5px;
-    padding: 8px 4px 2px;
-    border-top: 1px solid var(--border);
-    margin-top: 4px;
-  }
-
-  .district-label:first-of-type{
-    border-top: none;
-    margin-top: 0;
-    padding-top: 4px;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
   }
 
   .building-slot{
-    aspect-ratio: 1;
+    aspect-ratio: 0.85;
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 12px;
+    border-radius: 10px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 4px;
+    gap: 3px;
     cursor: pointer;
     position: relative;
     overflow: hidden;
-    transition: transform 0.15s ease, box-shadow 0.15s ease;
-    padding: 6px;
+    transition: transform 0.12s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    padding: 4px;
   }
-
-  .building-slot:active{
-    transform: scale(0.96);
-  }
+  .building-slot:active{ transform: scale(0.95); }
 
   .building-slot.owned{
     border-color: var(--gold-dim);
-    background: linear-gradient(180deg, var(--surface) 0%, rgba(212,175,55,0.04) 100%);
+    background: linear-gradient(180deg, var(--surface) 0%, rgba(201,168,76,0.05) 100%);
   }
-
-  .building-slot.affordable{
+  .building-slot.affordable:not(.owned){
+    border-color: var(--gold-dim);
     box-shadow: 0 0 0 1px var(--gold-dim) inset;
+    animation: affordablePulse 2s ease-in-out infinite;
   }
-
-  .building-slot.affordable.owned{
-    box-shadow: 0 0 12px rgba(212,175,55,0.15), 0 0 0 1px var(--gold-dim) inset;
+  @keyframes affordablePulse{
+    0%,100%{ box-shadow: 0 0 0 1px var(--gold-dim) inset; }
+    50%{ box-shadow: 0 0 8px 1px var(--gold-dim) inset; }
   }
 
   .building-icon{
-    width: 36px;
-    height: 36px;
-    border-radius: 10px;
+    width: 32px; height: 32px;
+    border-radius: 8px;
     background: linear-gradient(145deg, var(--surface-2), #1c2542);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 18px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
     border: 1px solid var(--border);
     overflow: hidden;
-    flex-shrink: 0;
   }
-
   .building-slot.owned .building-icon{
-    background: linear-gradient(145deg, rgba(212,175,55,0.15), rgba(212,175,55,0.05));
+    background: linear-gradient(145deg, rgba(201,168,76,0.15), rgba(201,168,76,0.05));
     border-color: var(--gold-dim);
   }
+  .building-icon img{ width: 100%; height: 100%; object-fit: cover; }
 
-  .building-icon img{
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
+  .biz-icon-locked{ position: relative; }
+  .biz-icon-locked::after{
+    content: ''; position: absolute; inset: 0;
+    background: rgba(5,7,13,0.55);
+  }
+  .biz-lock{
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.6));
+    z-index: 2;
   }
 
   .building-name{
-    font-size: 9px;
-    font-weight: 500;
-    text-align: center;
-    color: var(--text);
+    font-size: 8px; font-weight: 500;
+    text-align: center; color: var(--text);
     line-height: 1.2;
     max-width: 100%;
     overflow: hidden;
@@ -228,1205 +370,481 @@
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
   }
-
-  .building-slot.locked .building-name{
-    color: var(--text-dim);
-  }
+  .building-slot.locked .building-name{ color: var(--text-dim); }
 
   .building-lvl{
-    font-size: 9px;
-    color: var(--gold);
-    font-family: 'JetBrains Mono', monospace;
+    font-size: 8px; color: var(--gold);
+    font-family: var(--font-mono);
   }
-
   .building-income{
-    font-size: 8px;
-    color: var(--green);
-    font-family: 'JetBrains Mono', monospace;
-  }
-
-  .building-lock{
-    font-size: 20px;
-    opacity: 0.4;
+    font-size: 7px; color: var(--green);
+    font-family: var(--font-mono);
   }
 
   .building-progress{
-    position: absolute;
-    left: 0; right: 0; bottom: 0;
-    height: 2px;
-    background: rgba(255,255,255,0.03);
+    position: absolute; left: 0; right: 0; bottom: 0;
+    height: 2px; background: rgba(255,255,255,0.03);
   }
-
   .building-progress-fill{
     height: 100%;
     background: linear-gradient(90deg, var(--gold-dim), var(--gold-light));
     transition: width 0.4s ease;
   }
 
-  @keyframes buildingFlash{
-    0%{ box-shadow: 0 0 0 0 rgba(212,175,55,0.5); }
-    50%{ box-shadow: 0 0 16px 4px rgba(212,175,55,0.3); }
-    100%{ box-shadow: 0 0 0 0 rgba(212,175,55,0); }
+  @keyframes buildingAppear{
+    0%{ transform: scale(0) translateY(20px); opacity: 0; }
+    60%{ transform: scale(1.1) translateY(-4px); opacity: 1; }
+    100%{ transform: scale(1) translateY(0); opacity: 1; }
+  }
+  .building-slot.appear{
+    animation: buildingAppear 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
   }
 
+  @keyframes buildingFlash{
+    0%{ box-shadow: 0 0 0 0 rgba(201,168,76,0.5); }
+    50%{ box-shadow: 0 0 16px 4px rgba(201,168,76,0.3); }
+    100%{ box-shadow: 0 0 0 0 rgba(201,168,76,0); }
+  }
   .building-slot.flash{
     animation: buildingFlash 0.5s ease;
   }
 
-  /* ===== QUESTS ===== */
-  .quest-panel{
-    margin: 0 14px 12px;
-    background: linear-gradient(135deg, rgba(212,175,55,0.08), rgba(212,175,55,0.02));
-    border: 1px solid var(--gold-dim);
-    border-radius: 14px;
-    padding: 12px;
-  }
-
-  .quest-header{
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 10px;
-  }
-
-  .quest-title{
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--gold-light);
-  }
-
-  .quest-count{
-    font-size: 10px;
-    color: var(--text-dim);
-    font-family: 'JetBrains Mono', monospace;
-  }
-
-  .quest-item{
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 8px 0;
-    border-top: 1px solid rgba(255,255,255,0.04);
-  }
-
-  .quest-item:first-of-type{
-    border-top: none;
-    padding-top: 0;
-  }
-
-  .quest-icon{
-    width: 28px;
-    height: 28px;
-    border-radius: 8px;
-    background: var(--surface-2);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 13px;
-    flex-shrink: 0;
-  }
-
-  .quest-info{
+  /* Scrollable content area */
+  .scroll-content{
     flex: 1;
-    min-width: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 80px;
   }
+  .scroll-content::-webkit-scrollbar{ width: 0; }
 
-  .quest-name{
-    font-size: 11px;
-    font-weight: 500;
-    margin-bottom: 2px;
-  }
-
-  .quest-track{
-    height: 4px;
-    background: var(--surface-2);
-    border-radius: 2px;
-    overflow: hidden;
-  }
-
-  .quest-fill{
-    height: 100%;
-    background: linear-gradient(90deg, var(--gold-dim), var(--gold-light));
-    border-radius: 2px;
-    transition: width 0.3s ease;
-  }
-
-  .quest-reward-btn{
-    background: linear-gradient(145deg, var(--gold-light), var(--gold));
-    color: #1a1300;
-    border: none;
-    border-radius: 6px;
-    padding: 5px 8px;
-    font-size: 10px;
-    font-weight: 600;
-    cursor: pointer;
-    flex-shrink: 0;
-    animation: pulseReward 2s infinite;
-  }
-
-  @keyframes pulseReward{
-    0%, 100%{ box-shadow: 0 0 0 0 rgba(212,175,55,0.4); }
-    50%{ box-shadow: 0 0 8px 2px rgba(212,175,55,0.3); }
-  }
-
-  /* ===== NEWS TICKER ===== */
-  .news-ticker{
-    margin: 0 14px 12px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 8px 12px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    overflow: hidden;
-  }
-
-  .news-icon{
-    font-size: 14px;
-    flex-shrink: 0;
-  }
-
-  .news-scroll{
-    flex: 1;
-    overflow: hidden;
-    position: relative;
-    height: 18px;
-  }
-
-  .news-item-text{
-    font-size: 11px;
-    color: var(--text-dim);
-    white-space: nowrap;
-    position: absolute;
-    animation: newsScroll 12s linear infinite;
-    line-height: 18px;
-  }
-
-  @keyframes newsScroll{
-    0%{ transform: translateX(100%); }
-    100%{ transform: translateX(-100%); }
-  }
-
-  /* ===== TUTORIAL ===== */
-  .tutorial-overlay{
-    position: fixed;
-    inset: 0;
-    background: rgba(2,3,7,0.75);
-    z-index: 200;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-  }
-
-  .tutorial-card{
-    background: var(--surface);
-    border: 1px solid var(--gold-dim);
-    border-radius: 16px;
-    padding: 24px 20px;
-    max-width: 300px;
-    width: 100%;
-    text-align: center;
-    position: relative;
-  }
-
-  .tutorial-step-num{
-    font-size: 11px;
-    color: var(--gold);
-    font-family: 'JetBrains Mono', monospace;
-    margin-bottom: 8px;
-  }
-
-  .tutorial-title{
-    font-family: 'Playfair Display', serif;
-    font-size: 16px;
-    color: var(--gold-light);
-    margin-bottom: 8px;
-  }
-
-  .tutorial-text{
-    font-size: 12px;
-    color: var(--text-dim);
-    line-height: 1.5;
-    margin-bottom: 16px;
-  }
-
-  .tutorial-highlight{
-    position: absolute;
-    border: 2px solid var(--gold-light);
-    border-radius: 12px;
-    box-shadow: 0 0 20px rgba(212,175,55,0.3), inset 0 0 20px rgba(212,175,55,0.1);
-    pointer-events: none;
-    z-index: 201;
-    transition: all 0.4s ease;
-  }
-
-  .tutorial-btn{
-    background: linear-gradient(145deg, var(--gold-light), var(--gold));
-    color: #1a1300;
-    border: none;
-    border-radius: 10px;
-    padding: 10px 20px;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    width: 100%;
-  }
-
-  /* ===== CUSTOMIZATION ===== */
-  .emblem-grid{
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 8px;
-    padding: 8px 0;
-  }
-
-  .emblem-option{
-    aspect-ratio: 1;
-    border-radius: 10px;
-    background: var(--surface-2);
-    border: 2px solid transparent;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 20px;
-    cursor: pointer;
-    transition: border-color 0.15s ease;
-  }
-
-  .emblem-option.selected{
-    border-color: var(--gold);
-    background: rgba(212,175,55,0.1);
-  }
-
-  .company-name-input{
-    width: 100%;
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 10px 12px;
-    color: var(--text);
-    font-family: inherit;
-    font-size: 14px;
-    margin-top: 8px;
-  }
-
-  .company-name-input:focus{
-    outline: none;
-    border-color: var(--gold-dim);
-  }
-
-  /* ===== SOUND TOGGLE ===== */
-  .sound-btn{
-    position: fixed;
-    top: 70px;
-    right: 14px;
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    color: var(--text-dim);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 14px;
-    cursor: pointer;
-    z-index: 50;
-  }
-
-  .sound-btn.active{
-    color: var(--gold);
-    border-color: var(--gold-dim);
-  }
-
-  /* ===== MENTOR BUBBLE ===== */
-  .mentor-bubble{
-    margin: 0 14px 12px;
-    background: linear-gradient(135deg, rgba(74,157,111,0.1), rgba(74,157,111,0.02));
-    border: 1px solid rgba(74,157,111,0.3);
-    border-radius: 14px;
-    padding: 12px;
-    display: flex;
-    align-items: flex-start;
-    gap: 10px;
-  }
-
-  .mentor-avatar{
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    background: var(--surface-2);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 18px;
-    flex-shrink: 0;
-    border: 1px solid rgba(74,157,111,0.3);
-  }
-
-  .mentor-text{
-    font-size: 11px;
-    color: var(--text);
-    line-height: 1.5;
-  }
-
-  .mentor-name{
-    font-size: 10px;
-    color: var(--green);
-    font-weight: 600;
-    margin-bottom: 2px;
-  }
-
-  /* Keep old styles for modals */
-  .biz-card{
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 10px 12px 12px;
-    display:flex;
-    align-items:center;
-    gap: 8px;
-    cursor: pointer;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .biz-progress{
-    position: absolute;
-    left: 0; right: 0; bottom: 0;
-    height: 2px;
-    background: rgba(255,255,255,0.04);
-  }
-
-  .biz-progress-fill{
-    height: 100%;
-    width: 0%;
-    background: linear-gradient(90deg, var(--gold-dim), var(--gold-light));
-    transition: width 0.4s ease;
-  }
-
-  @keyframes cardBoughtFlash{
-    0%{ box-shadow: 0 0 0 0 rgba(212,175,55,0.55); transform: scale(1); }
-    35%{ box-shadow: 0 0 20px 4px rgba(212,175,55,0.45); transform: scale(1.015); }
-    100%{ box-shadow: 0 0 0 0 rgba(212,175,55,0); transform: scale(1); }
-  }
-
-  .biz-card.bought-flash{
-    animation: cardBoughtFlash 0.5s ease;
-  }
-
-  .biz-icon{
-    width: 52px;
-    height: 52px;
-    border-radius: 10px;
-    background: linear-gradient(145deg, var(--surface-2), #1c2542);
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-size: 20px;
-    flex-shrink:0;
-    border: 1px solid var(--border);
-    overflow: hidden;
-  }
-
-  .biz-icon img, .asset-icon img, .choice-icon img{
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-
-  .biz-icon-locked{
-    position: relative;
-  }
-
-  .biz-icon-locked::after{
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: rgba(5,7,13,0.55);
-  }
-
-  .biz-lock{
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 20px;
-    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.6));
-  }
-
-  .biz-info{
-    flex: 1;
-    min-width: 0;
-    margin-right: 4px;
-  }
-
-  .biz-name{
-    font-size: 13px;
-    font-weight: 600;
-    margin-bottom: 1px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    line-height: 1.3;
-  }
-
-  .biz-meta{
-    font-size: 11px;
-    color: var(--text-dim);
-    font-family: 'JetBrains Mono', monospace;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .biz-action{
-    display:flex;
-    flex-direction:column;
-    align-items:flex-end;
-    gap: 2px;
-    flex-shrink:0;
-  }
-
-  .buy-btn{
-    background: linear-gradient(145deg, var(--gold-light), var(--gold));
-    color: #1a1300;
-    border: none;
-    border-radius: 8px;
-    padding: 5px 8px;
-    font-size: 10px;
-    min-width: 70px;
-    text-align: center;
-    line-height: 1.3;
-    font-weight: 600;
-    font-family: 'JetBrains Mono', monospace;
-    cursor: pointer;
-    box-shadow: 0 3px 10px rgba(212,175,55,0.3), inset 0 1px 0 rgba(255,255,255,0.35);
-    transition: transform 0.12s ease, box-shadow 0.12s ease;
-  }
-
-  .buy-btn:active{
-    transform: scale(0.96);
-    box-shadow: 0 1px 4px rgba(212,175,55,0.3);
-  }
-
-  .buy-btn:disabled{
-    background: var(--surface-2);
-    color: var(--text-dim);
-    box-shadow: none;
-  }
-
-  .buy-btn.affordable{
-    box-shadow: 0 3px 12px rgba(212,175,55,0.45), 0 0 0 1px var(--gold-light) inset;
-  }
-
-  .biz-level{
-    font-size: 11px;
-    color: var(--gold);
-  }
-  nav{
-    position: fixed;
-    bottom: 0; left: 0; right: 0;
-    background: var(--surface);
-    border-top: 1px solid var(--border);
-    display:flex;
-    padding: 10px 8px calc(10px + env(safe-area-inset-bottom));
-  }
-
-  .nav-indicator{
-    position: absolute;
-    top: 4px;
-    left: 0;
-    height: 3px;
-    width: 25%;
-    border-radius: 2px;
-    background: linear-gradient(90deg, var(--gold-dim), var(--gold-light));
-    box-shadow: 0 0 10px rgba(212,175,55,0.7);
-    transition: transform 0.35s cubic-bezier(.34,1.4,.64,1);
-    transform: translateX(0%);
-    pointer-events: none;
-  }
-
-  .nav-indicator[data-index="1"]{ transform: translateX(100%); }
-  .nav-indicator[data-index="2"]{ transform: translateX(200%); }
-  .nav-indicator[data-index="3"]{ transform: translateX(300%); }
-
-  .nav-item{
-    flex:1;
-    text-align:center;
-    font-size: 11px;
-    color: var(--text-dim);
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    gap: 3px;
-    cursor: pointer;
-    background: none;
-    border: none;
-    font-family: inherit;
-    padding: 4px 0;
-  }
-
-  .nav-item.active{
-    color: var(--gold-light);
-  }
-
-  .nav-icon{ font-size: 18px; }
-
-  .view{ display:none; }
-  .view.active{ display:block; }
-
-  @keyframes overlayBackdropIn{
-    from{ opacity: 0; }
-    to{ opacity: 1; }
-  }
-
-  @keyframes overlayCardIn{
-    from{ opacity: 0; transform: scale(0.9) translateY(10px); }
-    to{ opacity: 1; transform: scale(1) translateY(0); }
-  }
-
+  /* Overlays */
   .overlay{
-    position: fixed;
-    inset: 0;
-    background: rgba(2,3,7,0.85);
-    display:flex;
-    align-items:center;
-    justify-content:center;
+    position: fixed; inset: 0;
+    background: rgba(2,3,7,0.75);
+    backdrop-filter: blur(4px);
     z-index: 100;
-    padding: 20px;
-    animation: overlayBackdropIn 0.25s ease;
+    display: flex; align-items: center; justify-content: center;
+    padding: 16px;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.2s ease;
   }
+  .overlay.show{ opacity: 1; pointer-events: auto; }
 
   .overlay-card{
     background: var(--surface);
-    border: 1px solid var(--gold-dim);
-    border-radius: 18px;
-    padding: 28px 24px;
-    text-align:center;
-    max-width: 320px;
-    width: 100%;
-    animation: overlayCardIn 0.3s cubic-bezier(.16,1,.3,1);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px;
+    max-width: 340px; width: 100%;
+    text-align: center;
+    position: relative;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
   }
-
-  .overlay-icon{ font-size: 32px; margin-bottom: 10px; }
-
+  .overlay-icon{ font-size: 36px; margin-bottom: 8px; }
   .overlay-title{
-    font-family: 'Playfair Display', serif;
-    font-size: 18px;
-    color: var(--gold-light);
-    margin-bottom: 8px;
+    font-family: var(--font-display);
+    font-size: 16px; color: var(--gold-light);
+    margin-bottom: 6px;
   }
-
   .overlay-desc{
-    font-size: 13px;
-    color: var(--text-dim);
-    margin-bottom: 16px;
+    font-size: 12px; color: var(--text-dim);
+    line-height: 1.5; margin-bottom: 16px;
   }
-
   .overlay-amount{
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 30px;
-    font-weight: 700;
-    color: var(--green);
-    margin-bottom: 20px;
+    font-family: var(--font-display);
+    font-size: 28px; color: var(--green);
+    margin-bottom: 16px;
+    text-shadow: 0 0 16px rgba(74,157,111,0.3);
   }
-
   .overlay-btn{
+    width: 100%;
     background: linear-gradient(145deg, var(--gold-light), var(--gold));
     color: #1a1300;
-    border: none;
-    border-radius: 10px;
-    padding: 12px 20px;
-    font-size: 14px;
-    font-weight: 600;
-    width: 100%;
+    border: none; border-radius: 10px;
+    padding: 10px;
+    font-size: 13px; font-weight: 600;
     cursor: pointer;
-    box-shadow: 0 4px 14px rgba(212,175,55,0.35), inset 0 1px 0 rgba(255,255,255,0.35);
+    box-shadow: 0 4px 16px rgba(212,175,55,0.3);
     transition: transform 0.12s ease;
   }
+  .overlay-btn:active{ transform: scale(0.97); }
 
-  .overlay-btn:active{
-    transform: scale(0.97);
+  .modal-close-btn{
+    position: absolute; top: 10px; right: 10px;
+    background: none; border: none;
+    color: var(--text-dim); font-size: 16px;
+    cursor: pointer; width: 28px; height: 28px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 50%;
+    transition: background 0.15s ease;
+  }
+  .modal-close-btn:active{ background: var(--surface-2); }
+
+  /* Biz modal */
+  .biz-modal-card{ max-height: 80vh; overflow-y: auto; text-align: left; }
+  .biz-modal-header{
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 14px;
+  }
+  .biz-modal-name{
+    font-family: var(--font-display);
+    font-size: 16px; color: var(--gold-light);
   }
 
-  /* Rating view */
-  .rating-list{
-    display:flex;
-    flex-direction:column;
-    gap: 8px;
-    padding: 0 18px;
+  /* Items & mechanics */
+  .mechanic-card{
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 10px; padding: 10px;
+    margin-bottom: 8px;
+  }
+  .mechanic-title{ font-size: 12px; font-weight: 600; margin-bottom: 3px; }
+  .mechanic-desc{ font-size: 10px; color: var(--text-dim); margin-bottom: 8px; line-height: 1.4; }
+  .mechanic-btn{
+    width: 100%;
+    background: linear-gradient(145deg, var(--gold-light), var(--gold));
+    color: #1a1300; border: none;
+    border-radius: 8px; padding: 8px 12px;
+    font-size: 11px; font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.12s ease;
+  }
+  .mechanic-btn:active{ transform: scale(0.97); }
+  .mechanic-btn.secondary{
+    background: var(--surface-2);
+    color: var(--text); border: 1px solid var(--border);
+    box-shadow: none;
   }
 
-  .rating-row{
+  .item-row{
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 10px; padding: 5px 0;
+    border-top: 1px solid var(--border);
+  }
+  .item-name{ font-size: 11px; font-weight: 600; }
+  .item-bonus{ font-size: 10px; color: var(--green); }
+  .item-buy-btn{
+    background: linear-gradient(145deg, var(--gold-light), var(--gold));
+    color: #1a1300; border: none;
+    border-radius: 6px; padding: 4px 8px;
+    font-size: 10px; font-weight: 600;
+    cursor: pointer; flex-shrink: 0;
+  }
+  .item-buy-btn:disabled{
+    background: var(--surface-2); color: var(--text-dim);
+    cursor: not-allowed;
+  }
+
+  /* Assets */
+  .asset-card{
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 10px 12px;
-    display:flex;
-    align-items:center;
-    gap: 12px;
+    border-radius: 12px; padding: 10px 12px;
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 8px;
+  }
+  .asset-icon{
+    width: 52px; height: 52px; border-radius: 10px;
+    background: linear-gradient(145deg, var(--surface-2), #1c2542);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; flex-shrink: 0;
+    border: 1px solid var(--border); overflow: hidden;
+  }
+  .asset-icon img{ width: 100%; height: 100%; object-fit: cover; }
+  .asset-name{ font-size: 13px; font-weight: 600; margin-bottom: 1px; }
+  .asset-meta{
+    font-size: 10px; color: var(--text-dim);
+    font-family: var(--font-mono);
+  }
+  .asset-sell-btn{
+    background: none; border: 1px solid var(--gold-dim);
+    color: var(--gold); border-radius: 8px;
+    padding: 5px 8px; font-size: 10px;
+    cursor: pointer; flex-shrink: 0;
   }
 
-  .rating-row.me{
+  /* Jobs */
+  .job-card{
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px; padding: 10px 12px;
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 8px;
+  }
+  .job-icon{
+    width: 44px; height: 44px; border-radius: 10px;
+    background: linear-gradient(145deg, var(--surface-2), #1c2542);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; flex-shrink: 0;
+    border: 1px solid var(--border);
+  }
+  .job-info{ flex: 1; min-width: 0; }
+  .job-name{ font-size: 13px; font-weight: 600; margin-bottom: 1px; }
+  .job-meta{ font-size: 10px; color: var(--text-dim); font-family: var(--font-mono); }
+  .job-risk{ font-size: 10px; color: var(--gold); }
+  .job-go-btn{
+    background: none; border: 1px solid var(--gold-dim);
+    color: var(--gold); border-radius: 8px;
+    padding: 6px 10px; font-size: 11px;
+    cursor: pointer; flex-shrink: 0;
+    min-width: 80px; text-align: center;
+  }
+  .job-go-btn:disabled{
+    border-color: var(--border); color: var(--text-dim);
+    cursor: not-allowed;
+  }
+  .job-progress-track{
+    width: 100%; height: 3px;
+    background: var(--surface-2);
+    border-radius: 2px; margin-top: 6px;
+    overflow: hidden;
+  }
+  .job-progress-fill{
+    height: 100%; background: var(--gold);
+    border-radius: 2px; transition: width 0.1s linear;
+  }
+
+  /* Profile */
+  .profile-card{
+    background: linear-gradient(135deg, var(--surface), rgba(201,168,76,0.03));
+    border: 1px solid var(--border);
+    border-radius: 16px; padding: 20px;
+    text-align: center; margin-bottom: 12px;
+    position: relative; overflow: hidden;
+  }
+  .profile-card::before{
+    content: ''; position: absolute; top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--gold-dim), transparent);
+  }
+  .profile-avatar{
+    width: 64px; height: 64px; border-radius: 50%;
+    background: linear-gradient(145deg, var(--surface-2), #1c2542);
+    border: 2px solid var(--gold-dim);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28px; margin: 0 auto 10px;
+    box-shadow: 0 4px 20px rgba(201,168,76,0.15);
+  }
+  .profile-name{ font-family: var(--font-display); font-size: 18px; color: var(--gold-light); margin-bottom: 2px; }
+  .profile-rank{ font-size: 11px; color: var(--text-dim); }
+
+  .stats-grid{
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 8px; margin-bottom: 12px;
+  }
+  .stat-card{
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px; padding: 10px;
+  }
+  .stat-label{ font-size: 9px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 3px; }
+  .stat-value{ font-family: var(--font-mono); font-size: 14px; font-weight: 600; }
+
+  .share-btn{
+    width: 100%; margin-bottom: 10px;
+  }
+
+  /* Rating */
+  .rating-item{
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px; margin-bottom: 6px;
+  }
+  .rating-rank{
+    width: 24px; text-align: center;
+    font-family: var(--font-mono); font-size: 12px; font-weight: 600;
+    color: var(--gold);
+  }
+  .rating-avatar{
+    width: 28px; height: 28px; border-radius: 50%;
+    background: var(--surface-2);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; flex-shrink: 0;
+  }
+  .rating-name{ flex: 1; font-size: 12px; font-weight: 500; }
+  .rating-amount{ font-family: var(--font-mono); font-size: 12px; color: var(--green); }
+  .rating-item.me{
+    border-color: var(--gold-dim);
+    background: linear-gradient(90deg, var(--surface), rgba(201,168,76,0.05));
+  }
+
+  /* Achievement panel */
+  .achieve-panel{
+    margin: 0 14px 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px; padding: 12px;
+  }
+  .achieve-header{
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .achieve-title{ font-size: 12px; font-weight: 600; color: var(--gold-light); }
+  .achieve-grid{
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+  }
+  .achieve-cell{
+    aspect-ratio: 1;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 2px;
+    cursor: pointer;
+    position: relative;
+    transition: border-color 0.15s ease;
+  }
+  .achieve-cell.unlocked{
+    border-color: var(--gold-dim);
+    background: linear-gradient(180deg, var(--surface-2), rgba(201,168,76,0.05));
+  }
+  .achieve-cell .achieve-icon{ font-size: 18px; }
+  .achieve-cell .achieve-name{ font-size: 7px; color: var(--text-dim); text-align: center; line-height: 1.2; }
+  .achieve-cell.unlocked .achieve-name{ color: var(--text); }
+  .achieve-cell .achieve-reward{ font-size: 7px; color: var(--green); font-family: var(--font-mono); }
+  .achieve-cell .achieve-badge{
+    position: absolute; top: -3px; right: -3px;
+    width: 14px; height: 14px; border-radius: 50%;
+    background: var(--red); color: #fff;
+    font-size: 8px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    border: 2px solid var(--bg);
+  }
+
+  /* Stock market mini-game */
+  .stock-game{
+    margin: 0 14px 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px; padding: 14px;
+  }
+  .stock-header{
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .stock-title{ font-size: 12px; font-weight: 600; color: var(--gold-light); }
+  .stock-timer{ font-size: 10px; color: var(--text-dim); font-family: var(--font-mono); }
+  .stock-chart{
+    height: 60px;
+    background: var(--surface-2);
+    border-radius: 8px;
+    margin-bottom: 10px;
+    position: relative;
+    overflow: hidden;
+  }
+  .stock-chart-line{
+    position: absolute; bottom: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--green), var(--gold), var(--red));
+    opacity: 0.3;
+  }
+  .stock-price{
+    text-align: center;
+    font-family: var(--font-mono);
+    font-size: 18px; color: var(--text);
+    margin-bottom: 10px;
+  }
+  .stock-price.up{ color: var(--green); }
+  .stock-price.down{ color: var(--red); }
+  .stock-actions{
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .stock-btn{
+    padding: 8px;
+    border-radius: 8px; border: none;
+    font-size: 11px; font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.12s ease;
+  }
+  .stock-btn:active{ transform: scale(0.97); }
+  .stock-btn.up{ background: rgba(74,157,111,0.15); color: var(--green); border: 1px solid rgba(74,157,111,0.3); }
+  .stock-btn.down{ background: rgba(196,92,92,0.15); color: var(--red); border: 1px solid rgba(196,92,92,0.3); }
+
+  /* Theme switcher */
+  .theme-switcher{
+    display: flex; gap: 6px; margin-bottom: 12px;
+  }
+  .theme-option{
+    flex: 1; padding: 8px;
+    border-radius: 8px; border: 1px solid var(--border);
+    background: var(--surface-2);
+    text-align: center; cursor: pointer;
+    font-size: 10px; color: var(--text-dim);
+    transition: border-color 0.15s ease;
+  }
+  .theme-option.active{
+    border-color: var(--gold);
+    color: var(--gold-light);
+  }
+
+  /* Nav */
+  nav{
+    display: flex; justify-content: space-around; align-items: center;
+    padding: 6px 0 20px;
+    background: linear-gradient(0deg, var(--bg) 40%, transparent);
+    position: sticky; bottom: 0; z-index: 10;
+    border-top: 1px solid var(--border);
+  }
+  .nav-item{
+    display: flex; flex-direction: column; align-items: center;
+    gap: 2px; padding: 4px 12px;
+    color: var(--text-dim); font-size: 10px;
+    cursor: pointer; border: none; background: none;
+    font-family: inherit; position: relative;
+    transition: color 0.15s ease;
+  }
+  .nav-item.active{ color: var(--gold-light); }
+  .nav-item .nav-icon{ font-size: 20px; line-height: 1; }
+  .nav-indicator{
+    position: absolute; top: -6px;
+    width: 20px; height: 3px;
+    background: var(--gold-light);
+    border-radius: 2px;
+    transition: left 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: 0 0 8px rgba(212,175,55,0.4);
+  }
+
+  /* Views */
+  .view{ display: none; flex-direction: column; }
+  .view.active{ display: flex; }
+
+  /* Inheritance */
+  .inheritance-card{
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px; padding: 14px;
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 10px; cursor: pointer;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+  .inheritance-card:active{ transform: scale(0.98); }
+  .inheritance-card.selected{
     border-color: var(--gold-dim);
     box-shadow: 0 0 0 1px var(--gold-dim) inset;
   }
 
-  .rating-place{
-    width: 26px;
-    text-align:center;
-    font-family: 'JetBrains Mono', monospace;
-    font-weight: 700;
-    color: var(--text-dim);
-    flex-shrink:0;
-  }
-
-  .rating-row:nth-child(1) .rating-place{ color:#fbe58a; }
-  .rating-row:nth-child(2) .rating-place{ color:#c9cbd6; }
-  .rating-row:nth-child(3) .rating-place{ color:#c98a4b; }
-
-  .rating-avatar{
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-size: 15px;
-    flex-shrink:0;
-  }
-
-  .rating-info{
-    flex:1;
-    min-width:0;
-  }
-
-  .rating-name{
-    font-size: 13px;
-    font-weight: 600;
-    white-space:nowrap;
-    overflow:hidden;
-    text-overflow:ellipsis;
-  }
-
-  .rating-sub{
-    font-size: 11px;
-    color: var(--text-dim);
-    font-family: 'JetBrains Mono', monospace;
-  }
-
-  .rating-income{
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 12px;
-    color: var(--green);
-    flex-shrink:0;
-  }
-
-  .rating-note{
-    padding: 4px 18px 4px;
-    font-size: 11px;
-    color: var(--text-dim);
-  }
-
-  /* Profile view */
-  .profile-card{
-    margin: 4px 18px 20px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 22px 18px;
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    text-align:center;
-    gap: 4px;
-  }
-
-  .profile-avatar{
-    width: 64px;
-    height: 64px;
-    border-radius: 50%;
-    background: var(--surface-2);
-    border: 1px solid var(--gold-dim);
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-size: 26px;
-    margin-bottom: 8px;
-  }
-
-  .profile-name{
-    font-family: 'Playfair Display', serif;
-    font-weight: 700;
-    font-size: 18px;
-    color: var(--gold-light);
-  }
-
-  .profile-rank{
-    font-size: 12px;
-    color: var(--gold);
-  }
-
-  .stat-grid{
-    padding: 0 18px;
-    display:grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-  }
-
-  .stat-card{
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 12px;
-  }
-
-  .stat-label{
-    font-size: 11px;
-    color: var(--text-dim);
-    text-transform: uppercase;
-    letter-spacing: 0.8px;
-    margin-bottom: 4px;
-  }
-
-  .stat-value{
-    font-family: 'JetBrains Mono', monospace;
-    font-weight: 700;
-    font-size: 16px;
-    color: var(--text);
-  }
-
-  .reset-btn{
-    margin: 20px 18px 0;
-    background: none;
-    border: 1px solid #6b2f2f;
-    color: #d98a8a;
-    border-radius: 10px;
-    padding: 10px;
-    font-size: 12px;
-    font-family: inherit;
-    cursor: pointer;
-  }
-
-  /* Assets (inheritance) section on business view */
-  .asset-card{
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 10px 12px;
-    display:flex;
-    align-items:center;
-    gap: 12px;
-  }
-
-  .asset-icon{
-    width: 52px;
-    height: 52px;
-    border-radius: 10px;
-    background: var(--surface-2);
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-size: 20px;
-    flex-shrink:0;
-    border: 1px solid var(--border);
-    overflow: hidden;
-  }
-
-  .asset-info{
-    flex: 1;
-    min-width: 0;
-  }
-
-  .asset-name{
-    font-size: 13px;
-    font-weight: 600;
-    margin-bottom: 1px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    line-height: 1.3;
-  }
-
-  .asset-meta{
-    font-size: 10px;
-    color: var(--text-dim);
-    font-family: 'JetBrains Mono', monospace;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    line-height: 1.3;
-  }
-
-  .asset-sell-btn{
-    background: none;
-    border: 1px solid var(--gold-dim);
-    color: var(--gold);
-    border-radius: 8px;
-    padding: 4px 6px;
-    font-size: 10px;
-    min-width: 70px;
-    text-align: center;
-    line-height: 1.3;
-    font-family: inherit;
-    cursor: pointer;
-    flex-shrink:0;
-  }
-
-  /* Inheritance start screen */
-  #view-inheritance{
-    padding: 0 0 30px;
-  }
-
-  .inheritance-intro{
-    padding: 32px 22px 6px;
-    text-align: center;
-  }
-
-  .inheritance-intro .brand{
-    display:block;
-    margin-bottom: 10px;
-  }
-
-  .inheritance-lead{
-    font-size: 14px;
-    color: var(--text-dim);
-    line-height: 1.5;
-  }
-
-  .inheritance-list{
-    display:flex;
-    flex-direction:column;
-    gap: 14px;
-    padding: 22px 18px 0;
-  }
-
-  .choice-card{
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 16px;
-  }
-
-  .choice-head{
-    display:flex;
-    align-items:center;
-    gap: 12px;
-    margin-bottom: 12px;
-  }
-
-  .choice-icon{
-    width: 48px;
-    height: 48px;
-    border-radius: 12px;
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-size: 22px;
-    flex-shrink:0;
-    overflow: hidden;
-  }
-
-  .choice-name{
-    font-size: 15px;
-    font-weight: 600;
-  }
-
-  .choice-value{
-    font-size: 11px;
-    color: var(--text-dim);
-    font-family: 'JetBrains Mono', monospace;
-  }
-
-  .choice-actions{
-    display:flex;
-    gap: 8px;
-  }
-
-  .choice-btn{
-    flex: 1;
-    border-radius: 10px;
-    padding: 10px 8px;
-    font-size: 12px;
-    font-family: inherit;
-    font-weight: 600;
-    cursor: pointer;
-    border: 1px solid var(--border);
-    background: var(--surface-2);
-    color: var(--text);
-    text-align: center;
-    line-height: 1.4;
-  }
-
-  .choice-btn small{
-    display:block;
-    font-weight: 500;
-    color: var(--text-dim);
-    font-size: 10px;
-    margin-top: 2px;
-  }
-
-  .choice-btn.selected{
-    background: var(--gold);
-    color: #1a1300;
-    border-color: var(--gold);
-  }
-
-  .choice-btn.selected small{
-    color: #1a1300cc;
-  }
-
-  .inheritance-continue{
-    margin: 24px 18px 0;
-    width: calc(100% - 36px);
-    background: linear-gradient(145deg, var(--gold-light), var(--gold));
-    color: #1a1300;
-    border: none;
-    border-radius: 12px;
-    padding: 14px;
-    font-size: 14px;
-    font-weight: 700;
-    font-family: inherit;
-    cursor: pointer;
-    box-shadow: 0 4px 14px rgba(212,175,55,0.35), inset 0 1px 0 rgba(255,255,255,0.35);
-    transition: transform 0.12s ease;
-  }
-
-  .inheritance-continue:active{
-    transform: scale(0.98);
-  }
-
-  .inheritance-continue:disabled{
-    background: var(--surface-2);
-    color: var(--text-dim);
-    cursor: not-allowed;
-  }
-
-  .boot-screen{
-    min-height: 100vh;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    color: var(--text-dim);
-    font-size: 13px;
-  }
-
-  /* Business detail modal */
-  .biz-modal-card{
-    text-align: left;
-    position: relative;
-    max-width: 340px;
-  }
-
-  .modal-close-btn{
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    background: none;
-    border: none;
-    color: var(--text-dim);
-    font-size: 18px;
-    cursor: pointer;
-    padding: 4px 8px;
-    line-height: 1;
-  }
-
-  .biz-modal-header{
-    display:flex;
-    align-items:center;
-    gap: 10px;
-    margin-bottom: 16px;
-  }
-
-  .biz-modal-name{
-    font-family: 'Playfair Display', serif;
-    font-size: 17px;
-    font-weight: 700;
-    color: var(--gold-light);
-  }
-
-  .mechanic-card{
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 10px;
-    margin-bottom: 10px;
-    text-align: left;
-  }
-
-  .mechanic-title{
-    font-size: 12px;
-    font-weight: 600;
-    margin-bottom: 4px;
-  }
-
-  .mechanic-desc{
-    font-size: 11px;
-    color: var(--text-dim);
-    margin-bottom: 8px;
-    line-height: 1.4;
-  }
-
-  .mechanic-btn{
-    width: 100%;
-    background: linear-gradient(145deg, var(--gold-light), var(--gold));
-    color: #1a1300;
-    border: none;
-    border-radius: 8px;
-    padding: 8px 12px;
-    font-size: 12px;
-    font-weight: 600;
-    font-family: inherit;
-    cursor: pointer;
-    box-shadow: 0 3px 10px rgba(212,175,55,0.3), inset 0 1px 0 rgba(255,255,255,0.35);
-    transition: transform 0.12s ease;
-  }
-
-  .mechanic-btn:active{
-    transform: scale(0.97);
-  }
-
-  .mechanic-btn:disabled{
-    background: var(--border);
-    color: var(--text-dim);
-    cursor: not-allowed;
-    box-shadow: none;
-    transform: none;
-  }
-
-  .mechanic-btn.affordable{
-    box-shadow: 0 0 0 1px var(--gold-light) inset;
-  }
-
-  .mechanic-status{
-    font-size: 12px;
-    color: var(--green);
-    font-family: 'JetBrains Mono', monospace;
-  }
-
-  .mechanic-placeholder{
-    padding: 30px 10px;
-    text-align: center;
-    color: var(--text-dim);
-    font-size: 13px;
-  }
-
-  .eco-actions{
-    display:flex;
-    flex-direction:column;
-    gap: 8px;
-  }
-
-  .item-row{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap: 10px;
-    padding: 6px 0;
-    border-top: 1px solid var(--border);
-  }
-
-  .item-row:first-of-type{ border-top: none; margin-top: 4px; }
-
-  .item-name{ font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-  .item-bonus{
-    font-size: 11px;
-    color: var(--gold);
-    font-family: 'JetBrains Mono', monospace;
-  }
-
-  .item-buy-btn{
-    background: linear-gradient(145deg, var(--gold-light), var(--gold));
-    color: #1a1300;
-    border: none;
-    border-radius: 6px;
-    padding: 4px 8px;
-    font-size: 10px;
-    font-weight: 600;
-    font-family: 'JetBrains Mono', monospace;
-    cursor: pointer;
-    flex-shrink:0;
-  }
-
-  .item-buy-btn:disabled{
-    background: var(--surface-2);
-    color: var(--text-dim);
-    cursor: not-allowed;
-  }
-
-  .job-risk-hint{
-    font-size: 10px;
-    color: var(--gold-dim);
-    margin-top: 2px;
-  }
-
-  .job-outcome{
-    font-size: 11px;
-    color: var(--green);
-    margin-top: 2px;
-    font-weight: 600;
-  }
-
-  /* Locked (not yet purchased) business card */
-  .asset-sell-btn:disabled{
-    opacity: 0.5;
-    cursor: not-allowed;
-    border-color: var(--border);
-    color: var(--text-dim);
-  }
-
-  /* Live clock in header */
-  .header-clock{
-    font-size: 11px;
-    color: var(--text-dim);
-    font-family: 'JetBrains Mono', monospace;
-    margin-top: 2px;
-  }
-
-  /* Business sell/pause controls */
-  .mechanic-btn.secondary{
-    background: var(--surface-2);
-    color: var(--text);
-    border: 1px solid var(--border);
-    margin-bottom: 8px;
-  }
-
-  .mechanic-btn.danger{
-    background: #6b2f2f;
-    color: #f5d5d5;
-  }
-
-  /* Referral & share */
-  .referral-card{
-    margin: 0 18px 16px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 14px;
-    text-align: left;
-  }
+  /* Misc */
+  .eco-actions{ display: flex; flex-direction: column; gap: 8px; }
+  .biz-level{ font-size: 11px; color: var(--gold); }
 
-  .referral-link{
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 11px;
-    color: var(--text-dim);
-    word-break: break-all;
-    margin-bottom: 10px;
+  @keyframes slideInUp{
+    from{ transform: translateY(20px); opacity: 0; }
+    to{ transform: translateY(0); opacity: 1; }
   }
+  .slide-in{ animation: slideInUp 0.3s ease; }
 
-  .share-btn{
-    margin: 0 18px 8px;
-    width: calc(100% - 36px);
+  @keyframes pulseGlow{
+    0%,100%{ box-shadow: 0 0 0 0 rgba(201,168,76,0.3); }
+    50%{ box-shadow: 0 0 12px 2px rgba(201,168,76,0.2); }
   }
+  .pulse-glow{ animation: pulseGlow 2s ease-in-out infinite; }
 </style>
 <base target="_blank">
 </head>
@@ -1452,31 +870,26 @@
       <div class="level-pill" id="rankLabel">Новичок</div>
     </header>
 
-    <div class="view active" id="view-business">
+        <div class="view active" id="view-business">
+      <div class="bg-layer"></div>
+
+      <!-- Compact header with capital -->
+      <div class="capital-bar">
+        <div class="capital-main">
+          <div class="capital-label-small">Капитал</div>
+          <div class="capital-value-inline" id="capitalValue">₽0</div>
+        </div>
+        <div class="income-pill" id="incomeRate">+₽0/день</div>
+      </div>
+
+      <!-- Floating action buttons -->
+      <button class="quest-badge-btn" id="questBadgeBtn" title="Задания">
+        📋<span class="badge-count" id="questBadgeCount" style="display:none">0</span>
+      </button>
+      <button class="mentor-avatar-btn" id="mentorBtn" title="Советник">🎩</button>
       <button class="sound-btn" id="soundBtn" title="Звук">🔇</button>
 
-      <div class="capital-block">
-        <div class="capital-label">Капитал</div>
-        <div class="capital-value" id="capitalValue">₽0</div>
-        <div class="income-rate" id="incomeRate">+₽0 / день</div>
-      </div>
-
-      <div id="mentorBubble" class="mentor-bubble" style="display:none">
-        <div class="mentor-avatar">🎩</div>
-        <div>
-          <div class="mentor-name">Альфред, ваш советник</div>
-          <div class="mentor-text" id="mentorText"></div>
-        </div>
-      </div>
-
-      <div id="questPanel" class="quest-panel" style="display:none">
-        <div class="quest-header">
-          <div class="quest-title">📋 Активные задания</div>
-          <div class="quest-count" id="questCount">0/3</div>
-        </div>
-        <div id="questList"></div>
-      </div>
-
+      <!-- News ticker -->
       <div class="news-ticker" id="newsTicker">
         <div class="news-icon">📰</div>
         <div class="news-scroll">
@@ -1484,9 +897,48 @@
         </div>
       </div>
 
+      <!-- Mentor bubble (appears on tap) -->
+      <div id="mentorBubble" class="mentor-bubble" style="display:none; margin:0 14px 8px;">
+        <div class="mentor-avatar">🎩</div>
+        <div>
+          <div class="mentor-name">Альфред, ваш советник</div>
+          <div class="mentor-text" id="mentorText"></div>
+        </div>
+      </div>
+
+      <!-- Quest panel (expandable) -->
+      <div id="questPanel" class="quest-panel" style="display:none; margin:0 14px 8px;">
+        <div class="quest-header">
+          <div class="quest-title">📋 Активные задания</div>
+          <div class="quest-count" id="questCount">0/10</div>
+        </div>
+        <div id="questList"></div>
+      </div>
+
+      <!-- Stock market mini-game -->
+      <div class="stock-game" id="stockGame">
+        <div class="stock-header">
+          <div class="stock-title">📈 Биржа</div>
+          <div class="stock-timer" id="stockTimer">Доступно</div>
+        </div>
+        <div class="stock-chart" id="stockChart">
+          <div class="stock-chart-line"></div>
+        </div>
+        <div class="stock-price" id="stockPrice">₽100.00</div>
+        <div class="stock-actions">
+          <button class="stock-btn up" id="stockUp">📈 Вверх</button>
+          <button class="stock-btn down" id="stockDown">📉 Вниз</button>
+        </div>
+      </div>
+
+      <!-- City section -->
       <div class="section-title">🏙 Город</div>
       <div class="city-map" id="cityMap"></div>
 
+      <!-- Scroll spacer -->
+      <div style="height:20px; flex-shrink:0;"></div>
+
+      <!-- Overlays -->
       <div id="offlineOverlay" class="overlay" style="display:none">
         <div class="overlay-card">
           <div class="overlay-icon">💰</div>
@@ -1566,9 +1018,18 @@
           </div>
         </div>
       </div>
-    </div>
 
-    <div class="view" id="view-assets">
+      <div class="overlay" id="stockResultOverlay" style="display:none">
+        <div class="overlay-card">
+          <div class="overlay-icon" id="stockResultIcon">📈</div>
+          <div class="overlay-title" id="stockResultTitle">Результат</div>
+          <div class="overlay-desc" id="stockResultDesc"></div>
+          <div class="overlay-amount" id="stockResultAmount"></div>
+          <button class="overlay-btn" id="stockResultClose">OK</button>
+        </div>
+      </div>
+    </div>
+<div class="view" id="view-assets">
       <div class="section-title">Активы</div>
       <div class="biz-list" id="assetList"></div>
 
@@ -1589,15 +1050,18 @@
       <div class="biz-list" id="jobList"></div>
     </div>
 
-    <div class="view" id="view-profile">
-      <div class="section-title">Профиль</div>
+        <div class="view" id="view-profile">
+      <div class="bg-layer"></div>
+
       <div class="profile-card">
         <div class="profile-avatar" id="profileAvatar">●</div>
         <div class="profile-name" id="profileName">Игрок</div>
         <div class="profile-rank" id="profileRank">Новичок</div>
       </div>
-      <button class="mechanic-btn secondary share-btn" id="customizeBtn" style="margin-bottom:12px;">⚙ Настроить профиль</button>
-      <div class="stat-grid">
+
+      <button class="mechanic-btn secondary share-btn" id="customizeBtn" style="margin:0 14px 10px;">⚙ Настроить профиль</button>
+
+      <div class="stats-grid" style="margin:0 14px 12px;">
         <div class="stat-card">
           <div class="stat-label">Капитал</div>
           <div class="stat-value" id="statCapital">₽0</div>
@@ -1607,53 +1071,43 @@
           <div class="stat-value" id="statIncome">₽0</div>
         </div>
         <div class="stat-card">
-          <div class="stat-label">Заработано всего</div>
+          <div class="stat-label">Заработано</div>
           <div class="stat-value" id="statEarned">₽0</div>
         </div>
         <div class="stat-card">
-          <div class="stat-label">Бизнесов открыто</div>
+          <div class="stat-label">Бизнесов</div>
           <div class="stat-value" id="statBizCount">0</div>
         </div>
       </div>
-      <div class="section-title">Пригласить друзей</div>
-      <div class="referral-card">
-        <div class="referral-link" id="referralLinkText"></div>
-        <button class="mechanic-btn" id="copyReferralBtn">Скопировать ссылку</button>
-        <div class="mechanic-status" id="referralCountText" style="margin-top:10px;"></div>
+
+      <div class="section-title">🎨 Тема оформления</div>
+      <div class="theme-switcher" style="margin:0 14px 12px;">
+        <div class="theme-option active" data-theme="default">🌃 Ночь</div>
+        <div class="theme-option" data-theme="sunset">🌅 Закат</div>
+        <div class="theme-option" data-theme="neon">💜 Неон</div>
       </div>
 
-      <button class="mechanic-btn secondary share-btn" id="shareBtn">Поделиться достижением</button>
-
-      <div class="section-title">Рейтинг магнатов</div>
-      <div class="rating-list" id="ratingList"></div>
-
-      <button class="reset-btn" id="resetBtn">Сбросить прогресс</button>
-    </div>
-
-    <div class="overlay" id="tutorialOverlay" style="display:none">
-      <div class="tutorial-card" id="tutorialCard">
-        <div class="tutorial-step-num" id="tutorialStep">Шаг 1 / 5</div>
-        <div class="tutorial-title" id="tutorialTitle">Добро пожаловать</div>
-        <div class="tutorial-text" id="tutorialText"></div>
-        <button class="tutorial-btn" id="tutorialNext">Далее</button>
-      </div>
-    </div>
-
-    <div class="overlay" id="customizeOverlay" style="display:none">
-      <div class="overlay-card" style="max-width:340px;">
-        <button class="modal-close-btn" id="customizeClose">✕</button>
-        <div class="overlay-title" style="font-family:'Playfair Display',serif; font-size:18px; color:var(--gold-light); margin-bottom:4px;">Настройка профиля</div>
-        <div class="overlay-desc" style="margin-bottom:12px;">Назовите свою империю и выберите эмблему</div>
-        <div style="text-align:left; margin-bottom:12px;">
-          <label style="font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.8px;">Название компании</label>
-          <input type="text" class="company-name-input" id="companyNameInput" placeholder="Империя" maxlength="20">
+      <div class="section-title">🏆 Достижения</div>
+      <div class="achieve-panel" id="achievePanel">
+        <div class="achieve-header">
+          <div class="achieve-title">Прогресс</div>
+          <div class="quest-count" id="achieveCount">0/20</div>
         </div>
-        <div style="text-align:left; margin-bottom:12px;">
-          <label style="font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.8px;">Эмблема</label>
-          <div class="emblem-grid" id="emblemGrid"></div>
-        </div>
-        <button class="overlay-btn" id="saveCustomize">Сохранить</button>
+        <div class="achieve-grid" id="achieveGrid"></div>
       </div>
+
+      <div class="section-title">👥 Пригласить друзей</div>
+      <div style="margin:0 14px 12px; background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:12px;">
+        <div style="font-size:10px; color:var(--text-dim); font-family:var(--font-mono); word-break:break-all; margin-bottom:8px;" id="refLink">https://t.me/ImperiaBusinessBot/play?startapp=REF_0</div>
+        <button class="overlay-btn" id="copyRefBtn" style="box-shadow:none;">Скопировать ссылку</button>
+        <div style="font-size:11px; color:var(--green); margin-top:6px; text-align:center;" id="refCount">Приглашено друзей: 0</div>
+      </div>
+
+      <div class="section-title">🏅 Рейтинг магнатов</div>
+      <div id="ratingList" style="margin:0 14px 12px;"></div>
+
+      <div style="height:20px;"></div>
+    </div>
     </div>
 
     <nav>
@@ -2142,293 +1596,7 @@
   }
 
   // ===== CITY MAP RENDER =====
-  function renderCityMap(){
-    const map = document.getElementById('cityMap');
-    if (!map) return;
-    map.innerHTML = '';
-
-    businesses.forEach((biz, idx)=>{
-      const cost = costFor(biz);
-      const affordable = capital >= cost;
-      const progressPct = Math.max(0, Math.min(100, (capital / cost) * 100));
-      const slot = document.createElement('div');
-
-      if (!biz.purchased){
-        slot.className = 'building-slot locked' + (affordable ? ' affordable' : '');
-        slot.innerHTML = `
-          <div class="building-icon biz-icon-locked"><img src="images/${biz.id}.jpg" alt="" onerror="this.outerHTML='${biz.icon}'"><span class="biz-lock">🔒</span></div>
-          <div class="building-name">${biz.name}</div>
-          <div class="building-lock">🔒</div>
-          <div class="building-progress"><div class="building-progress-fill" style="width:${progressPct}%"></div></div>
-        `;
-      } else {
-        slot.className = 'building-slot owned' + (affordable ? ' affordable' : '') + (biz.paused ? ' biz-card-paused' : '');
-        const income = fmt(incomePerSec(biz) * GAME_DAY_SECONDS);
-        slot.innerHTML = `
-          <div class="building-icon"><img src="images/${biz.id}.jpg" alt="" onerror="this.outerHTML='${biz.icon}'"></div>
-          <div class="building-name">${biz.name}</div>
-          <div class="building-lvl">ур. ${biz.level}</div>
-          <div class="building-income">+${income}/д</div>
-          <div class="building-progress"><div class="building-progress-fill" style="width:${progressPct}%"></div></div>
-        `;
-      }
-
-      if (biz.id === flashBizId) slot.classList.add('flash');
-
-      slot.addEventListener('click', (e)=>{
-        if (!biz.purchased){
-          const c = costFor(biz);
-          if (capital >= c){
-            capital -= c;
-            biz.purchased = true;
-            biz.level = 1;
-            sfxBuy();
-            if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
-            flashBizId = biz.id;
-            setTimeout(()=>{ if (flashBizId === biz.id) flashBizId = null; }, 500);
-            renderAll();
-            saveProgress();
-            checkQuests();
-          } else {
-            sfxError();
-          }
-        } else {
-          openBizModal(biz);
-        }
-      });
-
-      map.appendChild(slot);
-    });
-  }
-
-  // ---------- Save / Load (Firebase Firestore) ----------
-// ---------- Save / Load (Firebase Firestore) ----------
-
-  async function loadProgress(){
-    try{
-      const ref = window.__docRef(window.__db, 'players', String(userId));
-      const snap = await window.__getDoc(ref);
-      if (snap.exists()){
-        const data = snap.data();
-        if (data.companyName) companyName = data.companyName;
-        if (data.emblem) emblem = data.emblem;
-        if (data.soundEnabled !== undefined) soundEnabled = data.soundEnabled;
-        if (data.tutorialSeen === false) tutorialActive = true;
-        capital = data.capital ?? capital;
-        totalEarned = data.totalEarned ?? totalEarned;
-        lastLoginDate = data.lastLoginDate ?? lastLoginDate;
-        loginStreak = data.loginStreak ?? loginStreak;
-        referredBy = data.referredBy ?? referredBy;
-        referralCount = data.referralCount ?? referralCount;
-        if (data.jobReadyAt && typeof data.jobReadyAt === 'object'){
-          Object.assign(jobReadyAt, data.jobReadyAt);
-        }
-        (data.businesses || []).forEach(saved=>{
-          const b = businesses.find(x=>x.id === saved.id);
-          if (b){
-            b.level = saved.level;
-            EXTRA_BIZ_KEYS.forEach(k=>{ if (saved[k] !== undefined) b[k] = saved[k]; });
-          }
-        });
-        // Back-compat: saves made before the purchased-lock feature existed
-        // only have `level`. Any business with a level already earned income,
-        // so treat it as purchased instead of relocking it.
-        businesses.forEach(b=>{ if (b.level > 0) b.purchased = true; });
-        (data.assets || []).forEach(saved=>{
-          const a = assets.find(x=>x.id === saved.id);
-          if (a){
-            if (saved.status === 'sold' || saved.status === 'kept') a.status = saved.status;
-            EXTRA_ASSET_KEYS.forEach(k=>{ if (saved[k] !== undefined) a[k] = saved[k]; });
-          }
-        });
-        return data.lastSeen;
-      }
-    } catch(e){ ; }
-    return null;
-  }
-
-  function currentPlayerName(){
-    const user = tgUser();
-    return user?.first_name || ('Игрок' + String(userId).slice(-4));
-  }
-
-  async function saveProgress(){
-    try{
-      const ref = window.__docRef(window.__db, 'players', String(userId));
-      await window.__setDoc(ref, {
-        playerName: currentPlayerName(),
-        companyName,
-        emblem,
-        soundEnabled,
-        tutorialSeen: !tutorialActive,
-        capital,
-        totalEarned,
-        lastLoginDate,
-        loginStreak,
-        referredBy,
-        referralCount,
-        jobReadyAt,
-        businesses: businesses.map(b=>{
-          const obj = { id:b.id, level:b.level };
-          EXTRA_BIZ_KEYS.forEach(k=>{ if (b[k] !== undefined) obj[k] = b[k]; });
-          return obj;
-        }),
-        assets: assets.map(a=>{
-          const obj = { id:a.id, status:a.status };
-          EXTRA_ASSET_KEYS.forEach(k=>{ if (a[k] !== undefined) obj[k] = a[k]; });
-          return obj;
-        }),
-        lastSeen: Date.now()
-      });
-    } catch(e){}
-  }
-
-  // ---------- Game logic ----------
-
-  function costFor(biz){
-    return Math.round(biz.baseCost * Math.pow(1.2, biz.level));
-  }
-
-  function incomePerSec(biz){
-    if (biz.paused) return 0;
-    let income = biz.baseIncome * biz.level;
-    const now = Date.now();
-    if (biz.id === 'wash'){
-      if (biz.hasDryClean) income += 3 * biz.level;
-      if (biz.boostUntil && now < biz.boostUntil) income *= 2;
-    } else if (biz.id === 'kiosk'){
-      if (biz.brokenUntil && now < biz.brokenUntil) return 0;
-      if (biz.hasBarista) income += 2 * biz.level;
-      if (biz.boostUntil && now < biz.boostUntil) income *= 2;
-    } else if (biz.id === 'cafe'){
-      if (biz.hasNewMenu) income += 8 * biz.level;
-      if (biz.reviewPenaltyUntil && now < biz.reviewPenaltyUntil) income *= 0.5;
-    } else {
-      if (biz.eventUntil && now < biz.eventUntil) return 0;
-      if (biz.hasUpgrade) income += biz.baseIncome * 0.15 * biz.level;
-      if (biz.boostUntil && now < biz.boostUntil) income *= 2;
-    }
-    income *= (1 + itemsBonusPct(biz) / 100);
-    return income;
-  }
-
-  function totalIncome(){
-    let sum = businesses.reduce((s,b)=> s + incomePerSec(b), 0);
-    const apartment = assets.find(a=>a.id === 'apartment');
-    if (apartment.status === 'kept') sum += assetIncome(apartment);
-    const car = assets.find(a=>a.id === 'car');
-    if (car.status === 'kept') sum += assetIncome(car);
-    return sum;
-  }
-
-  // K/M/B abbreviation kicks in above ₽1,000 — needed because day-scaled
-  // income (rate * GAME_DAY_SECONDS) routinely lands in the millions/billions once
-  // businesses are earning realistic sums.
-  const FMT_UNITS = [[1e9, 'B'], [1e6, 'M'], [1e3, 'K']];
-
-  function fmt(n){
-    const sign = n < 0 ? '-' : '';
-    const abs = Math.floor(Math.abs(n));
-    if (abs < 1000) return sign + '₽' + abs.toLocaleString('ru-RU');
-    for (const [threshold, suffix] of FMT_UNITS){
-      if (abs >= threshold){
-        const val = abs / threshold;
-        const rounded = val >= 100 ? Math.round(val) : Math.round(val * 10) / 10;
-        return sign + '₽' + rounded.toLocaleString('ru-RU') + suffix;
-      }
-    }
-  }
-
-  function rankFor(inc){
-    if (inc >= 500) return 'Магнат';
-    if (inc >= 100) return 'Инвестор';
-    if (inc >= 20) return 'Предприниматель';
-    return 'Новичок';
-  }
-
-  function renderRank(){
-    document.getElementById('rankLabel').textContent = rankFor(totalIncome());
-  }
-
-  // Set right before a renderAll() triggered by a purchase/upgrade so the
-  // freshly-rebuilt card for that business gets a one-shot "bought" flash.
-  let flashBizId = null;
-
-  function renderList(){
-    const list = document.getElementById('bizList');
-    list.innerHTML = '';
-    businesses.forEach(biz=>{
-      const cost = costFor(biz);
-      const affordable = capital >= cost;
-      const progressPct = Math.max(0, Math.min(100, (capital / cost) * 100));
-      const card = document.createElement('div');
-      const progressBar = `<div class="biz-progress"><div class="biz-progress-fill" style="width:${progressPct}%"></div></div>`;
-
-      if (!biz.purchased){
-        card.className = 'biz-card biz-card-locked';
-        card.innerHTML = `
-          <div class="biz-icon biz-icon-locked"><img src="images/${biz.id}.jpg" alt="" onerror="this.outerHTML='${biz.icon}'"><span class="biz-lock">🔒</span></div>
-          <div class="biz-info">
-            <div class="biz-name">${biz.name}</div>
-            <div class="biz-meta">Бизнес закрыт</div>
-          </div>
-          <div class="biz-action">
-            <button class="buy-btn ${affordable ? 'affordable':''}" ${affordable ? '' : 'disabled'} data-id="${biz.id}">Купить ${fmt(cost)}</button>
-          </div>
-          ${progressBar}
-        `;
-      } else {
-        card.className = 'biz-card' + (biz.paused ? ' biz-card-paused' : '');
-        const metaText = biz.paused
-          ? '⏸ На паузе'
-          : `+${fmt(incomePerSec(biz) * GAME_DAY_SECONDS)}/день · ур. ${biz.level}`;
-        card.innerHTML = `
-          <div class="biz-icon"><img src="images/${biz.id}.jpg" alt="" onerror="this.outerHTML='${biz.icon}'"></div>
-          <div class="biz-info">
-            <div class="biz-name">${biz.name}</div>
-            <div class="biz-meta">${metaText}</div>
-          </div>
-          <div class="biz-action">
-            <button class="buy-btn ${affordable ? 'affordable':''}" ${affordable ? '' : 'disabled'} data-id="${biz.id}">${fmt(cost)}</button>
-          </div>
-          ${progressBar}
-        `;
-      }
-
-      if (biz.id === flashBizId) card.classList.add('bought-flash');
-
-      card.addEventListener('click', (e)=>{
-        if (e.target.closest('.buy-btn')) return;
-        if (!biz.purchased) return;
-        openBizModal(biz);
-      });
-
-      list.appendChild(card);
-    });
-
-    list.querySelectorAll('.buy-btn').forEach(btn=>{
-      btn.addEventListener('click', (e)=>{
-        e.stopPropagation();
-        const biz = businesses.find(b=>b.id === btn.dataset.id);
-        const cost = costFor(biz);
-        if (capital >= cost){
-          capital -= cost;
-          if (!biz.purchased){
-            biz.purchased = true;
-            biz.level = 1;
-          } else {
-            biz.level += 1;
-          }
-          if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
-          flashBizId = biz.id;
-          setTimeout(()=>{ if (flashBizId === biz.id) flashBizId = null; }, 550);
-          renderAll();
-          saveProgress();
-        }
-      });
-    });
-  }
-
+  
   function renderAssets(){
     const list = document.getElementById('assetList');
     if (!list) return;
@@ -3154,8 +2322,10 @@
     document.getElementById('statEarned').textContent = fmt(totalEarned);
     document.getElementById('statBizCount').textContent = businesses.filter(b=>b.purchased).length;
 
-    document.getElementById('referralLinkText').textContent = referralLink();
-    document.getElementById('referralCountText').textContent = `Приглашено друзей: ${referralCount}`;
+    const refLink = document.getElementById('refLink');
+    const refCount = document.getElementById('refCount');
+    if (refLink) refLink.textContent = referralLink();
+    if (refCount) refCount.textContent = `Приглашено друзей: ${referralCount}`;
   }
 
   // ---------- Referrals & sharing ----------
@@ -3346,6 +2516,8 @@
     document.getElementById('view-inheritance').style.display = 'none';
     document.getElementById('app').style.display = '';
     renderAll();
+    checkAchievements();
+    checkDailyReward();
     if (tutorialActive) startTutorial();
     else if (Math.random() < 0.3) showMentor();
   }
@@ -3593,16 +2765,7 @@
 
   // ---------- Main render / loop ----------
 
-  function renderAll(){
-    renderCapital();
-    renderAssets();
-    renderCityMap();
-    renderRank();
-    renderJob();
-    renderQuests();
-    const activeView = document.querySelector('#app .view.active')?.id?.replace('view-', '');
-    if (activeView === 'profile'){ renderProfile(); renderRating(); }
-  }
+  
 
   document.getElementById('resetBtn').addEventListener('click', ()=>{
     if (!confirm('Точно сбросить весь прогресс?')) return;
@@ -3644,6 +2807,299 @@
   const saveCustomizeBtn = document.getElementById('saveCustomize');
   if (saveCustomizeBtn) saveCustomizeBtn.addEventListener('click', saveCustomize);
 
+
+  // ===== ACHIEVEMENTS =====
+  const achievements = [
+    { id:'a_first_biz', icon:'🏪', name:'Первый бизнес', desc:'Купите любой бизнес', condition:()=>businesses.some(b=>b.purchased), reward:500, unlocked:false, claimed:false },
+    { id:'a_three_biz', icon:'🏘', name:'Малый бизнес', desc:'Откройте 3 бизнеса', condition:()=>businesses.filter(b=>b.purchased).length>=3, reward:2000, unlocked:false, claimed:false },
+    { id:'a_ten_biz', icon:'🏢', name:'Империя', desc:'Откройте 10 бизнесов', condition:()=>businesses.filter(b=>b.purchased).length>=10, reward:15000, unlocked:false, claimed:false },
+    { id:'a_all_biz', icon:'🌆', name:'Монополия', desc:'Откройте все 60 бизнесов', condition:()=>businesses.filter(b=>b.purchased).length>=60, reward:1000000, unlocked:false, claimed:false },
+    { id:'a_first_million', icon:'💰', name:'Первый миллион', desc:'Накопите ₽1 000 000', condition:()=>capital>=1000000, reward:50000, unlocked:false, claimed:false },
+    { id:'a_ten_million', icon:'💎', name:'Капиталист', desc:'Накопите ₽10 000 000', condition:()=>capital>=10000000, reward:200000, unlocked:false, claimed:false },
+    { id:'a_first_job', icon:'💼', name:'Трудовой путь', desc:'Выполните подработку', condition:()=>totalEarned>15000, reward:300, unlocked:false, claimed:false },
+    { id:'a_upgrade', icon:'⬆', name:'Модернизация', desc:'Купите улучшение', condition:()=>businesses.some(b=>b.hasUpgrade||b.hasDryClean||b.hasBarista||b.hasNewMenu), reward:1000, unlocked:false, claimed:false },
+    { id:'a_items', icon:'🧰', name:'Оборудование', desc:'Купите предмет для бизнеса', condition:()=>businesses.some(b=>b.items&&b.items.length>0), reward:2000, unlocked:false, claimed:false },
+    { id:'a_referral', icon:'👥', name:'Сарафан', desc:'Пригласите друга', condition:()=>referralCount>=1, reward:1000, unlocked:false, claimed:false },
+    { id:'a_streak3', icon:'📅', name:'Привычка', desc:'3 дня подряд', condition:()=>loginStreak>=3, reward:500, unlocked:false, claimed:false },
+    { id:'a_streak7', icon:'🔥', name:'Фанат', desc:'7 дней подряд', condition:()=>loginStreak>=7, reward:5000, unlocked:false, claimed:false },
+    { id:'a_prestige', icon:'♻', name:'Новый старт', desc:'Совершите престиж', condition:()=>false, reward:0, unlocked:false, claimed:false },
+    { id:'a_sell_asset', icon:'🏠', name:'Брокер', desc:'Продайте актив', condition:()=>assets.some(a=>a.status==='sold'), reward:500, unlocked:false, claimed:false },
+    { id:'a_max_level', icon:'⭐', name:'Максимум', desc:'Прокачайте бизнес до уровня 10', condition:()=>businesses.some(b=>b.level>=10), reward:10000, unlocked:false, claimed:false },
+    { id:'a_stock_win', icon:'📈', name:'Трейдер', desc:'Выиграйте на бирже', condition:()=>stockWins>0, reward:2000, unlocked:false, claimed:false },
+    { id:'a_offline', icon:'😴', name:'Пассивный доход', desc:'Получите офлайн-награду', condition:()=>false, reward:500, unlocked:false, claimed:false },
+    { id:'a_event', icon:'⚡', name:'Кризис-менеджер', desc:'Разрешите случайное событие', condition:()=>false, reward:300, unlocked:false, claimed:false },
+    { id:'a_synergy', icon:'🤝', name:'Синергия', desc:'Активируйте бонус синергии', condition:()=>false, reward:50000, unlocked:false, claimed:false },
+    { id:'a_custom', icon:'🎨', name:'Индивидуальность', desc:'Настройте профиль', condition:()=>companyName!=='Империя'||emblem!=='👑', reward:100, unlocked:false, claimed:false },
+  ];
+  let stockWins = 0;
+
+  function checkAchievements(){
+    let changed = false;
+    achievements.forEach(a=>{
+      if (!a.unlocked && a.condition()){
+        a.unlocked = true;
+        changed = true;
+        sfxQuest();
+        showFloatNum(document.getElementById('capitalValue'), `+${fmt(a.reward)}`, '#c9a84c');
+      }
+    });
+    if (changed){
+      renderAchievements();
+      updateQuestBadge();
+      saveProgress();
+    }
+  }
+
+  function claimAchievement(aid){
+    const a = achievements.find(x=>x.id===aid);
+    if (!a || !a.unlocked || a.claimed) return;
+    a.claimed = true;
+    capital += a.reward;
+    totalEarned += a.reward;
+    sfxQuest();
+    if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+    renderAchievements();
+    renderCapital(true);
+    saveProgress();
+  }
+
+  function renderAchievements(){
+    const grid = document.getElementById('achieveGrid');
+    const count = document.getElementById('achieveCount');
+    if (!grid) return;
+    grid.innerHTML = '';
+    const unlocked = achievements.filter(a=>a.unlocked).length;
+    if (count) count.textContent = `${unlocked}/${achievements.length}`;
+
+    achievements.forEach(a=>{
+      const cell = document.createElement('div');
+      cell.className = 'achieve-cell' + (a.unlocked ? ' unlocked' : '');
+      cell.innerHTML = `
+        <div class="achieve-icon">${a.unlocked ? a.icon : '🔒'}</div>
+        <div class="achieve-name">${a.name}</div>
+        ${a.unlocked && !a.claimed ? '<div class="achieve-badge">!</div>' : ''}
+        ${a.unlocked && a.claimed ? '<div class="achieve-reward">✓</div>' : ''}
+      `;
+      if (a.unlocked && !a.claimed){
+        cell.addEventListener('click', ()=>claimAchievement(a.id));
+      }
+      grid.appendChild(cell);
+    });
+  }
+
+  // ===== FLOATING NUMBERS =====
+  function showFloatNum(targetEl, text, color){
+    if (!targetEl) return;
+    const rect = targetEl.getBoundingClientRect();
+    const el = document.createElement('div');
+    el.className = 'float-num';
+    el.textContent = text;
+    el.style.color = color || 'var(--green)';
+    el.style.left = (rect.left + rect.width/2 - 20) + 'px';
+    el.style.top = (rect.top - 10) + 'px';
+    document.body.appendChild(el);
+    setTimeout(()=>el.remove(), 1200);
+  }
+
+  // ===== STOCK MARKET =====
+  let stockPrice = 100;
+  let stockBet = 0;
+  let stockCooldown = 0;
+  let stockHistory = [];
+
+  function renderStock(){
+    const priceEl = document.getElementById('stockPrice');
+    const timerEl = document.getElementById('stockTimer');
+    const upBtn = document.getElementById('stockUp');
+    const downBtn = document.getElementById('stockDown');
+    if (!priceEl) return;
+
+    priceEl.textContent = '₽' + stockPrice.toFixed(2);
+
+    if (stockCooldown > 0){
+      timerEl.textContent = 'Кулдаун: ' + Math.ceil(stockCooldown/60) + 'м';
+      upBtn.disabled = true;
+      downBtn.disabled = true;
+      upBtn.style.opacity = '0.5';
+      downBtn.style.opacity = '0.5';
+    } else {
+      timerEl.textContent = 'Ставка: ₽' + fmt(Math.min(capital * 0.1, 100000));
+      upBtn.disabled = capital < 1000;
+      downBtn.disabled = capital < 1000;
+      upBtn.style.opacity = capital < 1000 ? '0.5' : '1';
+      downBtn.style.opacity = capital < 1000 ? '0.5' : '1';
+    }
+  }
+
+  function playStock(direction){
+    if (stockCooldown > 0 || capital < 1000) return;
+    const bet = Math.min(Math.floor(capital * 0.1), 100000);
+    stockBet = bet;
+    capital -= bet;
+
+    // Animate price change
+    const oldPrice = stockPrice;
+    const change = (Math.random() - 0.5) * 20;
+    stockPrice = Math.max(50, stockPrice + change);
+
+    const won = (direction === 'up' && change > 0) || (direction === 'down' && change < 0);
+    const multiplier = won ? 1.8 : 0;
+    const reward = Math.floor(bet * multiplier);
+
+    setTimeout(()=>{
+      if (won){
+        capital += reward;
+        totalEarned += reward;
+        stockWins++;
+        sfxBuy();
+        showStockResult(true, reward);
+      } else {
+        sfxError();
+        showStockResult(false, bet);
+      }
+      stockCooldown = 600; // 10 minutes
+      renderCapital(true);
+      renderStock();
+      saveProgress();
+      checkAchievements();
+    }, 800);
+
+    renderCapital(true);
+    renderStock();
+  }
+
+  function showStockResult(won, amount){
+    const overlay = document.getElementById('stockResultOverlay');
+    const icon = document.getElementById('stockResultIcon');
+    const title = document.getElementById('stockResultTitle');
+    const desc = document.getElementById('stockResultDesc');
+    const amt = document.getElementById('stockResultAmount');
+    if (!overlay) return;
+
+    icon.textContent = won ? '📈' : '📉';
+    title.textContent = won ? 'Прогноз сбылся!' : 'Прогноз не сбылся';
+    desc.textContent = won ? 'Вы успешно предсказали движение рынка' : 'Рынок пошёл против вас';
+    amt.textContent = (won ? '+' : '-') + fmt(amount);
+    amt.style.color = won ? 'var(--green)' : 'var(--red)';
+    overlay.style.display = 'flex';
+    overlay.classList.add('show');
+  }
+
+  // ===== THEME SWITCHER =====
+  function setTheme(theme){
+    document.documentElement.setAttribute('data-theme', theme === 'default' ? '' : theme);
+    document.querySelectorAll('.theme-option').forEach(el=>{
+      el.classList.toggle('active', el.dataset.theme === theme);
+    });
+    saveProgress();
+  }
+
+  // ===== QUEST BADGE =====
+  function updateQuestBadge(){
+    const btn = document.getElementById('questBadgeBtn');
+    const count = document.getElementById('questBadgeCount');
+    if (!btn || !count) return;
+    const ready = quests.filter(q=>q.completed&&!q.claimed).length + achievements.filter(a=>a.unlocked&&!a.claimed).length;
+    count.textContent = ready;
+    count.style.display = ready > 0 ? 'flex' : 'none';
+    btn.classList.toggle('has-tip', ready > 0);
+  }
+
+  // ===== ENHANCED RENDER FUNCTIONS =====
+  function renderCityMap(){
+    const map = document.getElementById('cityMap');
+    if (!map) return;
+
+    // Only rebuild if structure changed, otherwise update bars
+    if (map.children.length === businesses.length){
+      businesses.forEach((biz, i)=>{
+        const slot = map.children[i];
+        if (!slot) return;
+        const cost = costFor(biz);
+        const affordable = capital >= cost;
+        const bar = slot.querySelector('.building-progress-fill');
+        if (bar && !biz.purchased){
+          bar.style.width = Math.max(0, Math.min(100, (capital / cost) * 100)) + '%';
+        }
+        slot.classList.toggle('affordable', affordable);
+        slot.classList.toggle('owned', biz.purchased);
+      });
+      return;
+    }
+
+    map.innerHTML = '';
+    businesses.forEach((biz, idx)=>{
+      const cost = costFor(biz);
+      const affordable = capital >= cost;
+      const progressPct = Math.max(0, Math.min(100, (capital / cost) * 100));
+      const slot = document.createElement('div');
+
+      if (!biz.purchased){
+        slot.className = 'building-slot locked' + (affordable ? ' affordable' : '');
+        slot.innerHTML = `
+          <div class="building-icon biz-icon-locked"><img src="images/${biz.id}.jpg" alt="" onerror="this.outerHTML='${biz.icon}'"><span class="biz-lock">🔒</span></div>
+          <div class="building-name">${biz.name}</div>
+          <div class="building-progress"><div class="building-progress-fill" style="width:${progressPct}%"></div></div>
+        `;
+      } else {
+        slot.className = 'building-slot owned' + (affordable ? ' affordable' : '') + (biz.paused ? ' biz-card-paused' : '');
+        const income = fmt(incomePerSec(biz) * GAME_DAY_SECONDS);
+        slot.innerHTML = `
+          <div class="building-icon"><img src="images/${biz.id}.jpg" alt="" onerror="this.outerHTML='${biz.icon}'"></div>
+          <div class="building-name">${biz.name}</div>
+          <div class="building-lvl">ур. ${biz.level}</div>
+          <div class="building-income">+${income}/д</div>
+          <div class="building-progress"><div class="building-progress-fill" style="width:${progressPct}%"></div></div>
+        `;
+      }
+
+      if (biz.id === flashBizId){
+        slot.classList.add('flash');
+        setTimeout(()=>slot.classList.remove('flash'), 500);
+      }
+
+      slot.addEventListener('click', (e)=>{
+        if (!biz.purchased){
+          const c = costFor(biz);
+          if (capital >= c){
+            capital -= c;
+            biz.purchased = true;
+            biz.level = 1;
+            sfxBuy();
+            if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+            flashBizId = biz.id;
+            setTimeout(()=>{ if (flashBizId === biz.id) flashBizId = null; }, 500);
+            renderAll();
+            saveProgress();
+            checkQuests();
+            checkAchievements();
+            showFloatNum(document.getElementById('capitalValue'), `-${fmt(c)}`, '#c45c5c');
+          } else {
+            sfxError();
+          }
+        } else {
+          openBizModal(biz);
+        }
+      });
+
+      map.appendChild(slot);
+    });
+  }
+
+  function renderAll(){
+    renderCapital();
+    renderAssets();
+    renderCityMap();
+    renderRank();
+    renderJob();
+    renderQuests();
+    renderStock();
+    renderAchievements();
+    updateQuestBadge();
+    const activeView = document.querySelector('#app .view.active')?.id?.replace('view-', '');
+    if (activeView === 'profile'){ renderProfile(); renderRating(); }
+  }
+
   setInterval(saveProgress, 10000);
   document.addEventListener('visibilitychange', ()=>{ if (document.hidden) saveProgress(); });
   window.addEventListener('beforeunload', saveProgress);
@@ -3673,6 +3129,69 @@
     renderJob();
     checkRandomEvents();
   }, 1000);
+
+  // Theme switcher
+  document.querySelectorAll('.theme-option').forEach(btn=>{
+    btn.addEventListener('click', ()=>setTheme(btn.dataset.theme));
+  });
+
+  // Quest badge toggle
+  const questBadgeBtn = document.getElementById('questBadgeBtn');
+  if (questBadgeBtn){
+    questBadgeBtn.addEventListener('click', ()=>{
+      const panel = document.getElementById('questPanel');
+      if (panel) panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+      sfxClick();
+    });
+  }
+
+  // Mentor toggle
+  const mentorBtnEl = document.getElementById('mentorBtn');
+  if (mentorBtnEl){
+    mentorBtnEl.addEventListener('click', ()=>{
+      const bubble = document.getElementById('mentorBubble');
+      if (bubble){
+        if (bubble.style.display === 'none'){ showMentor(); }
+        else { hideMentor(); }
+      }
+      sfxClick();
+    });
+  }
+
+  // Stock buttons
+  const stockUp = document.getElementById('stockUp');
+  const stockDown = document.getElementById('stockDown');
+  if (stockUp) stockUp.addEventListener('click', ()=>{ sfxClick(); playStock('up'); });
+  if (stockDown) stockDown.addEventListener('click', ()=>{ sfxClick(); playStock('down'); });
+
+  const stockResultClose = document.getElementById('stockResultClose');
+  if (stockResultClose){
+    stockResultClose.addEventListener('click', ()=>{
+      const overlay = document.getElementById('stockResultOverlay');
+      if (overlay){ overlay.style.display = 'none'; overlay.classList.remove('show'); }
+    });
+  }
+
+  // Stock cooldown tick
+  setInterval(()=>{
+    if (stockCooldown > 0){ stockCooldown--; renderStock(); }
+  }, 1000);
+
+  // Floating income numbers
+  let lastFloatIncome = 0;
+  setInterval(()=>{
+    const inc = totalIncome();
+    if (inc > 0){
+      lastFloatIncome += inc;
+      if (lastFloatIncome >= inc * 5){
+        showFloatNum(document.getElementById('capitalValue'), '+' + fmt(Math.floor(lastFloatIncome)), '#4a9d6f');
+        lastFloatIncome = 0;
+      }
+    }
+  }, 1000);
+
+  const copyRefBtn = document.getElementById('copyRefBtn');
+  if (copyRefBtn) copyRefBtn.addEventListener('click', copyReferral);
 
   loadProgress().then(lastSeen=>{
     if (inheritanceDone()){
