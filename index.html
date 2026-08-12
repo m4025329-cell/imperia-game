@@ -273,7 +273,8 @@
     'Эко-тренд: покупатели выбирают зелёные бренды',
   ];
 
-  let soundEnabled = false;
+    let soundEnabled = false;
+  const BUILD_VERSION = '2026-08-12-v3';
   const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
   function playTone(freq, type, duration, vol=0.05){
@@ -1168,6 +1169,8 @@
     document.getElementById('profileName').textContent = companyName || name;
     document.getElementById('profileAvatar').textContent = emblem || '●';
     document.getElementById('profileRank').textContent = rankFor(totalIncome());
+    const verEl = document.getElementById('buildVersion');
+    if (verEl) verEl.textContent = 'v' + BUILD_VERSION;
 
     document.getElementById('statCapital').textContent = fmt(capital);
     document.getElementById('statIncome').textContent = fmt(totalIncome() * GAME_DAY_SECONDS);
@@ -3070,7 +3073,10 @@ document.getElementById('openOffshoreBtn')?.addEventListener('click', openOffsho
     background: var(--bg);
     color: var(--text);
     font-family: var(--font-body);
-    overflow: hidden;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
     -webkit-font-smoothing: antialiased;
   }
 
@@ -3110,8 +3116,11 @@ document.getElementById('openOffshoreBtn')?.addEventListener('click', openOffsho
   #app{
     position: relative; z-index: 1;
     max-width: 430px; margin: 0 auto;
-    height: 100%; display: flex; flex-direction: column;
+    min-height: 100vh; display: flex; flex-direction: column;
     background: transparent;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
   }
 
   header{
@@ -3392,7 +3401,10 @@ document.getElementById('openOffshoreBtn')?.addEventListener('click', openOffsho
     overflow-y: auto;
     overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
-    padding-bottom: 80px;
+    overscroll-behavior-y: contain;
+    touch-action: pan-y;
+    padding-bottom: 100px;
+    min-height: 100vh;
   }
   .scroll-content::-webkit-scrollbar{ width: 0; }
 
@@ -4273,11 +4285,29 @@ document.getElementById('openOffshoreBtn')?.addEventListener('click', openOffsho
 </style>
 <base target="_blank">
 <base target="_blank">
-<base target="_blank">
 </head>
 <body>
+<script>
+  // Force clear any old caches on load
+  if ('caches' in window) {
+    caches.keys().then(names => {
+      names.forEach(name => {
+        if (name.includes('imperia') && !name.includes('v3')) {
+          caches.delete(name);
+          console.log('Deleted old cache:', name);
+        }
+      });
+    });
+  }
+</script>
 
-  <div class="boot-screen" id="bootScreen">Загрузка...</div>
+  <div class="boot-screen" id="bootScreen">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
+      <div class="boot-logo">Империя</div>
+      <div class="boot-sub">Загрузка...</div>
+      <div style="font-size:10px;color:var(--text-dim);font-family:var(--font-mono);">v2026-08-12-v3</div>
+    </div>
+  </div>
 
   <div class="view" id="view-inheritance">
     <div class="inheritance-intro">
@@ -4475,6 +4505,7 @@ document.getElementById('openOffshoreBtn')?.addEventListener('click', openOffsho
         <div class="profile-avatar" id="profileAvatar">●</div>
         <div class="profile-name" id="profileName">Игрок</div>
         <div class="profile-rank" id="profileRank">Новичок</div>
+        <div class="profile-version" id="buildVersion" style="font-size:9px;color:var(--text-dim);margin-top:4px;font-family:var(--font-mono);">v2026-08-12-v3</div>
       </div>
 
       <button class="mechanic-btn secondary share-btn" id="customizeBtn" style="margin:0 14px 10px;">⚙ Настроить профиль</button>
