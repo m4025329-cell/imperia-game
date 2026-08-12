@@ -1,4 +1,4 @@
-const CACHE_NAME = 'imperia-v3-2026-08-12';
+const CACHE_NAME = 'imperia-v5-2026-08-12';
 
 self.addEventListener('install', (e) => {
   self.skipWaiting();
@@ -20,7 +20,6 @@ self.addEventListener('activate', (e) => {
 
 self.addEventListener('fetch', (e) => {
   const req = e.request;
-
   if (req.mode === 'navigate') {
     e.respondWith(
       fetch(req, { cache: 'no-store' })
@@ -28,7 +27,6 @@ self.addEventListener('fetch', (e) => {
     );
     return;
   }
-
   e.respondWith(
     fetch(req, { cache: 'no-store' })
       .then((response) => {
