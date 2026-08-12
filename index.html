@@ -2,13 +2,29 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Империя</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script>
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./sw.js')
-      .then(() => console.log('SW registered'))
+    navigator.serviceWorker.register('./sw.js?v=2', { updateViaCache: 'none' })
+      .then(reg => {
+        console.log('SW registered');
+        // Force update check every time
+        reg.update();
+        reg.addEventListener('updatefound', () => {
+          const w = reg.installing;
+          w.addEventListener('statechange', () => {
+            if (w.state === 'activated') {
+              console.log('New SW activated, reloading...');
+              window.location.reload();
+            }
+          });
+        });
+      })
       .catch(() => console.log('SW failed'));
   }
 </script>
