@@ -1,4 +1,4 @@
-const CACHE_NAME = 'imperia-v5-2026-08-12';
+const CACHE_NAME = 'imperia-v6-2026-08-12';
 
 self.addEventListener('install', (e) => {
   self.skipWaiting();
