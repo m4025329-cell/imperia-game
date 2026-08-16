@@ -3114,10 +3114,7 @@ document.getElementById('openOffshoreBtn')?.addEventListener('click', openOffsho
     background: var(--bg);
     color: var(--text);
     font-family: var(--font-body);
-    overflow-y: auto;
-    overscroll-behavior-y: contain;
-    -webkit-overflow-scrolling: touch;
-    touch-action: pan-y;
+    overflow: hidden;
     -webkit-font-smoothing: antialiased;
   }
 
@@ -3157,7 +3154,7 @@ document.getElementById('openOffshoreBtn')?.addEventListener('click', openOffsho
   #app{
     position: relative; z-index: 1;
     max-width: 430px; margin: 0 auto;
-    min-height: 100vh; display: flex; flex-direction: column;
+    height: 100vh; display: flex; flex-direction: column;
     background: transparent;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
