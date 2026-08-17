@@ -206,55 +206,6 @@
 
   let capital = 25000;
   let totalEarned = 0;
-  let referralBonus = 1;
-  let artifacts = [];
-  let artifactCollectionRewardClaimed = false;
-
-  const ARTIFACTS = [
-    {id:'gold_watch', name:'Золотые часы', icon:'⌚', rarity:'rare'},
-    {id:'mogul_seal', name:'Печать магната', icon:'🔱', rarity:'epic'},
-    {id:'diamond_cufflinks', name:'Бриллиантовые запонки', icon:'💎', rarity:'epic'},
-    {id:'black_card', name:'Чёрная карта', icon:'🖤', rarity:'rare'},
-    {id:'old_contract', name:'Контракт на империю', icon:'📜', rarity:'legendary'},
-    {id:'gold_pen', name:'Золотая ручка', icon:'🖋️', rarity:'rare'},
-    {id:'key_city', name:'Ключ от города', icon:'🗝️', rarity:'legendary'},
-    {id:'stock_bell', name:'Колокол биржи', icon:'🔔', rarity:'rare'},
-    {id:'diamond_chip', name:'Алмазный чип', icon:'🔷', rarity:'epic'},
-    {id:'royal_ring', name:'Кольцо владельца', icon:'💍', rarity:'epic'},
-    {id:'private_jet_model', name:'Модель личного самолёта', icon:'✈️', rarity:'rare'},
-    {id:'golden_brick', name:'Золотой кирпич', icon:'🧱', rarity:'rare'},
-    {id:'monopoly_token', name:'Жетон монополиста', icon:'🎟️', rarity:'legendary'},
-    {id:'founder_badge', name:'Знак основателя', icon:'🏅', rarity:'epic'},
-    {id:'empire_globe', name:'Глобус империи', icon:'🌐', rarity:'legendary'},
-  ];
-  const ARTIFACT_DROP_CHANCE = 0.07;
-  const ARTIFACT_COLLECTION_REWARD = 50000000;
-  const PREMIUM_BIZ_ID = 'airline';
-
-  function maybeDropArtifact(source='event') {
-    const owned = new Set(artifacts);
-    const missing = ARTIFACTS.filter(a => !owned.has(a.id));
-    if (!missing.length || Math.random() >= ARTIFACT_DROP_CHANCE) return false;
-    const a = missing[Math.floor(Math.random() * missing.length)];
-    artifacts.push(a.id);
-    addHistory('reward', `Артефакт: ${a.name}`, 0);
-    if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
-    const msg = `🏺 Найден редкий артефакт!\n\n${a.icon} ${a.name}\nРедкость: ${a.rarity === 'legendary' ? 'легендарный' : a.rarity === 'epic' ? 'эпический' : 'редкий'}`;
-    if (tg?.showPopup) tg.showPopup({title:'Новая реликвия', message:msg, buttons:[{id:'ok',type:'ok',text:'Забрать'}]});
-    if (artifacts.length >= ARTIFACTS.length && !artifactCollectionRewardClaimed) {
-      artifactCollectionRewardClaimed = true;
-      capital += ARTIFACT_COLLECTION_REWARD;
-      totalEarned += ARTIFACT_COLLECTION_REWARD;
-      addHistory('reward','Полная коллекция артефактов',ARTIFACT_COLLECTION_REWARD);
-      if (tg?.showPopup) tg.showPopup({title:'Коллекция собрана!', message:`🏆 Все ${ARTIFACTS.length} артефактов собраны. Награда: ${fmt(ARTIFACT_COLLECTION_REWARD)}`, buttons:[{id:'ok',type:'ok',text:'Забрать'}]});
-    }
-    renderAll();
-    saveProgress();
-    return true;
-  }
-
-  function isPremiumBizLocked(biz){ return biz.id === PREMIUM_BIZ_ID && referralCount < 3; }
-  function referralProgressText(){ return `Приглашения: ${Math.min(referralCount,3)}/3 · Бонус дохода: ${referralBonus >= 1.05 ? '+5%' : 'не активен'}`; }
 
   let lastLoginDate = null;
   let loginStreak = 0;
@@ -288,7 +239,6 @@
     { id:'q_first_job', icon:'💼', name:'Трудовой путь', desc:'Выполните любую подработку', condition:()=>totalEarned>15000, reward:300, completed:false, claimed:false },
     { id:'q_upgrade', icon:'⬆', name:'Модернизация', desc:'Купите улучшение для любого бизнеса', condition:()=>businesses.some(b=>b.hasUpgrade||b.hasDryClean||b.hasBarista||b.hasNewMenu), reward:1000, completed:false, claimed:false },
     { id:'q_referral', icon:'👥', name:'Сарафанное радио', desc:'Пригласите друга по реферальной ссылке', condition:()=>referralCount>=1, reward:1000, completed:false, claimed:false },
-    { id:'q_referral3', icon:'🚀', name:'Триумф рекомендаций', desc:'Пригласите 3 друзей — постоянный бонус +5% к доходу', condition:()=>referralCount>=3, reward:0, completed:false, claimed:false },
     { id:'q_streak3', icon:'📅', name:'Привычка', desc:'Заходите 3 дня подряд', condition:()=>loginStreak>=3, reward:500, completed:false, claimed:false },
     { id:'q_all_items', icon:'🧰', name:'Оборудование', desc:'Купите любой предмет для бизнеса', condition:()=>businesses.some(b=>b.items&&b.items.length>0), reward:2000, completed:false, claimed:false },
     { id:'q_prestige', icon:'♻', name:'Новый старт', desc:'Совершите престиж (сброс)', condition:()=>false, reward:0, completed:false, claimed:false },
@@ -400,7 +350,6 @@
     quests.forEach(q=>{
       if (!q.completed && q.condition()){
         q.completed = true;
-        if (q.id === 'q_referral3') referralBonus = 1.05;
         changed = true;
       }
     });
@@ -414,7 +363,6 @@
     const q = quests.find(x=>x.id === qid);
     if (!q || !q.completed || q.claimed) return;
     q.claimed = true;
-    if (q.id === 'q_referral3') referralBonus = 1.05;
     capital += q.reward;
     totalEarned += q.reward;
     sfxQuest();
@@ -996,6 +944,138 @@
     if (e.target.id === 'bizModalOverlay') closeBizModal();
   });
 
+  /* ===================== BUSINESS MINI-MAP ===================== */
+  // Один переиспользуемый шаблон карты-интерьера для ЛЮБОГО бизнеса: тема (цвет/иконка)
+  // подставляется по данным конкретного бизнеса, покупка предметов/механик не дублируется —
+  // клик по любому "зданию" на мини-карте просто открывает уже существующую модалку
+  // (openBizModal/drawBizModalBody), так что вся логика покупок остаётся ровно той же.
+
+  const BIZMAP_CATEGORY_THEME = {
+    retail:       { bg:'#1c150e', accent:'rgba(212,146,84,.5)' },
+    services:     { bg:'#0f1a26', accent:'rgba(120,170,220,.5)' },
+    manufacturing:{ bg:'#181819', accent:'rgba(160,160,170,.5)' },
+    medicine:     { bg:'#0e1f18', accent:'rgba(120,210,170,.5)' },
+    finance:      { bg:'#201a0c', accent:'rgba(201,168,76,.6)' },
+    entertainment:{ bg:'#1c0f1e', accent:'rgba(200,120,210,.5)' },
+    agriculture:  { bg:'#131f10', accent:'rgba(150,200,110,.5)' },
+    realestate:   { bg:'#1e1810', accent:'rgba(210,180,140,.5)' },
+    transport:    { bg:'#0f1a22', accent:'rgba(120,180,220,.5)' },
+    it:           { bg:'#131226', accent:'rgba(140,150,240,.5)' },
+  };
+
+  // Декоративные "здания" вокруг главного — просто разные точки входа в ту же панель
+  // покупок/механик, чтобы карту было интересно обходить.
+  const BIZMAP_STRUCTURES = [
+    { icon:'📦', label:'Склад', x:150, y:150 },
+    { icon:'🏢', label:'Офис', x:750, y:170 },
+    { icon:'📣', label:'Реклама', x:170, y:560 },
+    { icon:'💳', label:'Касса', x:740, y:570 },
+  ];
+
+  let bizMapCurrentBiz = null;
+
+  function bizMapStyles(){
+    if (document.getElementById('bizMapStyles')) return;
+    const s = document.createElement('style'); s.id = 'bizMapStyles';
+    s.textContent = `
+      #bizMiniMapOverlay{position:fixed;inset:0;z-index:95;background:rgba(5,10,22,.98);display:none;flex-direction:column;overflow:hidden}
+      #bizMiniMapOverlay.open{display:flex}
+      .bizmap-head{height:58px;min-height:58px;display:flex;align-items:center;gap:10px;padding:8px 12px;background:rgba(10,18,35,.98);border-bottom:1px solid var(--border);box-sizing:border-box}
+      .bizmap-head-icon{width:36px;height:36px;border-radius:8px;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:20px;background:var(--surface-2)}
+      .bizmap-head-icon img{width:100%;height:100%;object-fit:cover}
+      .bizmap-head-name{font-family:var(--font-display);color:var(--gold-light);font-size:16px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+      .bizmap-close{border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:10px;padding:9px 12px;font-weight:700;cursor:pointer;flex-shrink:0}
+      .bizmap-viewport{position:relative;flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;touch-action:pan-x pan-y}
+      .bizmap-canvas{position:relative;width:900px;height:720px}
+      .bizmap-hint{position:absolute;top:10px;left:50%;transform:translateX(-50%);font-size:10px;color:var(--text-dim);background:rgba(8,13,24,.7);padding:4px 10px;border-radius:20px;z-index:3}
+      .bizmap-building{position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;border-radius:12px;cursor:pointer;user-select:none;z-index:4;
+        background:linear-gradient(180deg, rgba(28,42,68,.55) 0%, rgba(14,22,38,.96) 100%);
+        box-shadow:0 8px 20px rgba(0,0,0,.35);
+      }
+      .bizmap-building .bizmap-icon{font-size:28px;line-height:1}
+      .bizmap-building .bizmap-label{font-size:9px;color:var(--text-dim);white-space:nowrap}
+      .bizmap-building.main{width:150px;height:150px;border-radius:16px;}
+      .bizmap-building.main img{width:64%;height:64%;object-fit:cover;border-radius:10px}
+      .bizmap-building.main .bizmap-label{color:var(--gold-light);font-size:12px;font-weight:600;max-width:130px;overflow:hidden;text-overflow:ellipsis}
+      .bizmap-building.deco{width:88px;height:88px;border-width:1px;border-style:solid}
+    `;
+    document.head.appendChild(s);
+  }
+
+  function bizMapCreateOverlay(){
+    if (document.getElementById('bizMiniMapOverlay')) return;
+    bizMapStyles();
+    const overlay = document.createElement('div'); overlay.id = 'bizMiniMapOverlay';
+    overlay.innerHTML = `
+      <div class="bizmap-head">
+        <div class="bizmap-head-icon" id="bizMapHeadIcon"></div>
+        <div class="bizmap-head-name" id="bizMapHeadName"></div>
+        <button class="bizmap-close" id="bizMapCloseBtn">✕ Закрыть</button>
+      </div>
+      <div class="bizmap-viewport" id="bizMapViewport">
+        <div class="bizmap-canvas" id="bizMapCanvas">
+          <div class="bizmap-hint">Прокрутите карту и коснитесь здания</div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+    document.getElementById('bizMapCloseBtn').addEventListener('click', closeBizMiniMap);
+  }
+
+  function bizMapRender(biz){
+    const canvas = document.getElementById('bizMapCanvas');
+    if (!canvas) return;
+    canvas.querySelectorAll('.bizmap-building').forEach(el=>el.remove());
+
+    const theme = BIZMAP_CATEGORY_THEME[biz.category] || BIZMAP_CATEGORY_THEME.services;
+    canvas.style.background = `radial-gradient(circle at 50% 40%, ${theme.accent.replace(/[\d.]+\)$/,'.08)')}, transparent 55%), ${theme.bg}`;
+
+    const main = document.createElement('div');
+    main.className = 'bizmap-building main';
+    main.style.left = '450px'; main.style.top = '330px';
+    main.style.border = `1px solid ${theme.accent}`;
+    main.innerHTML = `<img src="images/${biz.id}.jpg" alt="" onerror="this.remove()"><div class="bizmap-label">${biz.name}</div>`;
+    if (!main.querySelector('img') || true) {
+      // фолбэк-иконка на случай отсутствия картинки
+      const img = main.querySelector('img');
+      if (img) img.addEventListener('error', ()=>{
+        if (!main.querySelector('.bizmap-icon')){
+          const ic = document.createElement('div'); ic.className='bizmap-icon'; ic.style.fontSize='48px'; ic.textContent = biz.icon || '🏢';
+          main.prepend(ic);
+        }
+      }, { once:true });
+    }
+    main.addEventListener('click', ()=> openBizModal(biz));
+    canvas.appendChild(main);
+
+    BIZMAP_STRUCTURES.forEach(s=>{
+      const el = document.createElement('div');
+      el.className = 'bizmap-building deco';
+      el.style.left = s.x + 'px'; el.style.top = s.y + 'px';
+      el.style.borderColor = theme.accent;
+      el.innerHTML = `<div class="bizmap-icon">${s.icon}</div><div class="bizmap-label">${s.label}</div>`;
+      el.addEventListener('click', ()=> openBizModal(biz));
+      canvas.appendChild(el);
+    });
+  }
+
+  function openBizMiniMap(biz){
+    bizMapCreateOverlay();
+    bizMapCurrentBiz = biz;
+    document.getElementById('bizMapHeadIcon').innerHTML = `<img src="images/${biz.id}.jpg" alt="" onerror="this.outerHTML='${biz.icon || '🏢'}'">`;
+    document.getElementById('bizMapHeadName').textContent = biz.name;
+    bizMapRender(biz);
+    const overlay = document.getElementById('bizMiniMapOverlay');
+    overlay.classList.add('open');
+    const vp = document.getElementById('bizMapViewport');
+    if (vp){ vp.scrollLeft = 150; vp.scrollTop = 100; }
+  }
+
+  function closeBizMiniMap(){
+    bizMapCurrentBiz = null;
+    document.getElementById('bizMiniMapOverlay')?.classList.remove('open');
+  }
+
   let eventOverlayOpen = false;
 
   function scheduleEvent(biz, field, minMs, maxMs){
@@ -1008,7 +1088,6 @@
   }
 
   function showEcoOverlay(biz){
-    maybeDropArtifact('event');
     eventOverlayOpen = true;
     document.getElementById('ecoOverlay').style.display = 'flex';
     const payBtn = document.getElementById('ecoPayFine');
@@ -1039,7 +1118,6 @@
   }
 
   function showKioskBreakOverlay(biz){
-    maybeDropArtifact('event');
     eventOverlayOpen = true;
     document.getElementById('kioskBreakOverlay').style.display = 'flex';
     const fixBtn = document.getElementById('kioskFixBtn');
@@ -1064,7 +1142,6 @@
   }
 
   function showCafeReviewOverlay(biz){
-    maybeDropArtifact('event');
     eventOverlayOpen = true;
     document.getElementById('cafeReviewOverlay').style.display = 'flex';
     const fixBtn = document.getElementById('cafeFixBtn');
@@ -1095,7 +1172,6 @@
   ];
 
   function showGenericEventOverlay(biz){
-    maybeDropArtifact('event');
     const cm = CATEGORY_MECHANICS[biz.category] || CATEGORY_MECHANICS.services;
     const fastCost = Math.round(biz.baseCost * 0.02);
     eventOverlayOpen = true;
@@ -1217,16 +1293,6 @@
     return tg?.initDataUnsafe?.user || null;
   }
 
-  function renderArtifacts(){
-    const grid=document.getElementById('artifactGrid'); const count=document.getElementById('artifactCount');
-    if(!grid) return;
-    const owned=new Set(artifacts); if(count) count.textContent=`${artifacts.length}/${ARTIFACTS.length}`;
-    grid.innerHTML=ARTIFACTS.map(a=>{
-      const got=owned.has(a.id);
-      return `<div class="achieve-cell ${got?'unlocked':''}" title="${got?a.name:'???'}"><div class="achieve-icon">${got?a.icon:'🔒'}</div><div class="achieve-name">${got?a.name:'Не найден'}</div></div>`;
-    }).join('');
-  }
-
   function renderProfile(){
     const user = tgUser();
     const name = user ? [user.first_name, user.last_name].filter(Boolean).join(' ') || user.username || 'Игрок' : 'Игрок';
@@ -1246,9 +1312,6 @@
     const refCount = document.getElementById('refCount');
     if (refLink) refLink.textContent = referralLink();
     if (refCount) refCount.textContent = `Приглашено друзей: ${referralCount}`;
-    const refQuest = document.getElementById('referral3Progress');
-    if (refQuest) refQuest.textContent = referralProgressText();
-    renderArtifacts();
   }
 
   function referralLink(){
@@ -1268,40 +1331,17 @@
     } catch(e){}
   }
 
-  async function shareEmpireStory(){
-    const canvas = document.createElement('canvas');
-    canvas.width = 1080; canvas.height = 1350;
-    const ctx = canvas.getContext('2d');
-    const grad = ctx.createLinearGradient(0,0,1080,1350);
-    grad.addColorStop(0,'#07101f'); grad.addColorStop(1,'#101d35');
-    ctx.fillStyle = grad; ctx.fillRect(0,0,1080,1350);
-    ctx.strokeStyle = '#c9a84c'; ctx.lineWidth = 4; ctx.strokeRect(36,36,1008,1278);
-    ctx.fillStyle = '#c9a84c'; ctx.font = 'bold 42px Arial'; ctx.textAlign='center';
-    ctx.fillText('ИМПЕРИЯ',540,110);
-    ctx.fillStyle = '#ffffff'; ctx.font = 'bold 64px Arial'; ctx.fillText(`${emblem} ${companyName}`,540,205);
-    ctx.fillStyle = '#9aa9bd'; ctx.font = '30px Arial'; ctx.fillText(rankFor(totalIncome()),540,255);
-    ctx.fillStyle = '#c9a84c'; ctx.font = 'bold 78px Arial'; ctx.fillText(fmt(capital),540,390);
-    ctx.fillStyle = '#9aa9bd'; ctx.font = '28px Arial'; ctx.fillText('КАПИТАЛ',540,435);
-    ctx.fillStyle = '#ffffff'; ctx.font = 'bold 34px Arial'; ctx.textAlign='left'; ctx.fillText('ТОП-3 БИЗНЕСА',90,535);
-    const top = businesses.filter(b=>b.purchased).sort((a,b)=>incomePerSec(b)-incomePerSec(a)).slice(0,3);
-    top.forEach((b,i)=>{
-      const y=610+i*145; ctx.fillStyle='#13223a'; ctx.fillRect(75,y-55,930,105);
-      ctx.fillStyle='#c9a84c'; ctx.font='bold 34px Arial'; ctx.fillText(`${i+1}. ${b.icon} ${b.name}`,100,y-10);
-      ctx.fillStyle='#8fe0a7'; ctx.font='28px Arial'; ctx.fillText(`+${fmt(incomePerSec(b)*GAME_DAY_SECONDS)}/день · ур. ${b.level}`,100,y+32);
-    });
-    ctx.textAlign='center'; ctx.fillStyle='#6f7f95'; ctx.font='24px Arial'; ctx.fillText('Построй свою бизнес-империю',540,1245);
-    const dataUrl=canvas.toDataURL('image/png');
-    const text=`${companyName} — ${fmt(capital)} в игре Империя! ${rankFor(totalIncome())}`;
-    try{
-      if (typeof tg?.shareToStory === 'function'){
-        tg.shareToStory(dataUrl,{text});
-        return;
-      }
-    }catch(e){}
-    const a=document.createElement('a'); a.href=dataUrl; a.download='imperia-story.png'; document.body.appendChild(a); a.click(); a.remove();
-    if (tg?.showPopup) tg.showPopup({title:'Картинка готова',message:'Изображение сохранено. Откройте Telegram Stories и добавьте скачанную картинку вручную.',buttons:[{id:'ok',type:'ok',text:'Понятно'}]});
-  }
-  document.getElementById('shareBtn').addEventListener('click', shareEmpireStory);
+  document.getElementById('shareBtn').addEventListener('click', ()=>{
+    const text = `Я построил бизнес-империю на ${fmt(capital)} в игре Империя! 🏆`;
+    const url = referralLink();
+    if (tg?.openTelegramLink){
+      tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`);
+    } else if (navigator.share){
+      navigator.share({ text, url }).catch(()=>{});
+    } else {
+      navigator.clipboard?.writeText(`${text} ${url}`);
+    }
+  });
 
   async function checkReferral(){
     if (referredBy) return;
@@ -1623,7 +1663,7 @@
     saveProgress();
   }
 
-  const DAILY_REWARDS = [50000, 75000, 120000, 180000, 260000, 380000, 600000];
+  const DAILY_REWARDS = [50, 75, 120, 180, 260, 380, 600];
 
   function todayStr(){
     const d = new Date();
@@ -1659,7 +1699,6 @@
     document.getElementById('dailyRewardClaim').onclick = ()=>{
       capital += reward;
       totalEarned += reward;
-      addHistory('daily', `Ежедневная награда · день ${dayInCycle}`, reward);
       document.getElementById('dailyRewardOverlay').style.display = 'none';
       renderAll();
       saveProgress();
@@ -1911,39 +1950,26 @@
     const map = document.getElementById('cityMap');
     if (!map) return;
 
-    const mapLockState = String(referralCount >= 3);
-    if (map.children.length === businesses.length && map.dataset.referralUnlocked === mapLockState){
-      let needsFullRebuild = false;
+    if (map.children.length === businesses.length){
       businesses.forEach((biz, i)=>{
         const slot = map.children[i];
-        if (!slot) { needsFullRebuild = true; return; }
-        // A locked -> purchased transition changes the whole card (lock/icon/name/level/income),
-        // so a class toggle alone is not enough.
-        const domOwned = slot.classList.contains('owned');
-        if (domOwned !== !!biz.purchased) needsFullRebuild = true;
+        if (!slot) return;
+        const cost = costFor(biz);
+        const affordable = capital >= cost;
+        const bar = slot.querySelector('.building-progress-fill');
+        if (bar && !biz.purchased){
+          bar.style.width = Math.max(0, Math.min(100, (capital / cost) * 100)) + '%';
+        }
+        slot.classList.toggle('affordable', affordable);
+        slot.classList.toggle('owned', biz.purchased);
       });
-      if (!needsFullRebuild){
-        businesses.forEach((biz, i)=>{
-          const slot = map.children[i];
-          const cost = costFor(biz);
-          const affordable = !isPremiumBizLocked(biz) && capital >= cost;
-          const bar = slot.querySelector('.building-progress-fill');
-          if (bar && !biz.purchased){
-            bar.style.width = Math.max(0, Math.min(100, (capital / cost) * 100)) + '%';
-          }
-          slot.classList.toggle('affordable', affordable);
-          slot.classList.toggle('owned', biz.purchased);
-        });
-        return;
-      }
+      return;
     }
 
     map.innerHTML = '';
-    map.dataset.referralUnlocked = mapLockState;
     businesses.forEach((biz, idx)=>{
       const cost = costFor(biz);
-      const premiumLocked = isPremiumBizLocked(biz);
-      const affordable = !premiumLocked && capital >= cost;
+      const affordable = capital >= cost;
       const progressPct = Math.max(0, Math.min(100, (capital / cost) * 100));
       const slot = document.createElement('div');
 
@@ -1952,7 +1978,7 @@
         slot.innerHTML = `
           <div class="building-icon biz-icon-locked"><img src="images/${biz.id}.jpg" alt="" onerror="this.outerHTML='${biz.icon}'"><span class="biz-lock">🔒</span></div>
           <div class="building-name">${biz.name}</div>
-          ${premiumLocked ? `<div style="font-size:10px;color:var(--gold-light);text-align:center;padding:2px 4px;">🔒 Откроется при 3 приглашённых друзьях<br>${Math.min(referralCount,3)}/3</div>` : `<div class="building-progress"><div class="building-progress-fill" style="width:${progressPct}%"></div></div>`}
+          <div class="building-progress"><div class="building-progress-fill" style="width:${progressPct}%"></div></div>
         `;
       } else {
         slot.className = 'building-slot owned' + (affordable ? ' affordable' : '') + (biz.paused ? ' biz-card-paused' : '');
@@ -1973,7 +1999,6 @@
 
       slot.addEventListener('click', (e)=>{
         if (!biz.purchased){
-          if (isPremiumBizLocked(biz)){ sfxError(); showMentor('Авиакомпания откроется после 3 приглашённых друзей.'); return; }
           const c = costFor(biz);
           if (capital >= c){
             capital -= c;
@@ -1992,7 +2017,7 @@
             sfxError();
           }
         } else {
-          openBizModal(biz);
+          openBizMiniMap(biz);
         }
       });
 
@@ -2034,7 +2059,6 @@
     const car = assets.find(a=>a.id === 'car');
     if (car.status === 'kept') sum += assetIncome(car);
     sum *= managerBonus();
-    sum *= referralBonus;
     return sum;
   }
 
@@ -2066,6 +2090,8 @@
 
   let flashBizId = null;
 
+
+
   async function loadProgress(){
     try{
       const ref = window.__docRef(window.__db, 'players', String(userId));
@@ -2082,9 +2108,6 @@
         loginStreak = data.loginStreak ?? loginStreak;
         referredBy = data.referredBy ?? referredBy;
         referralCount = data.referralCount ?? referralCount;
-        referralBonus = data.referralBonus ?? (referralCount >= 3 ? 1.05 : 1);
-        artifacts = Array.isArray(data.artifacts) ? data.artifacts : [];
-        artifactCollectionRewardClaimed = !!data.artifactCollectionRewardClaimed;
         deposits = data.deposits || [];
         loans = data.loans || [];
         offshoreUnlocked = data.offshoreUnlocked || false;
@@ -2141,7 +2164,6 @@
       const ref = window.__docRef(window.__db, 'players', String(userId));
       const achieveMap = {};
       achievements.forEach(a=>{ achieveMap[a.id] = { unlocked: a.unlocked, claimed: a.claimed }; });
-      if (referralCount >= 3) referralBonus = 1.05;
       const questMap = {};
       quests.forEach(q=>{ questMap[q.id] = { completed: q.completed, claimed: q.claimed }; });
       await window.__setDoc(ref, {
@@ -2156,9 +2178,6 @@
         loginStreak,
         referredBy,
         referralCount,
-        referralBonus,
-        artifacts,
-        artifactCollectionRewardClaimed,
         jobReadyAt,
         achievements: achieveMap,
         quests: questMap,
@@ -2196,7 +2215,6 @@
     renderQuests();
     renderStock();
     renderAchievements();
-    renderArtifacts();
     updateQuestBadge();
     const activeView = document.querySelector('#app .view.active')?.id?.replace('view-', '');
     if (activeView === 'profile'){ renderProfile(); renderRating(); }
@@ -2331,7 +2349,7 @@
     let bought = 0;
     let totalCost = 0;
     for (const b of businesses) {
-      if (!b.purchased && !isPremiumBizLocked(b)) {
+      if (!b.purchased) {
         const c = costFor(b);
         if (capital >= c) {
           capital -= c;
@@ -3230,10 +3248,7 @@ document.getElementById('openOffshoreBtn')?.addEventListener('click', openOffsho
     background: var(--bg);
     color: var(--text);
     font-family: var(--font-body);
-    overflow-y: auto;
-    overscroll-behavior-y: contain;
-    -webkit-overflow-scrolling: touch;
-    touch-action: pan-y;
+    overflow: hidden;
     -webkit-font-smoothing: antialiased;
   }
 
@@ -3273,9 +3288,11 @@ document.getElementById('openOffshoreBtn')?.addEventListener('click', openOffsho
   #app{
     position: relative; z-index: 1;
     max-width: 430px; margin: 0 auto;
-    min-height: 100vh; display: flex; flex-direction: column;
+    height: 100vh; display: flex; flex-direction: column;
     background: transparent;
-    overflow: visible;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
   }
 
   header{
@@ -4436,11 +4453,145 @@ document.getElementById('openOffshoreBtn')?.addEventListener('click', openOffsho
   .profile-action-btn:active { transform: scale(0.97); border-color: var(--gold-dim); }
   .profile-action-btn .icon { font-size: 20px; }
 
-
-  #artifactGrid { grid-template-columns: repeat(3, 1fr); }
-  #artifactGrid .achieve-cell { min-height: 92px; }
 </style>
 <base target="_blank">
+
+
+<style id="city-map-visual-upgrade">
+/* ===== CITY MAP VISUAL UPGRADE: presentation only ===== */
+#cityMapOverlay .city-map-wrap,
+#cityMapOverlay .city-map-container,
+#cityMapOverlay .map-container {
+  background:
+    radial-gradient(circle at 50% 35%, rgba(45,65,95,.18), transparent 48%),
+    linear-gradient(180deg,#07101c 0%,#091522 58%,#0b1723 100%) !important;
+}
+#cityMapCanvas, #cityMapOverlay .city-map-canvas {
+  position:relative !important;
+  background:
+    linear-gradient(to right, transparent 0 159px, rgba(120,145,170,.10) 159px 180px, transparent 180px 339px, rgba(120,145,170,.10) 339px 360px, transparent 360px),
+    linear-gradient(to bottom, transparent 0 159px, rgba(120,145,170,.10) 159px 180px, transparent 180px 339px, rgba(120,145,170,.10) 339px 360px),
+    radial-gradient(circle at 20% 20%, rgba(255,255,255,.025) 0 1px, transparent 2px) !important;
+  background-size: 360px 360px, 360px 360px, 16px 16px !important;
+  overflow:hidden;
+}
+
+/* roads / blocks */
+.imperia-city-roads {
+  position:absolute; inset:0; z-index:0; pointer-events:none;
+  background:
+    repeating-linear-gradient(90deg,
+      transparent 0 159px,
+      rgba(108,135,160,.16) 159px 180px,
+      transparent 180px 359px),
+    repeating-linear-gradient(0deg,
+      transparent 0 159px,
+      rgba(108,135,160,.16) 159px 180px,
+      transparent 180px 359px);
+}
+.imperia-city-roads:after {
+  content:""; position:absolute; inset:0;
+  background:
+    repeating-linear-gradient(90deg,
+      transparent 0 169px,
+      rgba(220,190,105,.10) 169px 171px,
+      transparent 171px 359px),
+    repeating-linear-gradient(0deg,
+      transparent 0 169px,
+      rgba(220,190,105,.10) 169px 171px,
+      transparent 171px 359px);
+  opacity:.35;
+}
+
+/* skyline */
+.imperia-city-skyline {
+  position:absolute; left:0; right:0; bottom:0; height:760px;
+  z-index:0; pointer-events:none; opacity:.22;
+  display:flex; align-items:flex-end; gap:18px; padding:0 35px;
+}
+.imperia-city-skyline span {
+  display:block; flex:1; min-width:42px;
+  background:linear-gradient(180deg,rgba(65,82,105,.85),rgba(20,32,47,.92));
+  border:1px solid rgba(180,190,205,.08);
+  box-shadow:inset 0 0 22px rgba(0,0,0,.22);
+}
+.imperia-city-skyline span:nth-child(1){height:22%}
+.imperia-city-skyline span:nth-child(2){height:42%}
+.imperia-city-skyline span:nth-child(3){height:31%}
+.imperia-city-skyline span:nth-child(4){height:64%}
+.imperia-city-skyline span:nth-child(5){height:38%}
+.imperia-city-skyline span:nth-child(6){height:78%}
+.imperia-city-skyline span:nth-child(7){height:48%}
+.imperia-city-skyline span:nth-child(8){height:69%}
+.imperia-city-skyline span:nth-child(9){height:34%}
+.imperia-city-skyline span:nth-child(10){height:56%}
+.imperia-city-skyline span:nth-child(11){height:28%}
+.imperia-city-skyline span:nth-child(12){height:73%}
+
+/* all generated building nodes */
+.imperia-city-building {
+  position:absolute !important;
+  z-index:4 !important;
+  transform:translate(-50%,-50%);
+  display:flex !important; align-items:center; justify-content:center;
+  border-radius:7px 7px 4px 4px !important;
+  background:
+    linear-gradient(180deg, rgba(76,88,105,.95) 0%, rgba(29,38,51,.98) 18%, rgba(8,15,25,.99) 100%) !important;
+  border:1px solid var(--biz-cat,#8b7350) !important;
+  box-shadow:0 7px 18px rgba(0,0,0,.48), inset 0 1px 0 rgba(255,255,255,.08) !important;
+  overflow:visible !important;
+}
+.imperia-city-building:before {
+  content:"";
+  position:absolute; left:10%; right:10%; top:16%; bottom:14%;
+  background:
+    repeating-linear-gradient(90deg, rgba(230,195,100,.58) 0 3px, transparent 3px 8px),
+    repeating-linear-gradient(0deg, rgba(230,195,100,.42) 0 3px, transparent 3px 8px);
+  opacity:.28; border-radius:2px; pointer-events:none;
+}
+.imperia-city-building:after {
+  content:""; position:absolute; left:8%; right:8%; top:-5px; height:5px;
+  background:linear-gradient(90deg,transparent,var(--biz-cat,#8b7350),transparent);
+  opacity:.75;
+}
+.imperia-city-building img,
+.imperia-city-building .building-icon,
+.imperia-city-building > span {
+  position:relative; z-index:2;
+  filter:drop-shadow(0 2px 3px rgba(0,0,0,.55));
+}
+.imperia-city-building .city-building-label {
+  display:none !important;
+}
+.imperia-city-building:hover .city-building-label,
+.imperia-city-building.is-selected .city-building-label {
+  display:block !important;
+  position:absolute !important; top:calc(100% + 7px); left:50%;
+  transform:translateX(-50%);
+  white-space:nowrap; z-index:20;
+  padding:4px 8px; border-radius:7px;
+  background:rgba(5,10,17,.94);
+  border:1px solid rgba(201,168,76,.45);
+  color:#f2d98a; font-size:10px; pointer-events:none;
+  box-shadow:0 5px 14px rgba(0,0,0,.4);
+}
+
+/* generic fallback for the map's existing building class */
+#cityMapCanvas .city-building,
+#cityMapCanvas .building,
+#cityMapCanvas .map-building {
+  transform:translate(-50%,-50%);
+}
+
+/* categories */
+.imperia-cat-retail{--biz-cat:#56a9d8}
+.imperia-cat-services{--biz-cat:#68b887}
+.imperia-cat-finance{--biz-cat:#c9a84c}
+.imperia-cat-industry{--biz-cat:#c97858}
+.imperia-cat-tech{--biz-cat:#a875d6}
+.imperia-cat-default{--biz-cat:#8b93a2}
+</style>
+
 
 </head>
 <body>
@@ -4717,13 +4868,6 @@ document.getElementById('openOffshoreBtn')?.addEventListener('click', openOffsho
         <div style="font-size:10px; color:var(--text-dim); font-family:var(--font-mono); word-break:break-all; margin-bottom:8px;" id="refLink">https://t.me/ImperiaBusinessBot/play?startapp=REF_0</div>
         <button class="overlay-btn" id="copyRefBtn" style="box-shadow:none;">Скопировать ссылку</button>
         <div style="font-size:11px; color:var(--green); margin-top:6px; text-align:center;" id="refCount">Приглашено друзей: 0</div>
-        <div id="referral3Progress" style="font-size:11px;color:var(--gold-light);margin-top:6px;text-align:center;">Приглашения: 0/3 · Бонус дохода: не активен</div>
-      </div>
-
-      <div class="section-title">🏺 Коллекция артефактов</div>
-      <div class="achieve-panel" id="artifactPanel">
-        <div class="achieve-header"><div class="achieve-title">Прогресс · награда ₽50M</div><div class="quest-count" id="artifactCount">0/15</div></div>
-        <div class="achieve-grid" id="artifactGrid"></div>
       </div>
 
       <div class="section-title">🏅 Рейтинг магнатов</div>
@@ -4907,6 +5051,77 @@ document.getElementById('openOffshoreBtn')?.addEventListener('click', openOffsho
       <div class="history-panel" id="historyPanel"></div>
     </div>
   </div>
+
+
+<script>
+(function(){
+  const MAP_IDS = ['cityMapCanvas','cityMap','cityMapContainer','cityMapViewport'];
+  function findMap(){
+    for(const id of MAP_IDS){ const e=document.getElementById(id); if(e) return e; }
+    return document.querySelector('[id*="cityMap"]');
+  }
+  function ensureCityAtmosphere(){
+    const map=findMap(); if(!map || map.querySelector('.imperia-city-roads')) return;
+    if(getComputedStyle(map).position==='static') map.style.position='relative';
+    const roads=document.createElement('div'); roads.className='imperia-city-roads';
+    const skyline=document.createElement('div'); skyline.className='imperia-city-skyline';
+    for(let i=0;i<12;i++) skyline.appendChild(document.createElement('span'));
+    map.insertBefore(roads,map.firstChild);
+    map.insertBefore(skyline,map.firstChild);
+  }
+
+  function classify(name){
+    name=(name||'').toLowerCase();
+    if(/банк|финанс|бирж|инвест|кредит|страх/.test(name)) return 'imperia-cat-finance';
+    if(/завод|фабрик|строй|нефт|логист|склад|добыч|производ/.test(name)) return 'imperia-cat-industry';
+    if(/тех|софт|it|ai|нейро|цифр|косм|телеком/.test(name)) return 'imperia-cat-tech';
+    if(/сервис|ателье|ремонт|кафе|ресторан|отель|клиник/.test(name)) return 'imperia-cat-services';
+    if(/магаз|ларёк|вендинг|торг|маркет|супермаркет|бутик/.test(name)) return 'imperia-cat-retail';
+    return 'imperia-cat-default';
+  }
+
+  function sizeByCost(cost){
+    const min=0, max=1e9;
+    const t=Math.max(0,Math.min(1,(Number(cost)||0)/max));
+    return Math.round(50 + Math.sqrt(t)*70);
+  }
+
+  function styleBuildings(){
+    ensureCityAtmosphere();
+    const map=findMap(); if(!map) return;
+    const nodes=map.querySelectorAll('[data-biz-id], .city-building, .building, .map-building');
+    nodes.forEach(el=>{
+      if(el.classList.contains('imperia-city-building')) return;
+      const bizId=el.dataset.bizId || el.dataset.id || el.dataset.businessId;
+      let biz=null;
+      try{
+        if(window.businesses && bizId) biz=window.businesses.find(b=>String(b.id)===String(bizId));
+      }catch(e){}
+      if(!biz){
+        const title=el.getAttribute('title') || el.dataset.name || el.textContent || '';
+        try{ biz=(window.businesses||[]).find(b=>title.includes(b.name)); }catch(e){}
+      }
+      const cost=biz?.baseCost || 0;
+      const s=sizeByCost(cost);
+      el.classList.add('imperia-city-building', classify(biz?.name || el.dataset.name));
+      el.style.width=s+'px'; el.style.height=Math.round(s*.9)+'px';
+      const label=el.querySelector('.city-building-label');
+      if(label) label.style.display='none';
+      el.addEventListener('pointerenter',()=>label?.classList.add('show'),{passive:true});
+      el.addEventListener('pointerleave',()=>label?.classList.remove('show'),{passive:true});
+      el.addEventListener('pointerdown',()=>el.classList.add('is-selected'),{passive:true});
+      el.addEventListener('pointerup',()=>setTimeout(()=>el.classList.remove('is-selected'),1200),{passive:true});
+    });
+  }
+
+  const mo=new MutationObserver(()=>requestAnimationFrame(styleBuildings));
+  window.addEventListener('load',()=>{ ensureCityAtmosphere(); styleBuildings(); });
+  setTimeout(()=>{ensureCityAtmosphere(); styleBuildings();},500);
+  setTimeout(()=>{ensureCityAtmosphere(); styleBuildings();},1500);
+  const map=findMap();
+  if(map) mo.observe(map,{childList:true,subtree:true});
+})();
+</script>
 
 </body>
 </html>
