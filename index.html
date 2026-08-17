@@ -951,26 +951,74 @@
   // (openBizModal/drawBizModalBody), так что вся логика покупок остаётся ровно той же.
 
   const BIZMAP_CATEGORY_THEME = {
-    retail:       { bg:'#1c150e', accent:'rgba(212,146,84,.5)' },
-    services:     { bg:'#0f1a26', accent:'rgba(120,170,220,.5)' },
-    manufacturing:{ bg:'#181819', accent:'rgba(160,160,170,.5)' },
-    medicine:     { bg:'#0e1f18', accent:'rgba(120,210,170,.5)' },
-    finance:      { bg:'#201a0c', accent:'rgba(201,168,76,.6)' },
-    entertainment:{ bg:'#1c0f1e', accent:'rgba(200,120,210,.5)' },
-    agriculture:  { bg:'#131f10', accent:'rgba(150,200,110,.5)' },
-    realestate:   { bg:'#1e1810', accent:'rgba(210,180,140,.5)' },
-    transport:    { bg:'#0f1a22', accent:'rgba(120,180,220,.5)' },
-    it:           { bg:'#131226', accent:'rgba(140,150,240,.5)' },
+    retail:       { bg:'#1c150e', accent:'#d4925a', wall:'#241a10' },
+    services:     { bg:'#0f1a26', accent:'#78aadc', wall:'#12212f' },
+    manufacturing:{ bg:'#181819', accent:'#a0a0aa', wall:'#1e1e20' },
+    medicine:     { bg:'#0e1f18', accent:'#78d2aa', wall:'#12271e' },
+    finance:      { bg:'#201a0c', accent:'#c9a84c', wall:'#271f0f' },
+    entertainment:{ bg:'#1c0f1e', accent:'#c878d2', wall:'#241327' },
+    agriculture:  { bg:'#131f10', accent:'#96c86e', wall:'#182714' },
+    realestate:   { bg:'#1e1810', accent:'#d2b48c', wall:'#261e12' },
+    transport:    { bg:'#0f1a22', accent:'#78b4dc', wall:'#12222c' },
+    it:           { bg:'#131226', accent:'#8c96f0', wall:'#181632' },
   };
 
-  // Декоративные "здания" вокруг главного — просто разные точки входа в ту же панель
-  // покупок/механик, чтобы карту было интересно обходить.
-  const BIZMAP_STRUCTURES = [
-    { icon:'📦', label:'Склад', x:150, y:150 },
-    { icon:'🏢', label:'Офис', x:750, y:170 },
-    { icon:'📣', label:'Реклама', x:170, y:560 },
-    { icon:'💳', label:'Касса', x:740, y:570 },
-  ];
+  // Тематическая мебель/оборудование под каждую категорию бизнеса — реальный интерьер,
+  // а не абстрактные плашки. Каждый предмет — своя форма (стойка/стеллаж/станок/сервер и т.д.),
+  // клик по любому открывает ту же проверенную панель покупок (openBizModal).
+  const BIZMAP_FURNITURE = {
+    retail: [
+      { shape:'counter', icon:'🧾', label:'Касса', left:250, top:300, w:200, h:64 },
+      { shape:'shelf',   icon:'🗄',  label:'Стеллаж', left:60,  top:170, w:70,  h:140 },
+      { shape:'shelf',   icon:'🗄',  label:'Стеллаж', left:570, top:170, w:70,  h:140 },
+      { shape:'display', icon:'🛍',  label:'Витрина',  left:300, top:180, w:110, h:60 },
+    ],
+    services: [
+      { shape:'desk',    icon:'💼', label:'Ресепшн',       left:260, top:300, w:180, h:64 },
+      { shape:'chairs',  icon:'🪑', label:'Зона ожидания', left:70,  top:330, w:110, h:56 },
+      { shape:'plant',   icon:'🌿', label:'Растение',      left:600, top:280, w:44,  h:80 },
+    ],
+    manufacturing: [
+      { shape:'machine', icon:'⚙',  label:'Станок',    left:260, top:220, w:150, h:120 },
+      { shape:'crates',  icon:'📦', label:'Склад',      left:70,  top:280, w:100, h:96 },
+      { shape:'panel',   icon:'🔧', label:'Пульт',      left:520, top:320, w:110, h:64 },
+    ],
+    medicine: [
+      { shape:'bed',     icon:'🛏',  label:'Кушетка',   left:250, top:300, w:170, h:64 },
+      { shape:'cabinet', icon:'💊', label:'Шкаф',       left:60,  top:220, w:76,  h:130 },
+      { shape:'desk',    icon:'🩺', label:'Ресепшн',    left:540, top:320, w:120, h:64 },
+    ],
+    finance: [
+      { shape:'desk',    icon:'💻', label:'Рабочее место', left:250, top:300, w:180, h:64 },
+      { shape:'safe',    icon:'🔒', label:'Сейф',          left:70,  top:250, w:90,  h:100 },
+      { shape:'panel',   icon:'📊', label:'Аналитика',     left:540, top:320, w:110, h:64 },
+    ],
+    entertainment: [
+      { shape:'stage',   icon:'🎤', label:'Сцена',   left:230, top:210, w:230, h:70 },
+      { shape:'speaker', icon:'🔊', label:'Колонка', left:140, top:270, w:44,  h:80 },
+      { shape:'counter', icon:'🍸', label:'Бар',     left:520, top:320, w:160, h:64 },
+    ],
+    agriculture: [
+      { shape:'machine', icon:'🚜', label:'Техника', left:250, top:230, w:150, h:110 },
+      { shape:'crates',  icon:'📦', label:'Урожай',  left:70,  top:280, w:100, h:96 },
+      { shape:'plant',   icon:'🌾', label:'Поле',    left:570, top:260, w:60,  h:100 },
+    ],
+    realestate: [
+      { shape:'display', icon:'🏠', label:'Макет',        left:250, top:220, w:140, h:90 },
+      { shape:'chairs',  icon:'🛋',  label:'Зона отдыха',  left:70,  top:330, w:130, h:56 },
+      { shape:'plant',   icon:'🌿', label:'Растение',     left:600, top:280, w:44,  h:80 },
+    ],
+    transport: [
+      { shape:'machine', icon:'🚚', label:'Гараж',      left:240, top:210, w:180, h:120 },
+      { shape:'cabinet', icon:'🧰', label:'Инструменты', left:60,  top:250, w:76,  h:110 },
+      { shape:'panel',   icon:'⛽', label:'Заправка',    left:560, top:320, w:90,  h:64 },
+    ],
+    it: [
+      { shape:'server', icon:'🖥',  label:'Сервер', left:60,  top:170, w:90,  h:150 },
+      { shape:'server', icon:'🖥',  label:'Сервер', left:560, top:170, w:90,  h:150 },
+      { shape:'desk',   icon:'💻', label:'Рабочее место', left:255, top:310, w:170, h:64 },
+    ],
+  };
 
   let bizMapCurrentBiz = null;
 
@@ -985,19 +1033,63 @@
       .bizmap-head-icon img{width:100%;height:100%;object-fit:cover}
       .bizmap-head-name{font-family:var(--font-display);color:var(--gold-light);font-size:16px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
       .bizmap-close{border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:10px;padding:9px 12px;font-weight:700;cursor:pointer;flex-shrink:0}
-      .bizmap-viewport{position:relative;flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;touch-action:pan-x pan-y}
-      .bizmap-canvas{position:relative;width:900px;height:720px}
-      .bizmap-hint{position:absolute;top:10px;left:50%;transform:translateX(-50%);font-size:10px;color:var(--text-dim);background:rgba(8,13,24,.7);padding:4px 10px;border-radius:20px;z-index:3}
-      .bizmap-building{position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;border-radius:12px;cursor:pointer;user-select:none;z-index:4;
-        background:linear-gradient(180deg, rgba(28,42,68,.55) 0%, rgba(14,22,38,.96) 100%);
-        box-shadow:0 8px 20px rgba(0,0,0,.35);
+      .bizmap-viewport{position:relative;flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;touch-action:pan-x pan-y;display:flex;align-items:flex-start;justify-content:center;padding:20px 0 60px}
+      .bizmap-hint{position:absolute;top:10px;left:50%;transform:translateX(-50%);font-size:10px;color:var(--text-dim);background:rgba(8,13,24,.75);padding:4px 10px;border-radius:20px;z-index:6}
+
+      /* Комната: стена сверху, пол снизу */
+      .bizmap-room{position:relative;width:700px;height:460px;border-radius:14px;overflow:hidden;box-shadow:0 20px 50px rgba(0,0,0,.5);flex-shrink:0}
+      .bizmap-wall{position:absolute;left:0;right:0;top:0;height:44%;background:linear-gradient(180deg, var(--room-wall) 0%, rgba(0,0,0,.15) 100%)}
+      .bizmap-window{position:absolute;top:14%;width:90px;height:70px;border-radius:6px;background:linear-gradient(180deg, rgba(150,190,230,.22), rgba(90,130,180,.10));border:3px solid rgba(255,255,255,.10);box-shadow:inset 0 0 20px rgba(150,190,230,.15)}
+      .bizmap-window:before, .bizmap-window:after{content:'';position:absolute;background:rgba(255,255,255,.10)}
+      .bizmap-window:before{left:50%;top:0;bottom:0;width:2px;transform:translateX(-50%)}
+      .bizmap-window:after{top:50%;left:0;right:0;height:2px;transform:translateY(-50%)}
+      .bizmap-sign{position:absolute;top:8%;left:50%;transform:translateX(-50%);padding:8px 18px;border-radius:8px;background:rgba(8,13,24,.85);border:1px solid var(--room-accent);color:var(--gold-light);font-family:var(--font-display);font-size:14px;font-weight:600;text-align:center;max-width:280px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-shadow:0 4px 14px rgba(0,0,0,.4);z-index:3}
+      .bizmap-floor{position:absolute;left:0;right:0;bottom:0;height:56%;
+        background:
+          repeating-linear-gradient(90deg, rgba(255,255,255,.025) 0px, rgba(255,255,255,.025) 1px, transparent 1px, transparent 58px),
+          repeating-linear-gradient(0deg, rgba(255,255,255,.02) 0px, rgba(255,255,255,.02) 1px, transparent 1px, transparent 58px),
+          linear-gradient(180deg, #12100d 0%, #0a0908 100%);
       }
-      .bizmap-building .bizmap-icon{font-size:28px;line-height:1}
-      .bizmap-building .bizmap-label{font-size:9px;color:var(--text-dim);white-space:nowrap}
-      .bizmap-building.main{width:150px;height:150px;border-radius:16px;}
-      .bizmap-building.main img{width:64%;height:64%;object-fit:cover;border-radius:10px}
-      .bizmap-building.main .bizmap-label{color:var(--gold-light);font-size:12px;font-weight:600;max-width:130px;overflow:hidden;text-overflow:ellipsis}
-      .bizmap-building.deco{width:88px;height:88px;border-width:1px;border-style:solid}
+      .bizmap-rug{position:absolute;left:50%;bottom:8%;transform:translateX(-50%);width:260px;height:70px;border-radius:50%;background:radial-gradient(ellipse, var(--room-accent-10), transparent 70%)}
+
+      .bizmap-furn{position:absolute;transform:translate(-50%,0);display:flex;flex-direction:column;align-items:center;justify-content:flex-start;cursor:pointer;user-select:none;z-index:4;padding-top:4px}
+      .bizmap-furn .bizmap-icon{font-size:22px;line-height:1;margin-bottom:2px;filter:drop-shadow(0 2px 3px rgba(0,0,0,.6));position:relative;z-index:2}
+      .bizmap-furn .bizmap-label{font-size:8px;color:var(--text-dim);white-space:nowrap;margin-top:3px}
+      .bizmap-furn .bizmap-shape{position:relative;border-radius:6px;box-shadow:0 6px 14px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.06);
+        background:linear-gradient(180deg, rgba(60,72,92,.9) 0%, rgba(18,26,40,.96) 100%);
+        border:1px solid var(--room-accent);
+      }
+      .bizmap-furn:active .bizmap-shape{filter:brightness(1.25)}
+
+      /* формы мебели */
+      .shape-counter .bizmap-shape{border-radius:8px 8px 3px 3px}
+      .shape-counter .bizmap-shape:before{content:'';position:absolute;left:4%;right:4%;top:8%;height:3px;background:var(--room-accent);opacity:.7;border-radius:2px}
+      .shape-shelf .bizmap-shape{background-image:repeating-linear-gradient(0deg, transparent 0 22px, var(--room-accent-30) 22px 24px)}
+      .shape-display .bizmap-shape{background:linear-gradient(180deg, rgba(90,120,160,.25), rgba(20,30,45,.9));border-color:var(--room-accent)}
+      .shape-desk .bizmap-shape:before{content:'';position:absolute;left:10%;right:10%;bottom:14%;height:2px;background:rgba(0,0,0,.4)}
+      .shape-chairs .bizmap-shape{border-radius:40% 40% 10px 10px}
+      .shape-plant .bizmap-shape{border-radius:50% 50% 8px 8px;background:linear-gradient(180deg, #3a5a34, #223a1e);border-color:#6a9a5e}
+      .shape-machine .bizmap-shape{background-image:repeating-linear-gradient(90deg, transparent 0 12px, rgba(0,0,0,.25) 12px 14px)}
+      .shape-machine .bizmap-shape:after{content:'';position:absolute;right:8%;top:10%;width:7px;height:7px;border-radius:50%;background:var(--room-accent);box-shadow:0 0 8px var(--room-accent);animation:bizmapBlink 1.6s ease-in-out infinite}
+      .shape-crates .bizmap-shape{background-image:repeating-linear-gradient(0deg, transparent 0 26px, rgba(0,0,0,.3) 26px 28px), repeating-linear-gradient(90deg, transparent 0 26px, rgba(0,0,0,.3) 26px 28px)}
+      .shape-panel .bizmap-shape{background-image:radial-gradient(circle, var(--room-accent-30) 2px, transparent 2.5px);background-size:14px 14px;background-position:8px 8px}
+      .shape-bed .bizmap-shape{border-radius:14px 14px 4px 4px}
+      .shape-bed .bizmap-shape:before{content:'';position:absolute;left:6%;top:14%;width:22%;height:34%;background:rgba(255,255,255,.08);border-radius:6px}
+      .shape-cabinet .bizmap-shape{background-image:linear-gradient(90deg, transparent 49%, rgba(0,0,0,.35) 49% 51%, transparent 51%)}
+      .shape-safe .bizmap-shape{border-radius:10px}
+      .shape-safe .bizmap-shape:before{content:'';position:absolute;left:50%;top:50%;width:34%;height:34%;transform:translate(-50%,-50%);border-radius:50%;border:2px solid var(--room-accent);opacity:.8}
+      .shape-stage .bizmap-shape{border-radius:10px 10px 4px 4px}
+      .shape-stage .bizmap-shape:after{content:'';position:absolute;left:0;right:0;top:0;height:4px;background:linear-gradient(90deg, transparent, var(--room-accent), transparent);opacity:.8}
+      .shape-speaker .bizmap-shape{border-radius:8px}
+      .shape-speaker .bizmap-shape:before{content:'';position:absolute;left:50%;top:32%;width:60%;height:60%;transform:translateX(-50%);border-radius:50%;background:radial-gradient(circle, rgba(0,0,0,.5), transparent 70%);border:1px solid var(--room-accent)}
+      .shape-server .bizmap-shape{background-image:repeating-linear-gradient(0deg, transparent 0 16px, rgba(0,0,0,.3) 16px 18px)}
+      .shape-server .bizmap-shape:after{content:'';position:absolute;left:10%;top:6%;width:6px;height:6px;border-radius:50%;background:#7bd88f;box-shadow:0 0 6px #7bd88f;animation:bizmapBlink 1.2s ease-in-out infinite}
+      @keyframes bizmapBlink{0%,100%{opacity:1}50%{opacity:.25}}
+
+      .bizmap-furn.main{z-index:5}
+      .bizmap-furn.main .bizmap-shape{width:118px;height:118px;border-radius:14px;overflow:hidden;background:linear-gradient(180deg, rgba(60,72,92,.4), rgba(14,22,38,.97))}
+      .bizmap-furn.main img{width:100%;height:100%;object-fit:cover}
+      .bizmap-furn.main .bizmap-label{color:var(--gold-light);font-size:11px;font-weight:600;max-width:130px}
     `;
     document.head.appendChild(s);
   }
@@ -1013,8 +1105,11 @@
         <button class="bizmap-close" id="bizMapCloseBtn">✕ Закрыть</button>
       </div>
       <div class="bizmap-viewport" id="bizMapViewport">
-        <div class="bizmap-canvas" id="bizMapCanvas">
-          <div class="bizmap-hint">Прокрутите карту и коснитесь здания</div>
+        <div class="bizmap-room" id="bizMapRoom">
+          <div class="bizmap-hint">Коснитесь предмета интерьера</div>
+          <div class="bizmap-wall"></div>
+          <div class="bizmap-floor"></div>
+          <div class="bizmap-rug"></div>
         </div>
       </div>
     `;
@@ -1022,40 +1117,55 @@
     document.getElementById('bizMapCloseBtn').addEventListener('click', closeBizMiniMap);
   }
 
+  function bizMapMakeItem({shape, icon, label, left, top, w, h}, onClick){
+    const el = document.createElement('div');
+    el.className = 'bizmap-furn shape-' + shape;
+    el.style.left = left + 'px'; el.style.top = top + 'px';
+    const box = document.createElement('div');
+    box.className = 'bizmap-shape';
+    box.style.width = w + 'px'; box.style.height = h + 'px';
+    const iconEl = document.createElement('div'); iconEl.className = 'bizmap-icon'; iconEl.textContent = icon;
+    el.appendChild(iconEl);
+    el.appendChild(box);
+    const labelEl = document.createElement('div'); labelEl.className = 'bizmap-label'; labelEl.textContent = label;
+    el.appendChild(labelEl);
+    el.addEventListener('click', onClick);
+    return el;
+  }
+
   function bizMapRender(biz){
-    const canvas = document.getElementById('bizMapCanvas');
-    if (!canvas) return;
-    canvas.querySelectorAll('.bizmap-building').forEach(el=>el.remove());
+    const room = document.getElementById('bizMapRoom');
+    if (!room) return;
+    room.querySelectorAll('.bizmap-furn, .bizmap-window, .bizmap-sign').forEach(el=>el.remove());
 
     const theme = BIZMAP_CATEGORY_THEME[biz.category] || BIZMAP_CATEGORY_THEME.services;
-    canvas.style.background = `radial-gradient(circle at 50% 40%, ${theme.accent.replace(/[\d.]+\)$/,'.08)')}, transparent 55%), ${theme.bg}`;
+    room.style.setProperty('--room-wall', theme.wall);
+    room.style.setProperty('--room-accent', theme.accent);
+    room.style.setProperty('--room-accent-30', theme.accent + '4d');
+    room.style.setProperty('--room-accent-10', theme.accent + '1a');
 
-    const main = document.createElement('div');
-    main.className = 'bizmap-building main';
-    main.style.left = '450px'; main.style.top = '330px';
-    main.style.border = `1px solid ${theme.accent}`;
-    main.innerHTML = `<img src="images/${biz.id}.jpg" alt="" onerror="this.remove()"><div class="bizmap-label">${biz.name}</div>`;
-    if (!main.querySelector('img') || true) {
-      // фолбэк-иконка на случай отсутствия картинки
-      const img = main.querySelector('img');
-      if (img) img.addEventListener('error', ()=>{
-        if (!main.querySelector('.bizmap-icon')){
-          const ic = document.createElement('div'); ic.className='bizmap-icon'; ic.style.fontSize='48px'; ic.textContent = biz.icon || '🏢';
-          main.prepend(ic);
-        }
-      }, { once:true });
-    }
-    main.addEventListener('click', ()=> openBizModal(biz));
-    canvas.appendChild(main);
+    const window1 = document.createElement('div'); window1.className='bizmap-window'; window1.style.left='60px'; room.appendChild(window1);
+    const window2 = document.createElement('div'); window2.className='bizmap-window'; window2.style.left='550px'; room.appendChild(window2);
 
-    BIZMAP_STRUCTURES.forEach(s=>{
-      const el = document.createElement('div');
-      el.className = 'bizmap-building deco';
-      el.style.left = s.x + 'px'; el.style.top = s.y + 'px';
-      el.style.borderColor = theme.accent;
-      el.innerHTML = `<div class="bizmap-icon">${s.icon}</div><div class="bizmap-label">${s.label}</div>`;
-      el.addEventListener('click', ()=> openBizModal(biz));
-      canvas.appendChild(el);
+    const sign = document.createElement('div'); sign.className='bizmap-sign'; sign.textContent = biz.name; room.appendChild(sign);
+
+    // Главный "прилавок" бизнеса — картинка бизнеса, тоже открывает покупки
+    const mainEl = document.createElement('div');
+    mainEl.className = 'bizmap-furn main';
+    mainEl.style.left = '350px'; mainEl.style.top = '300px';
+    const mainBox = document.createElement('div'); mainBox.className = 'bizmap-shape';
+    const img = document.createElement('img'); img.src = `images/${biz.id}.jpg`; img.alt = '';
+    img.onerror = ()=>{ img.remove(); mainBox.textContent = biz.icon || '🏢'; mainBox.style.display='flex'; mainBox.style.alignItems='center'; mainBox.style.justifyContent='center'; mainBox.style.fontSize='42px'; };
+    mainBox.appendChild(img);
+    mainEl.appendChild(mainBox);
+    const mainLabel = document.createElement('div'); mainLabel.className='bizmap-label'; mainLabel.textContent = biz.name;
+    mainEl.appendChild(mainLabel);
+    mainEl.addEventListener('click', ()=> openBizModal(biz));
+    room.appendChild(mainEl);
+
+    const furniture = BIZMAP_FURNITURE[biz.category] || BIZMAP_FURNITURE.services;
+    furniture.forEach(item=>{
+      room.appendChild(bizMapMakeItem(item, ()=> openBizModal(biz)));
     });
   }
 
@@ -1067,8 +1177,6 @@
     bizMapRender(biz);
     const overlay = document.getElementById('bizMiniMapOverlay');
     overlay.classList.add('open');
-    const vp = document.getElementById('bizMapViewport');
-    if (vp){ vp.scrollLeft = 150; vp.scrollTop = 100; }
   }
 
   function closeBizMiniMap(){
