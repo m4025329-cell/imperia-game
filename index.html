@@ -206,6 +206,55 @@
 
   let capital = 25000;
   let totalEarned = 0;
+  let referralBonus = 1;
+  let artifacts = [];
+  let artifactCollectionRewardClaimed = false;
+
+  const ARTIFACTS = [
+    {id:'gold_watch', name:'Золотые часы', icon:'⌚', rarity:'rare'},
+    {id:'mogul_seal', name:'Печать магната', icon:'🔱', rarity:'epic'},
+    {id:'diamond_cufflinks', name:'Бриллиантовые запонки', icon:'💎', rarity:'epic'},
+    {id:'black_card', name:'Чёрная карта', icon:'🖤', rarity:'rare'},
+    {id:'old_contract', name:'Контракт на империю', icon:'📜', rarity:'legendary'},
+    {id:'gold_pen', name:'Золотая ручка', icon:'🖋️', rarity:'rare'},
+    {id:'key_city', name:'Ключ от города', icon:'🗝️', rarity:'legendary'},
+    {id:'stock_bell', name:'Колокол биржи', icon:'🔔', rarity:'rare'},
+    {id:'diamond_chip', name:'Алмазный чип', icon:'🔷', rarity:'epic'},
+    {id:'royal_ring', name:'Кольцо владельца', icon:'💍', rarity:'epic'},
+    {id:'private_jet_model', name:'Модель личного самолёта', icon:'✈️', rarity:'rare'},
+    {id:'golden_brick', name:'Золотой кирпич', icon:'🧱', rarity:'rare'},
+    {id:'monopoly_token', name:'Жетон монополиста', icon:'🎟️', rarity:'legendary'},
+    {id:'founder_badge', name:'Знак основателя', icon:'🏅', rarity:'epic'},
+    {id:'empire_globe', name:'Глобус империи', icon:'🌐', rarity:'legendary'},
+  ];
+  const ARTIFACT_DROP_CHANCE = 0.07;
+  const ARTIFACT_COLLECTION_REWARD = 50000000;
+  const PREMIUM_BIZ_ID = 'airline';
+
+  function maybeDropArtifact(source='event') {
+    const owned = new Set(artifacts);
+    const missing = ARTIFACTS.filter(a => !owned.has(a.id));
+    if (!missing.length || Math.random() >= ARTIFACT_DROP_CHANCE) return false;
+    const a = missing[Math.floor(Math.random() * missing.length)];
+    artifacts.push(a.id);
+    addHistory('reward', `Артефакт: ${a.name}`, 0);
+    if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+    const msg = `🏺 Найден редкий артефакт!\n\n${a.icon} ${a.name}\nРедкость: ${a.rarity === 'legendary' ? 'легендарный' : a.rarity === 'epic' ? 'эпический' : 'редкий'}`;
+    if (tg?.showPopup) tg.showPopup({title:'Новая реликвия', message:msg, buttons:[{id:'ok',type:'ok',text:'Забрать'}]});
+    if (artifacts.length >= ARTIFACTS.length && !artifactCollectionRewardClaimed) {
+      artifactCollectionRewardClaimed = true;
+      capital += ARTIFACT_COLLECTION_REWARD;
+      totalEarned += ARTIFACT_COLLECTION_REWARD;
+      addHistory('reward','Полная коллекция артефактов',ARTIFACT_COLLECTION_REWARD);
+      if (tg?.showPopup) tg.showPopup({title:'Коллекция собрана!', message:`🏆 Все ${ARTIFACTS.length} артефактов собраны. Награда: ${fmt(ARTIFACT_COLLECTION_REWARD)}`, buttons:[{id:'ok',type:'ok',text:'Забрать'}]});
+    }
+    renderAll();
+    saveProgress();
+    return true;
+  }
+
+  function isPremiumBizLocked(biz){ return biz.id === PREMIUM_BIZ_ID && referralCount < 3; }
+  function referralProgressText(){ return `Приглашения: ${Math.min(referralCount,3)}/3 · Бонус дохода: ${referralBonus >= 1.05 ? '+5%' : 'не активен'}`; }
 
   let lastLoginDate = null;
   let loginStreak = 0;
@@ -239,6 +288,7 @@
     { id:'q_first_job', icon:'💼', name:'Трудовой путь', desc:'Выполните любую подработку', condition:()=>totalEarned>15000, reward:300, completed:false, claimed:false },
     { id:'q_upgrade', icon:'⬆', name:'Модернизация', desc:'Купите улучшение для любого бизнеса', condition:()=>businesses.some(b=>b.hasUpgrade||b.hasDryClean||b.hasBarista||b.hasNewMenu), reward:1000, completed:false, claimed:false },
     { id:'q_referral', icon:'👥', name:'Сарафанное радио', desc:'Пригласите друга по реферальной ссылке', condition:()=>referralCount>=1, reward:1000, completed:false, claimed:false },
+    { id:'q_referral3', icon:'🚀', name:'Триумф рекомендаций', desc:'Пригласите 3 друзей — постоянный бонус +5% к доходу', condition:()=>referralCount>=3, reward:0, completed:false, claimed:false },
     { id:'q_streak3', icon:'📅', name:'Привычка', desc:'Заходите 3 дня подряд', condition:()=>loginStreak>=3, reward:500, completed:false, claimed:false },
     { id:'q_all_items', icon:'🧰', name:'Оборудование', desc:'Купите любой предмет для бизнеса', condition:()=>businesses.some(b=>b.items&&b.items.length>0), reward:2000, completed:false, claimed:false },
     { id:'q_prestige', icon:'♻', name:'Новый старт', desc:'Совершите престиж (сброс)', condition:()=>false, reward:0, completed:false, claimed:false },
@@ -350,6 +400,7 @@
     quests.forEach(q=>{
       if (!q.completed && q.condition()){
         q.completed = true;
+        if (q.id === 'q_referral3') referralBonus = 1.05;
         changed = true;
       }
     });
@@ -363,6 +414,7 @@
     const q = quests.find(x=>x.id === qid);
     if (!q || !q.completed || q.claimed) return;
     q.claimed = true;
+    if (q.id === 'q_referral3') referralBonus = 1.05;
     capital += q.reward;
     totalEarned += q.reward;
     sfxQuest();
@@ -436,7 +488,7 @@
     titleEl.textContent = s.title;
     textEl.textContent = s.text;
     btn.textContent = tutorialStep < TUTORIAL_STEPS.length - 1 ? 'Далее' : 'Начать игру';
-    overlay.classList.add('overlay-visible'); overlay.style.display = 'flex';
+    overlay.style.display = 'flex';
   }
 
   function nextTutorialStep(){
@@ -469,7 +521,7 @@
       });
       grid.appendChild(div);
     });
-    overlay.classList.add('overlay-visible'); overlay.style.display = 'flex';
+    overlay.style.display = 'flex';
   }
 
   function closeCustomize(){
@@ -956,6 +1008,7 @@
   }
 
   function showEcoOverlay(biz){
+    maybeDropArtifact('event');
     eventOverlayOpen = true;
     document.getElementById('ecoOverlay').style.display = 'flex';
     const payBtn = document.getElementById('ecoPayFine');
@@ -986,6 +1039,7 @@
   }
 
   function showKioskBreakOverlay(biz){
+    maybeDropArtifact('event');
     eventOverlayOpen = true;
     document.getElementById('kioskBreakOverlay').style.display = 'flex';
     const fixBtn = document.getElementById('kioskFixBtn');
@@ -1010,6 +1064,7 @@
   }
 
   function showCafeReviewOverlay(biz){
+    maybeDropArtifact('event');
     eventOverlayOpen = true;
     document.getElementById('cafeReviewOverlay').style.display = 'flex';
     const fixBtn = document.getElementById('cafeFixBtn');
@@ -1040,6 +1095,7 @@
   ];
 
   function showGenericEventOverlay(biz){
+    maybeDropArtifact('event');
     const cm = CATEGORY_MECHANICS[biz.category] || CATEGORY_MECHANICS.services;
     const fastCost = Math.round(biz.baseCost * 0.02);
     eventOverlayOpen = true;
@@ -1161,6 +1217,16 @@
     return tg?.initDataUnsafe?.user || null;
   }
 
+  function renderArtifacts(){
+    const grid=document.getElementById('artifactGrid'); const count=document.getElementById('artifactCount');
+    if(!grid) return;
+    const owned=new Set(artifacts); if(count) count.textContent=`${artifacts.length}/${ARTIFACTS.length}`;
+    grid.innerHTML=ARTIFACTS.map(a=>{
+      const got=owned.has(a.id);
+      return `<div class="achieve-cell ${got?'unlocked':''}" title="${got?a.name:'???'}"><div class="achieve-icon">${got?a.icon:'🔒'}</div><div class="achieve-name">${got?a.name:'Не найден'}</div></div>`;
+    }).join('');
+  }
+
   function renderProfile(){
     const user = tgUser();
     const name = user ? [user.first_name, user.last_name].filter(Boolean).join(' ') || user.username || 'Игрок' : 'Игрок';
@@ -1180,6 +1246,9 @@
     const refCount = document.getElementById('refCount');
     if (refLink) refLink.textContent = referralLink();
     if (refCount) refCount.textContent = `Приглашено друзей: ${referralCount}`;
+    const refQuest = document.getElementById('referral3Progress');
+    if (refQuest) refQuest.textContent = referralProgressText();
+    renderArtifacts();
   }
 
   function referralLink(){
@@ -1199,17 +1268,40 @@
     } catch(e){}
   }
 
-  document.getElementById('shareBtn').addEventListener('click', ()=>{
-    const text = `Я построил бизнес-империю на ${fmt(capital)} в игре Империя! 🏆`;
-    const url = referralLink();
-    if (tg?.openTelegramLink){
-      tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`);
-    } else if (navigator.share){
-      navigator.share({ text, url }).catch(()=>{});
-    } else {
-      navigator.clipboard?.writeText(`${text} ${url}`);
-    }
-  });
+  async function shareEmpireStory(){
+    const canvas = document.createElement('canvas');
+    canvas.width = 1080; canvas.height = 1350;
+    const ctx = canvas.getContext('2d');
+    const grad = ctx.createLinearGradient(0,0,1080,1350);
+    grad.addColorStop(0,'#07101f'); grad.addColorStop(1,'#101d35');
+    ctx.fillStyle = grad; ctx.fillRect(0,0,1080,1350);
+    ctx.strokeStyle = '#c9a84c'; ctx.lineWidth = 4; ctx.strokeRect(36,36,1008,1278);
+    ctx.fillStyle = '#c9a84c'; ctx.font = 'bold 42px Arial'; ctx.textAlign='center';
+    ctx.fillText('ИМПЕРИЯ',540,110);
+    ctx.fillStyle = '#ffffff'; ctx.font = 'bold 64px Arial'; ctx.fillText(`${emblem} ${companyName}`,540,205);
+    ctx.fillStyle = '#9aa9bd'; ctx.font = '30px Arial'; ctx.fillText(rankFor(totalIncome()),540,255);
+    ctx.fillStyle = '#c9a84c'; ctx.font = 'bold 78px Arial'; ctx.fillText(fmt(capital),540,390);
+    ctx.fillStyle = '#9aa9bd'; ctx.font = '28px Arial'; ctx.fillText('КАПИТАЛ',540,435);
+    ctx.fillStyle = '#ffffff'; ctx.font = 'bold 34px Arial'; ctx.textAlign='left'; ctx.fillText('ТОП-3 БИЗНЕСА',90,535);
+    const top = businesses.filter(b=>b.purchased).sort((a,b)=>incomePerSec(b)-incomePerSec(a)).slice(0,3);
+    top.forEach((b,i)=>{
+      const y=610+i*145; ctx.fillStyle='#13223a'; ctx.fillRect(75,y-55,930,105);
+      ctx.fillStyle='#c9a84c'; ctx.font='bold 34px Arial'; ctx.fillText(`${i+1}. ${b.icon} ${b.name}`,100,y-10);
+      ctx.fillStyle='#8fe0a7'; ctx.font='28px Arial'; ctx.fillText(`+${fmt(incomePerSec(b)*GAME_DAY_SECONDS)}/день · ур. ${b.level}`,100,y+32);
+    });
+    ctx.textAlign='center'; ctx.fillStyle='#6f7f95'; ctx.font='24px Arial'; ctx.fillText('Построй свою бизнес-империю',540,1245);
+    const dataUrl=canvas.toDataURL('image/png');
+    const text=`${companyName} — ${fmt(capital)} в игре Империя! ${rankFor(totalIncome())}`;
+    try{
+      if (typeof tg?.shareToStory === 'function'){
+        tg.shareToStory(dataUrl,{text});
+        return;
+      }
+    }catch(e){}
+    const a=document.createElement('a'); a.href=dataUrl; a.download='imperia-story.png'; document.body.appendChild(a); a.click(); a.remove();
+    if (tg?.showPopup) tg.showPopup({title:'Картинка готова',message:'Изображение сохранено. Откройте Telegram Stories и добавьте скачанную картинку вручную.',buttons:[{id:'ok',type:'ok',text:'Понятно'}]});
+  }
+  document.getElementById('shareBtn').addEventListener('click', shareEmpireStory);
 
   async function checkReferral(){
     if (referredBy) return;
@@ -1531,7 +1623,7 @@
     saveProgress();
   }
 
-  const DAILY_REWARDS = [50, 75, 120, 180, 260, 380, 600];
+  const DAILY_REWARDS = [50000, 75000, 120000, 180000, 260000, 380000, 600000];
 
   function todayStr(){
     const d = new Date();
@@ -1567,6 +1659,7 @@
     document.getElementById('dailyRewardClaim').onclick = ()=>{
       capital += reward;
       totalEarned += reward;
+      addHistory('daily', `Ежедневная награда · день ${dayInCycle}`, reward);
       document.getElementById('dailyRewardOverlay').style.display = 'none';
       renderAll();
       saveProgress();
@@ -1792,7 +1885,7 @@
     desc.textContent = won ? 'Вы успешно предсказали движение рынка' : 'Рынок пошёл против вас';
     amt.textContent = (won ? '+' : '-') + fmt(amount);
     amt.style.color = won ? 'var(--green)' : 'var(--red)';
-    overlay.classList.add('overlay-visible'); overlay.style.display = 'flex';
+    overlay.style.display = 'flex';
 
   }
 
@@ -1818,26 +1911,39 @@
     const map = document.getElementById('cityMap');
     if (!map) return;
 
-    if (map.children.length === businesses.length){
+    const mapLockState = String(referralCount >= 3);
+    if (map.children.length === businesses.length && map.dataset.referralUnlocked === mapLockState){
+      let needsFullRebuild = false;
       businesses.forEach((biz, i)=>{
         const slot = map.children[i];
-        if (!slot) return;
-        const cost = costFor(biz);
-        const affordable = capital >= cost;
-        const bar = slot.querySelector('.building-progress-fill');
-        if (bar && !biz.purchased){
-          bar.style.width = Math.max(0, Math.min(100, (capital / cost) * 100)) + '%';
-        }
-        slot.classList.toggle('affordable', affordable);
-        slot.classList.toggle('owned', biz.purchased);
+        if (!slot) { needsFullRebuild = true; return; }
+        // A locked -> purchased transition changes the whole card (lock/icon/name/level/income),
+        // so a class toggle alone is not enough.
+        const domOwned = slot.classList.contains('owned');
+        if (domOwned !== !!biz.purchased) needsFullRebuild = true;
       });
-      return;
+      if (!needsFullRebuild){
+        businesses.forEach((biz, i)=>{
+          const slot = map.children[i];
+          const cost = costFor(biz);
+          const affordable = !isPremiumBizLocked(biz) && capital >= cost;
+          const bar = slot.querySelector('.building-progress-fill');
+          if (bar && !biz.purchased){
+            bar.style.width = Math.max(0, Math.min(100, (capital / cost) * 100)) + '%';
+          }
+          slot.classList.toggle('affordable', affordable);
+          slot.classList.toggle('owned', biz.purchased);
+        });
+        return;
+      }
     }
 
     map.innerHTML = '';
+    map.dataset.referralUnlocked = mapLockState;
     businesses.forEach((biz, idx)=>{
       const cost = costFor(biz);
-      const affordable = capital >= cost;
+      const premiumLocked = isPremiumBizLocked(biz);
+      const affordable = !premiumLocked && capital >= cost;
       const progressPct = Math.max(0, Math.min(100, (capital / cost) * 100));
       const slot = document.createElement('div');
 
@@ -1846,7 +1952,7 @@
         slot.innerHTML = `
           <div class="building-icon biz-icon-locked"><img src="images/${biz.id}.jpg" alt="" onerror="this.outerHTML='${biz.icon}'"><span class="biz-lock">🔒</span></div>
           <div class="building-name">${biz.name}</div>
-          <div class="building-progress"><div class="building-progress-fill" style="width:${progressPct}%"></div></div>
+          ${premiumLocked ? `<div style="font-size:10px;color:var(--gold-light);text-align:center;padding:2px 4px;">🔒 Откроется при 3 приглашённых друзьях<br>${Math.min(referralCount,3)}/3</div>` : `<div class="building-progress"><div class="building-progress-fill" style="width:${progressPct}%"></div></div>`}
         `;
       } else {
         slot.className = 'building-slot owned' + (affordable ? ' affordable' : '') + (biz.paused ? ' biz-card-paused' : '');
@@ -1867,6 +1973,7 @@
 
       slot.addEventListener('click', (e)=>{
         if (!biz.purchased){
+          if (isPremiumBizLocked(biz)){ sfxError(); showMentor('Авиакомпания откроется после 3 приглашённых друзей.'); return; }
           const c = costFor(biz);
           if (capital >= c){
             capital -= c;
@@ -1927,6 +2034,7 @@
     const car = assets.find(a=>a.id === 'car');
     if (car.status === 'kept') sum += assetIncome(car);
     sum *= managerBonus();
+    sum *= referralBonus;
     return sum;
   }
 
@@ -1974,6 +2082,9 @@
         loginStreak = data.loginStreak ?? loginStreak;
         referredBy = data.referredBy ?? referredBy;
         referralCount = data.referralCount ?? referralCount;
+        referralBonus = data.referralBonus ?? (referralCount >= 3 ? 1.05 : 1);
+        artifacts = Array.isArray(data.artifacts) ? data.artifacts : [];
+        artifactCollectionRewardClaimed = !!data.artifactCollectionRewardClaimed;
         deposits = data.deposits || [];
         loans = data.loans || [];
         offshoreUnlocked = data.offshoreUnlocked || false;
@@ -2030,6 +2141,7 @@
       const ref = window.__docRef(window.__db, 'players', String(userId));
       const achieveMap = {};
       achievements.forEach(a=>{ achieveMap[a.id] = { unlocked: a.unlocked, claimed: a.claimed }; });
+      if (referralCount >= 3) referralBonus = 1.05;
       const questMap = {};
       quests.forEach(q=>{ questMap[q.id] = { completed: q.completed, claimed: q.claimed }; });
       await window.__setDoc(ref, {
@@ -2044,6 +2156,9 @@
         loginStreak,
         referredBy,
         referralCount,
+        referralBonus,
+        artifacts,
+        artifactCollectionRewardClaimed,
         jobReadyAt,
         achievements: achieveMap,
         quests: questMap,
@@ -2081,6 +2196,7 @@
     renderQuests();
     renderStock();
     renderAchievements();
+    renderArtifacts();
     updateQuestBadge();
     const activeView = document.querySelector('#app .view.active')?.id?.replace('view-', '');
     if (activeView === 'profile'){ renderProfile(); renderRating(); }
@@ -2151,7 +2267,7 @@
   if (stockResultClose){
     stockResultClose.addEventListener('click', ()=>{
       const overlay = document.getElementById('stockResultOverlay');
-      if (overlay){ overlay.classList.remove('overlay-visible'); overlay.style.display = 'none'; overlay.classList.remove('show'); }
+      if (overlay){ overlay.style.display = 'none'; overlay.classList.remove('show'); }
     });
   }
 
@@ -2215,7 +2331,7 @@
     let bought = 0;
     let totalCost = 0;
     for (const b of businesses) {
-      if (!b.purchased) {
+      if (!b.purchased && !isPremiumBizLocked(b)) {
         const c = costFor(b);
         if (capital >= c) {
           capital -= c;
@@ -3114,7 +3230,10 @@ document.getElementById('openOffshoreBtn')?.addEventListener('click', openOffsho
     background: var(--bg);
     color: var(--text);
     font-family: var(--font-body);
-    overflow: hidden;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
     -webkit-font-smoothing: antialiased;
   }
 
@@ -3154,11 +3273,9 @@ document.getElementById('openOffshoreBtn')?.addEventListener('click', openOffsho
   #app{
     position: relative; z-index: 1;
     max-width: 430px; margin: 0 auto;
-    height: 100vh; display: flex; flex-direction: column;
+    min-height: 100vh; display: flex; flex-direction: column;
     background: transparent;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior-y: contain;
+    overflow: visible;
   }
 
   header{
@@ -4320,8 +4437,8 @@ document.getElementById('openOffshoreBtn')?.addEventListener('click', openOffsho
   .profile-action-btn .icon { font-size: 20px; }
 
 
-  .overlay.overlay-visible { display:flex !important; opacity:1 !important; pointer-events:auto !important; }
-  #tutorialOverlay.overlay-visible, #customizeOverlay.overlay-visible { display:flex !important; opacity:1 !important; pointer-events:auto !important; }
+  #artifactGrid { grid-template-columns: repeat(3, 1fr); }
+  #artifactGrid .achieve-cell { min-height: 92px; }
 </style>
 <base target="_blank">
 
@@ -4600,6 +4717,13 @@ document.getElementById('openOffshoreBtn')?.addEventListener('click', openOffsho
         <div style="font-size:10px; color:var(--text-dim); font-family:var(--font-mono); word-break:break-all; margin-bottom:8px;" id="refLink">https://t.me/ImperiaBusinessBot/play?startapp=REF_0</div>
         <button class="overlay-btn" id="copyRefBtn" style="box-shadow:none;">Скопировать ссылку</button>
         <div style="font-size:11px; color:var(--green); margin-top:6px; text-align:center;" id="refCount">Приглашено друзей: 0</div>
+        <div id="referral3Progress" style="font-size:11px;color:var(--gold-light);margin-top:6px;text-align:center;">Приглашения: 0/3 · Бонус дохода: не активен</div>
+      </div>
+
+      <div class="section-title">🏺 Коллекция артефактов</div>
+      <div class="achieve-panel" id="artifactPanel">
+        <div class="achieve-header"><div class="achieve-title">Прогресс · награда ₽50M</div><div class="quest-count" id="artifactCount">0/15</div></div>
+        <div class="achieve-grid" id="artifactGrid"></div>
       </div>
 
       <div class="section-title">🏅 Рейтинг магнатов</div>
