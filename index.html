@@ -949,6 +949,8 @@
   // подставляется по данным конкретного бизнеса, покупка предметов/механик не дублируется —
   // клик по любому "зданию" на мини-карте просто открывает уже существующую модалку
   // (openBizModal/drawBizModalBody), так что вся логика покупок остаётся ровно той же.
+  // Персонаж ходит по комнате (тап = идти туда) и, подойдя к предмету, автоматически
+  // взаимодействует с ним (открывает панель покупок).
 
   const BIZMAP_CATEGORY_THEME = {
     retail:       { bg:'#1c150e', accent:'#d4925a', wall:'#241a10' },
@@ -963,64 +965,32 @@
     it:           { bg:'#131226', accent:'#8c96f0', wall:'#181632' },
   };
 
-  // Тематическая мебель/оборудование под каждую категорию бизнеса — реальный интерьер,
-  // а не абстрактные плашки. Каждый предмет — своя форма (стойка/стеллаж/станок/сервер и т.д.),
-  // клик по любому открывает ту же проверенную панель покупок (openBizModal).
+  // Единая сетка из 3 слотов на полу (лево/право/центр-перед) — гарантирует отсутствие
+  // наложений независимо от категории, плюс главный "прилавок" у задней стены.
+  const BIZMAP_SLOTS = {
+    left:  { x:150, y:300, w:130, h:110 },
+    right: { x:550, y:300, w:130, h:110 },
+    front: { x:350, y:390, w:150, h:70  },
+  };
+
   const BIZMAP_FURNITURE = {
-    retail: [
-      { shape:'counter', icon:'🧾', label:'Касса', left:250, top:300, w:200, h:64 },
-      { shape:'shelf',   icon:'🗄',  label:'Стеллаж', left:60,  top:170, w:70,  h:140 },
-      { shape:'shelf',   icon:'🗄',  label:'Стеллаж', left:570, top:170, w:70,  h:140 },
-      { shape:'display', icon:'🛍',  label:'Витрина',  left:300, top:180, w:110, h:60 },
-    ],
-    services: [
-      { shape:'desk',    icon:'💼', label:'Ресепшн',       left:260, top:300, w:180, h:64 },
-      { shape:'chairs',  icon:'🪑', label:'Зона ожидания', left:70,  top:330, w:110, h:56 },
-      { shape:'plant',   icon:'🌿', label:'Растение',      left:600, top:280, w:44,  h:80 },
-    ],
-    manufacturing: [
-      { shape:'machine', icon:'⚙',  label:'Станок',    left:260, top:220, w:150, h:120 },
-      { shape:'crates',  icon:'📦', label:'Склад',      left:70,  top:280, w:100, h:96 },
-      { shape:'panel',   icon:'🔧', label:'Пульт',      left:520, top:320, w:110, h:64 },
-    ],
-    medicine: [
-      { shape:'bed',     icon:'🛏',  label:'Кушетка',   left:250, top:300, w:170, h:64 },
-      { shape:'cabinet', icon:'💊', label:'Шкаф',       left:60,  top:220, w:76,  h:130 },
-      { shape:'desk',    icon:'🩺', label:'Ресепшн',    left:540, top:320, w:120, h:64 },
-    ],
-    finance: [
-      { shape:'desk',    icon:'💻', label:'Рабочее место', left:250, top:300, w:180, h:64 },
-      { shape:'safe',    icon:'🔒', label:'Сейф',          left:70,  top:250, w:90,  h:100 },
-      { shape:'panel',   icon:'📊', label:'Аналитика',     left:540, top:320, w:110, h:64 },
-    ],
-    entertainment: [
-      { shape:'stage',   icon:'🎤', label:'Сцена',   left:230, top:210, w:230, h:70 },
-      { shape:'speaker', icon:'🔊', label:'Колонка', left:140, top:270, w:44,  h:80 },
-      { shape:'counter', icon:'🍸', label:'Бар',     left:520, top:320, w:160, h:64 },
-    ],
-    agriculture: [
-      { shape:'machine', icon:'🚜', label:'Техника', left:250, top:230, w:150, h:110 },
-      { shape:'crates',  icon:'📦', label:'Урожай',  left:70,  top:280, w:100, h:96 },
-      { shape:'plant',   icon:'🌾', label:'Поле',    left:570, top:260, w:60,  h:100 },
-    ],
-    realestate: [
-      { shape:'display', icon:'🏠', label:'Макет',        left:250, top:220, w:140, h:90 },
-      { shape:'chairs',  icon:'🛋',  label:'Зона отдыха',  left:70,  top:330, w:130, h:56 },
-      { shape:'plant',   icon:'🌿', label:'Растение',     left:600, top:280, w:44,  h:80 },
-    ],
-    transport: [
-      { shape:'machine', icon:'🚚', label:'Гараж',      left:240, top:210, w:180, h:120 },
-      { shape:'cabinet', icon:'🧰', label:'Инструменты', left:60,  top:250, w:76,  h:110 },
-      { shape:'panel',   icon:'⛽', label:'Заправка',    left:560, top:320, w:90,  h:64 },
-    ],
-    it: [
-      { shape:'server', icon:'🖥',  label:'Сервер', left:60,  top:170, w:90,  h:150 },
-      { shape:'server', icon:'🖥',  label:'Сервер', left:560, top:170, w:90,  h:150 },
-      { shape:'desk',   icon:'💻', label:'Рабочее место', left:255, top:310, w:170, h:64 },
-    ],
+    retail:        [ {slot:'left',shape:'shelf',   icon:'🗄',label:'Стеллаж'},  {slot:'right',shape:'display', icon:'🛍',label:'Витрина'},  {slot:'front',shape:'counter',icon:'🧾',label:'Касса'} ],
+    services:      [ {slot:'left',shape:'chairs',  icon:'🪑',label:'Ожидание'}, {slot:'right',shape:'plant',   icon:'🌿',label:'Растение'}, {slot:'front',shape:'desk',   icon:'💼',label:'Ресепшн'} ],
+    manufacturing: [ {slot:'left',shape:'crates',  icon:'📦',label:'Склад'},    {slot:'right',shape:'panel',   icon:'🔧',label:'Пульт'},     {slot:'front',shape:'machine',icon:'⚙',label:'Станок'} ],
+    medicine:      [ {slot:'left',shape:'cabinet', icon:'💊',label:'Шкаф'},     {slot:'right',shape:'desk',    icon:'🩺',label:'Ресепшн'},   {slot:'front',shape:'bed',    icon:'🛏',label:'Кушетка'} ],
+    finance:       [ {slot:'left',shape:'safe',    icon:'🔒',label:'Сейф'},     {slot:'right',shape:'panel',   icon:'📊',label:'Аналитика'}, {slot:'front',shape:'desk',   icon:'💻',label:'Рабочее место'} ],
+    entertainment: [ {slot:'left',shape:'speaker', icon:'🔊',label:'Колонка'},  {slot:'right',shape:'stage',   icon:'🎤',label:'Сцена'},      {slot:'front',shape:'counter',icon:'🍸',label:'Бар'} ],
+    agriculture:   [ {slot:'left',shape:'crates',  icon:'📦',label:'Урожай'},   {slot:'right',shape:'plant',   icon:'🌾',label:'Поле'},       {slot:'front',shape:'machine',icon:'🚜',label:'Техника'} ],
+    realestate:    [ {slot:'left',shape:'chairs',  icon:'🛋',label:'Отдых'},    {slot:'right',shape:'plant',   icon:'🌿',label:'Растение'},   {slot:'front',shape:'display',icon:'🏠',label:'Макет'} ],
+    transport:     [ {slot:'left',shape:'cabinet', icon:'🧰',label:'Инструменты'},{slot:'right',shape:'panel', icon:'⛽',label:'Заправка'},   {slot:'front',shape:'machine',icon:'🚚',label:'Гараж'} ],
+    it:            [ {slot:'left',shape:'server',  icon:'🖥',label:'Сервер'},   {slot:'right',shape:'server',  icon:'🖥',label:'Сервер'},     {slot:'front',shape:'desk',   icon:'💻',label:'Рабочее место'} ],
   };
 
   let bizMapCurrentBiz = null;
+  let bizMapPlayerPos = { x: 350, y: 430 };
+  let bizMapPlayerTarget = null;
+  let bizMapPendingInteract = null;
+  let bizMapRAF = null;
 
   function bizMapStyles(){
     if (document.getElementById('bizMapStyles')) return;
@@ -1034,34 +1004,37 @@
       .bizmap-head-name{font-family:var(--font-display);color:var(--gold-light);font-size:16px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
       .bizmap-close{border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:10px;padding:9px 12px;font-weight:700;cursor:pointer;flex-shrink:0}
       .bizmap-viewport{position:relative;flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;touch-action:pan-x pan-y;display:flex;align-items:flex-start;justify-content:center;padding:20px 0 60px}
-      .bizmap-hint{position:absolute;top:10px;left:50%;transform:translateX(-50%);font-size:10px;color:var(--text-dim);background:rgba(8,13,24,.75);padding:4px 10px;border-radius:20px;z-index:6}
+      .bizmap-hint{position:absolute;top:10px;left:50%;transform:translateX(-50%);font-size:10px;color:var(--text-dim);background:rgba(8,13,24,.75);padding:4px 10px;border-radius:20px;z-index:8;pointer-events:none}
 
-      /* Комната: стена сверху, пол снизу */
-      .bizmap-room{position:relative;width:700px;height:460px;border-radius:14px;overflow:hidden;box-shadow:0 20px 50px rgba(0,0,0,.5);flex-shrink:0}
+      .bizmap-room{position:relative;width:700px;height:460px;border-radius:14px;overflow:hidden;box-shadow:0 20px 50px rgba(0,0,0,.5);flex-shrink:0;cursor:pointer}
+      .bizmap-room.has-photo{background:var(--room-photo) center/cover no-repeat}
+      .bizmap-room.has-photo .bizmap-wall,
+      .bizmap-room.has-photo .bizmap-floor{display:none}
+      .bizmap-room.has-photo:before{content:'';position:absolute;inset:0;background:linear-gradient(180deg, rgba(5,8,15,.35), rgba(5,8,15,.15) 40%, rgba(5,8,15,.4));pointer-events:none;z-index:1}
+      .bizmap-entrance{position:absolute;bottom:6%;transform:translateX(-50%);font-size:9px;color:var(--text-dim);background:rgba(8,13,24,.7);padding:2px 8px;border-radius:10px;z-index:3;pointer-events:none}
       .bizmap-wall{position:absolute;left:0;right:0;top:0;height:44%;background:linear-gradient(180deg, var(--room-wall) 0%, rgba(0,0,0,.15) 100%)}
       .bizmap-window{position:absolute;top:14%;width:90px;height:70px;border-radius:6px;background:linear-gradient(180deg, rgba(150,190,230,.22), rgba(90,130,180,.10));border:3px solid rgba(255,255,255,.10);box-shadow:inset 0 0 20px rgba(150,190,230,.15)}
       .bizmap-window:before, .bizmap-window:after{content:'';position:absolute;background:rgba(255,255,255,.10)}
       .bizmap-window:before{left:50%;top:0;bottom:0;width:2px;transform:translateX(-50%)}
       .bizmap-window:after{top:50%;left:0;right:0;height:2px;transform:translateY(-50%)}
-      .bizmap-sign{position:absolute;top:8%;left:50%;transform:translateX(-50%);padding:8px 18px;border-radius:8px;background:rgba(8,13,24,.85);border:1px solid var(--room-accent);color:var(--gold-light);font-family:var(--font-display);font-size:14px;font-weight:600;text-align:center;max-width:280px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-shadow:0 4px 14px rgba(0,0,0,.4);z-index:3}
+      .bizmap-sign{position:absolute;top:8%;left:50%;transform:translateX(-50%);padding:8px 18px;border-radius:8px;background:rgba(8,13,24,.85);border:1px solid var(--room-accent);color:var(--gold-light);font-family:var(--font-display);font-size:14px;font-weight:600;text-align:center;max-width:280px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-shadow:0 4px 14px rgba(0,0,0,.4);z-index:3;pointer-events:none}
       .bizmap-floor{position:absolute;left:0;right:0;bottom:0;height:56%;
         background:
           repeating-linear-gradient(90deg, rgba(255,255,255,.025) 0px, rgba(255,255,255,.025) 1px, transparent 1px, transparent 58px),
           repeating-linear-gradient(0deg, rgba(255,255,255,.02) 0px, rgba(255,255,255,.02) 1px, transparent 1px, transparent 58px),
           linear-gradient(180deg, #12100d 0%, #0a0908 100%);
       }
-      .bizmap-rug{position:absolute;left:50%;bottom:8%;transform:translateX(-50%);width:260px;height:70px;border-radius:50%;background:radial-gradient(ellipse, var(--room-accent-10), transparent 70%)}
+      .bizmap-rug{position:absolute;left:50%;bottom:8%;transform:translateX(-50%);width:260px;height:70px;border-radius:50%;background:radial-gradient(ellipse, var(--room-accent-10), transparent 70%);pointer-events:none}
 
-      .bizmap-furn{position:absolute;transform:translate(-50%,0);display:flex;flex-direction:column;align-items:center;justify-content:flex-start;cursor:pointer;user-select:none;z-index:4;padding-top:4px}
+      .bizmap-furn{position:absolute;transform:translate(-50%,0);display:flex;flex-direction:column;align-items:center;justify-content:flex-start;cursor:pointer;user-select:none;z-index:4;padding-top:4px;transition:filter .15s}
       .bizmap-furn .bizmap-icon{font-size:22px;line-height:1;margin-bottom:2px;filter:drop-shadow(0 2px 3px rgba(0,0,0,.6));position:relative;z-index:2}
       .bizmap-furn .bizmap-label{font-size:8px;color:var(--text-dim);white-space:nowrap;margin-top:3px}
       .bizmap-furn .bizmap-shape{position:relative;border-radius:6px;box-shadow:0 6px 14px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.06);
         background:linear-gradient(180deg, rgba(60,72,92,.9) 0%, rgba(18,26,40,.96) 100%);
         border:1px solid var(--room-accent);
       }
-      .bizmap-furn:active .bizmap-shape{filter:brightness(1.25)}
+      .bizmap-furn.near .bizmap-shape{box-shadow:0 0 0 2px var(--room-accent), 0 6px 14px rgba(0,0,0,.4)}
 
-      /* формы мебели */
       .shape-counter .bizmap-shape{border-radius:8px 8px 3px 3px}
       .shape-counter .bizmap-shape:before{content:'';position:absolute;left:4%;right:4%;top:8%;height:3px;background:var(--room-accent);opacity:.7;border-radius:2px}
       .shape-shelf .bizmap-shape{background-image:repeating-linear-gradient(0deg, transparent 0 22px, var(--room-accent-30) 22px 24px)}
@@ -1087,9 +1060,24 @@
       @keyframes bizmapBlink{0%,100%{opacity:1}50%{opacity:.25}}
 
       .bizmap-furn.main{z-index:5}
-      .bizmap-furn.main .bizmap-shape{width:118px;height:118px;border-radius:14px;overflow:hidden;background:linear-gradient(180deg, rgba(60,72,92,.4), rgba(14,22,38,.97))}
+      .bizmap-furn.main .bizmap-shape{width:110px;height:110px;border-radius:14px;overflow:hidden;background:linear-gradient(180deg, rgba(60,72,92,.4), rgba(14,22,38,.97))}
       .bizmap-furn.main img{width:100%;height:100%;object-fit:cover}
       .bizmap-furn.main .bizmap-label{color:var(--gold-light);font-size:11px;font-weight:600;max-width:130px}
+
+      /* Персонаж */
+      .bizmap-player{position:absolute;z-index:7;transform:translate(-50%,-88%);pointer-events:none;transition:none;display:flex;flex-direction:column;align-items:center}
+      .bizmap-player .bizmap-player-shadow{width:26px;height:8px;border-radius:50%;background:rgba(0,0,0,.45);margin-top:-4px;order:2}
+      .bizmap-player .bizmap-player-body{width:30px;height:38px;position:relative;order:1}
+      .bizmap-player .bizmap-player-head{position:absolute;left:50%;top:0;width:16px;height:16px;border-radius:50%;background:#f0cf94;transform:translateX(-50%);box-shadow:0 1px 3px rgba(0,0,0,.4)}
+      .bizmap-player .bizmap-player-torso{position:absolute;left:50%;top:13px;width:22px;height:22px;border-radius:9px 9px 6px 6px;background:var(--gold);transform:translateX(-50%);box-shadow:0 2px 5px rgba(0,0,0,.4)}
+      .bizmap-player.walking .bizmap-player-body{animation:bizmapWalk .35s ease-in-out infinite}
+
+      /* Джойстик */
+      .bizmap-joystick-zone{position:fixed;left:0;right:0;bottom:0;height:180px;z-index:96;display:flex;align-items:flex-end;justify-content:flex-start;padding:20px;pointer-events:none}
+      #bizMiniMapOverlay.open .bizmap-joystick-zone{pointer-events:none}
+      .bizmap-joystick-base{position:relative;width:100px;height:100px;border-radius:50%;background:rgba(20,30,48,.55);border:1px solid rgba(255,255,255,.12);pointer-events:auto;touch-action:none}
+      .bizmap-joystick-thumb{position:absolute;left:50%;top:50%;width:44px;height:44px;border-radius:50%;background:linear-gradient(145deg, var(--gold-light), var(--gold));box-shadow:0 4px 12px rgba(0,0,0,.4);transform:translate(-50%,-50%)}
+      @keyframes bizmapWalk{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
     `;
     document.head.appendChild(s);
   }
@@ -1106,37 +1094,53 @@
       </div>
       <div class="bizmap-viewport" id="bizMapViewport">
         <div class="bizmap-room" id="bizMapRoom">
-          <div class="bizmap-hint">Коснитесь предмета интерьера</div>
+          <div class="bizmap-hint">Джойстик — ходить, тап по предмету — взаимодействие</div>
           <div class="bizmap-wall"></div>
           <div class="bizmap-floor"></div>
           <div class="bizmap-rug"></div>
         </div>
       </div>
+      <div class="bizmap-joystick-zone">
+        <div class="bizmap-joystick-base" id="bizMapJoyBase">
+          <div class="bizmap-joystick-thumb" id="bizMapJoyThumb"></div>
+        </div>
+      </div>
     `;
     document.body.appendChild(overlay);
+    bizMapSetupJoystick();
     document.getElementById('bizMapCloseBtn').addEventListener('click', closeBizMiniMap);
   }
 
-  function bizMapMakeItem({shape, icon, label, left, top, w, h}, onClick){
+  function bizMapMakeItem(item, biz, realItem, realIdx){
+    const slot = BIZMAP_SLOTS[item.slot];
     const el = document.createElement('div');
-    el.className = 'bizmap-furn shape-' + shape;
-    el.style.left = left + 'px'; el.style.top = top + 'px';
+    el.className = 'bizmap-furn shape-' + item.shape;
+    el.style.left = slot.x + 'px'; el.style.top = slot.y + 'px';
     const box = document.createElement('div');
     box.className = 'bizmap-shape';
-    box.style.width = w + 'px'; box.style.height = h + 'px';
-    const iconEl = document.createElement('div'); iconEl.className = 'bizmap-icon'; iconEl.textContent = icon;
-    el.appendChild(iconEl);
-    el.appendChild(box);
-    const labelEl = document.createElement('div'); labelEl.className = 'bizmap-label'; labelEl.textContent = label;
+    box.style.width = slot.w + 'px'; box.style.height = slot.h + 'px';
+    const owned = realItem && (biz.items || []).includes(realIdx);
+    if (owned) el.classList.add('owned');
+    const iconEl = document.createElement('div'); iconEl.className = 'bizmap-icon'; iconEl.textContent = owned ? '✅' : item.icon;
+    el.appendChild(iconEl); el.appendChild(box);
+    const labelEl = document.createElement('div'); labelEl.className = 'bizmap-label';
+    // Название предмета на карте берётся из настоящего списка апгрейдов бизнеса —
+    // подойдя к "столику" игрок покупает реальный предмет (например кофемашину), а не абстракцию.
+    labelEl.textContent = realItem ? realItem.name : item.label;
     el.appendChild(labelEl);
-    el.addEventListener('click', onClick);
+    // Точка, куда персонаж подходит для взаимодействия — чуть ниже (перед) предмета
+    const approachX = slot.x, approachY = Math.min(430, slot.y + slot.h + 26);
+    el.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      bizMapWalkTo(approachX, approachY, ()=> openBizModal(biz));
+    });
     return el;
   }
 
   function bizMapRender(biz){
     const room = document.getElementById('bizMapRoom');
     if (!room) return;
-    room.querySelectorAll('.bizmap-furn, .bizmap-window, .bizmap-sign').forEach(el=>el.remove());
+    room.querySelectorAll('.bizmap-furn, .bizmap-window, .bizmap-sign, .bizmap-player, .bizmap-entrance').forEach(el=>el.remove());
 
     const theme = BIZMAP_CATEGORY_THEME[biz.category] || BIZMAP_CATEGORY_THEME.services;
     room.style.setProperty('--room-wall', theme.wall);
@@ -1144,28 +1148,173 @@
     room.style.setProperty('--room-accent-30', theme.accent + '4d');
     room.style.setProperty('--room-accent-10', theme.accent + '1a');
 
+    // Реальный фон интерьера, если картинка есть в /images (room_<категория>.jpg) —
+    // иначе остаётся текущий CSS-интерьер (стена/пол/мебель) как надёжный запасной вариант.
+    const bgImg = new Image();
+    bgImg.onload = ()=>{ room.style.setProperty('--room-photo', `url('images/room_${biz.category}.jpg')`); room.classList.add('has-photo'); };
+    bgImg.onerror = ()=>{ room.classList.remove('has-photo'); };
+    bgImg.src = `images/room_${biz.category}.jpg`;
+
     const window1 = document.createElement('div'); window1.className='bizmap-window'; window1.style.left='60px'; room.appendChild(window1);
     const window2 = document.createElement('div'); window2.className='bizmap-window'; window2.style.left='550px'; room.appendChild(window2);
 
     const sign = document.createElement('div'); sign.className='bizmap-sign'; sign.textContent = biz.name; room.appendChild(sign);
 
-    // Главный "прилавок" бизнеса — картинка бизнеса, тоже открывает покупки
+    // Вход — где появляется персонаж
+    const entrance = document.createElement('div'); entrance.className='bizmap-entrance'; entrance.textContent='Вход'; entrance.style.left='350px'; room.appendChild(entrance);
+
+    // Главный "прилавок" бизнеса (у задней стены, картинка бизнеса) — тоже точка взаимодействия
     const mainEl = document.createElement('div');
     mainEl.className = 'bizmap-furn main';
-    mainEl.style.left = '350px'; mainEl.style.top = '300px';
+    mainEl.style.left = '350px'; mainEl.style.top = '210px';
     const mainBox = document.createElement('div'); mainBox.className = 'bizmap-shape';
     const img = document.createElement('img'); img.src = `images/${biz.id}.jpg`; img.alt = '';
-    img.onerror = ()=>{ img.remove(); mainBox.textContent = biz.icon || '🏢'; mainBox.style.display='flex'; mainBox.style.alignItems='center'; mainBox.style.justifyContent='center'; mainBox.style.fontSize='42px'; };
+    img.onerror = ()=>{ img.remove(); mainBox.textContent = biz.icon || '🏢'; mainBox.style.display='flex'; mainBox.style.alignItems='center'; mainBox.style.justifyContent='center'; mainBox.style.fontSize='40px'; };
     mainBox.appendChild(img);
     mainEl.appendChild(mainBox);
     const mainLabel = document.createElement('div'); mainLabel.className='bizmap-label'; mainLabel.textContent = biz.name;
     mainEl.appendChild(mainLabel);
-    mainEl.addEventListener('click', ()=> openBizModal(biz));
+    mainEl.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      bizMapWalkTo(350, 340, ()=> openBizModal(biz));
+    });
     room.appendChild(mainEl);
 
     const furniture = BIZMAP_FURNITURE[biz.category] || BIZMAP_FURNITURE.services;
-    furniture.forEach(item=>{
-      room.appendChild(bizMapMakeItem(item, ()=> openBizModal(biz)));
+    const realItems = itemsFor(biz); // реальный список апгрейдов этого бизнеса (те же, что в панели покупок)
+    furniture.forEach((item, i)=> room.appendChild(bizMapMakeItem(item, biz, realItems[i], i)));
+
+    // Персонаж появляется у входа
+    bizMapPlayerPos = { x: 350, y: 430 };
+    bizMapPlayerTarget = null;
+    bizMapPendingInteract = null;
+    const player = document.createElement('div');
+    player.className = 'bizmap-player'; player.id = 'bizMapPlayer';
+    player.innerHTML = `<div class="bizmap-player-body"><div class="bizmap-player-head"></div><div class="bizmap-player-torso"></div></div><div class="bizmap-player-shadow"></div>`;
+    room.appendChild(player);
+    bizMapUpdatePlayerVisual();
+
+    // Клик по полу комнаты — просто идти туда, без взаимодействия
+    room.onclick = (e)=>{
+      const rect = room.getBoundingClientRect();
+      const x = Math.max(30, Math.min(670, e.clientX - rect.left));
+      const y = Math.max(215, Math.min(445, e.clientY - rect.top));
+      bizMapWalkTo(x, y, null);
+    };
+  }
+
+  function bizMapUpdatePlayerVisual(){
+    const player = document.getElementById('bizMapPlayer');
+    if (!player) return;
+    player.style.left = bizMapPlayerPos.x + 'px';
+    player.style.top = bizMapPlayerPos.y + 'px';
+  }
+
+  let bizMapJoyActive = false;
+  let bizMapJoyVec = { x: 0, y: 0 };
+
+  function bizMapEnsureLoop(){
+    if (!bizMapRAF) bizMapAnimateStep();
+  }
+
+  function bizMapWalkTo(x, y, onArrive){
+    bizMapJoyActive = false;
+    bizMapPlayerTarget = { x, y };
+    bizMapPendingInteract = onArrive;
+    const player = document.getElementById('bizMapPlayer');
+    if (player) player.classList.add('walking');
+    bizMapEnsureLoop();
+  }
+
+  function bizMapAnimateStep(){
+    const player = document.getElementById('bizMapPlayer');
+    const speed = 5.5;
+
+    if (bizMapJoyActive && (Math.abs(bizMapJoyVec.x) > 0.08 || Math.abs(bizMapJoyVec.y) > 0.08)){
+      bizMapPlayerTarget = null;
+      bizMapPendingInteract = null;
+      bizMapPlayerPos.x = Math.max(30, Math.min(670, bizMapPlayerPos.x + bizMapJoyVec.x * speed));
+      bizMapPlayerPos.y = Math.max(215, Math.min(445, bizMapPlayerPos.y + bizMapJoyVec.y * speed));
+      if (player) player.classList.add('walking');
+      bizMapUpdatePlayerVisual();
+      bizMapRAF = requestAnimationFrame(bizMapAnimateStep);
+      return;
+    }
+
+    if (!bizMapPlayerTarget){
+      if (player) player.classList.remove('walking');
+      bizMapRAF = null;
+      return;
+    }
+    const dx = bizMapPlayerTarget.x - bizMapPlayerPos.x;
+    const dy = bizMapPlayerTarget.y - bizMapPlayerPos.y;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    if (dist <= speed){
+      bizMapPlayerPos = { x: bizMapPlayerTarget.x, y: bizMapPlayerTarget.y };
+      bizMapPlayerTarget = null;
+      bizMapUpdatePlayerVisual();
+      if (player) player.classList.remove('walking');
+      bizMapRAF = null;
+      if (bizMapPendingInteract){
+        const cb = bizMapPendingInteract; bizMapPendingInteract = null;
+        cb();
+      }
+      return;
+    }
+    bizMapPlayerPos.x += (dx / dist) * speed;
+    bizMapPlayerPos.y += (dy / dist) * speed;
+    bizMapUpdatePlayerVisual();
+    bizMapRAF = requestAnimationFrame(bizMapAnimateStep);
+  }
+
+  function bizMapSetupJoystick(){
+    const base = document.getElementById('bizMapJoyBase');
+    const thumb = document.getElementById('bizMapJoyThumb');
+    if (!base || !thumb || base.dataset.bound) return;
+    base.dataset.bound = '1';
+    const maxR = 32;
+
+    function setFromEvent(clientX, clientY){
+      const rect = base.getBoundingClientRect();
+      const cx = rect.left + rect.width / 2, cy = rect.top + rect.height / 2;
+      let dx = clientX - cx, dy = clientY - cy;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+      const clamped = Math.min(dist, maxR);
+      const angle = Math.atan2(dy, dx);
+      const tx = Math.cos(angle) * clamped, ty = Math.sin(angle) * clamped;
+      thumb.style.transform = `translate(calc(-50% + ${tx}px), calc(-50% + ${ty}px))`;
+      bizMapJoyVec = { x: dist > 4 ? Math.cos(angle) * (clamped / maxR) : 0, y: dist > 4 ? Math.sin(angle) * (clamped / maxR) : 0 };
+    }
+
+    function start(e){
+      bizMapJoyActive = true;
+      const t = e.touches ? e.touches[0] : e;
+      setFromEvent(t.clientX, t.clientY);
+      bizMapEnsureLoop();
+      e.preventDefault();
+    }
+    function move(e){
+      if (!bizMapJoyActive) return;
+      const t = e.touches ? e.touches[0] : e;
+      setFromEvent(t.clientX, t.clientY);
+      e.preventDefault();
+    }
+    function end(){
+      bizMapJoyActive = false;
+      bizMapJoyVec = { x: 0, y: 0 };
+      thumb.style.transform = 'translate(-50%, -50%)';
+    }
+
+    base.addEventListener('touchstart', start, { passive: false });
+    base.addEventListener('touchmove', move, { passive: false });
+    base.addEventListener('touchend', end);
+    base.addEventListener('touchcancel', end);
+    base.addEventListener('mousedown', (e)=>{
+      start(e);
+      const onMove = (ev)=> move(ev);
+      const onUp = ()=>{ end(); document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); };
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
     });
   }
 
@@ -1181,6 +1330,10 @@
 
   function closeBizMiniMap(){
     bizMapCurrentBiz = null;
+    bizMapPlayerTarget = null;
+    bizMapPendingInteract = null;
+    bizMapJoyActive = false;
+    if (bizMapRAF){ cancelAnimationFrame(bizMapRAF); bizMapRAF = null; }
     document.getElementById('bizMiniMapOverlay')?.classList.remove('open');
   }
 
@@ -1189,6 +1342,7 @@
   function scheduleEvent(biz, field, minMs, maxMs){
     biz[field] = Date.now() + randRange(minMs, maxMs);
   }
+
 
   function hideOverlay(id){
     eventOverlayOpen = false;
